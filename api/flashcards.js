@@ -1,5 +1,5 @@
 import { z } from "zod";
-import pdf from "pdf-parse/lib/pdf-parse.js";
+import { getDocumentProxy } from "unpdf";
 import mammoth from "mammoth";
 import AdmZip from "adm-zip";
 
@@ -9,6 +9,7 @@ const MAX_FILES = 5;
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 25 * 1024 * 1024;
 const MAX_TOTAL_TEXT = 90000;
+const MAX_PDF_PAGES = 150;
 
 function respond(res, status, body) {
   res.status(status).setHeader("Content-Type", "application/json; charset=utf-8");
@@ -22,11 +23,61 @@ async function supabaseRequest(path, token) {
   if (!response.ok) throw new Error(`Supabase request failed (${response.status})`);
   return response.json();
 }
-async function extractText(buffer, fileName) {
+async function extractPdfText(buffer) {
+  const document = await getDocumentProxy(new Uint8Array(buffer), {
+    disableFontFace: true,
+    useSystemFonts: true,
+    isEvalSupported: false,
+    maxImageSize: 16777216
+  });
+
+  try {
+    const pageCount = document.numPages;
+    if (pageCount > MAX_PDF_PAGES) {
+      throw new Error(`This PDF contains ${pageCount} pages. The current limit is ${MAX_PDF_PAGES} pages per file. Split the document into smaller sections and try again.`);
+    }
+
+    const pageTexts = [];
+    let extractedCharacters = 0;
+    for (let pageNumber = 1; pageNumber <= pageCount; pageNumber++) {
+      const page = await document.getPage(pageNumber);
+      const content = await page.getTextContent();
+      const pageText = content.items
+        .map(item => typeof item.str === "string" ? item.str : "")
+        .join(" ");
+      pageTexts.push(pageText);
+      extractedCharacters += pageText.length;
+      page.cleanup();
+      if (extractedCharacters >= MAX_TOTAL_TEXT) break;
+    }
+
+    return {
+      text: pageTexts.join("\n"),
+      pageCount,
+      pagesProcessed: pageTexts.length
+    };
+  } finally {
+    try {
+      await document.destroy();
+    } catch {
+      // Ignore cleanup failures; preserve the extraction result or original error.
+    }
+  }
+}
+
+async function extractText(buffer, fileName, log) {
   const ext = fileName.split(".").pop().toLowerCase();
   if (ext === "pdf") {
-    const parsed = await pdf(buffer);
-    return parsed.text || "";
+    const startedAt = Date.now();
+    log("pdf_extraction_started", { bytes: buffer.length });
+    const parsed = await extractPdfText(buffer);
+    log("pdf_extraction_completed", {
+      durationMs: Date.now() - startedAt,
+      pages: parsed.pageCount,
+      pagesProcessed: parsed.pagesProcessed,
+      textCharacters: parsed.text.length
+    });
+    return parsed.text;
   }
   if (ext === "docx") return (await mammoth.extractRawText({ buffer })).value || "";
   if (ext === "pptx") {
@@ -50,6 +101,16 @@ export default async function handler(req, res) {
   const auth = req.headers.authorization || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
   if (!token) return respond(res, 401, { error: "Sign in to generate flashcards." });
+  const requestId = req.headers["x-vercel-id"] || "unknown";
+  const requestStartedAt = Date.now();
+  let stage = "authentication";
+  const log = (event, details = {}) => console.info("[flashcards]", JSON.stringify({
+    requestId,
+    event,
+    elapsedMs: Date.now() - requestStartedAt,
+    ...details
+  }));
+
   try {
     const userResponse = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
       headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}` }
@@ -88,6 +149,7 @@ export default async function handler(req, res) {
       return respond(res, 403, { error: "One or more selected files are not active notes for this course." });
     }
 
+    stage = "download_and_extract";
     const declaredTotalBytes = resources.reduce((sum, item) => sum + Number(item.file_size || 0), 0);
     if (declaredTotalBytes > MAX_TOTAL_BYTES) return respond(res, 413, { error: "The selected notes exceed the 25 MB total processing limit. Select fewer or smaller files." });
     const excerpts = [];
@@ -96,6 +158,7 @@ export default async function handler(req, res) {
       const ext = resource.file_name.split(".").pop().toLowerCase();
       if (!["pdf", "docx", "pptx"].includes(ext)) return respond(res, 400, { error: `“${resource.title}” is not a supported notes format.` });
       const storagePath = resource.file_path.split("/").map(encodeURIComponent).join("/");
+      log("note_download_started", { extension: ext, declaredBytes: Number(resource.file_size || 0) });
       const download = await fetch(`${SUPABASE_URL}/storage/v1/object/authenticated/course-resources/${storagePath}`, {
         headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}` }
       });
@@ -104,7 +167,8 @@ export default async function handler(req, res) {
       if (contentLength > MAX_FILE_BYTES) return respond(res, 413, { error: `“${resource.title}” exceeds the 12 MB per-file processing limit.` });
       const bytes = Buffer.from(await download.arrayBuffer());
       if (bytes.length > MAX_FILE_BYTES) return respond(res, 413, { error: `“${resource.title}” exceeds the 12 MB per-file processing limit.` });
-      const extracted = cleanText(await extractText(bytes, resource.file_name));
+      log("note_download_completed", { bytes: bytes.length });
+      const extracted = cleanText(await extractText(bytes, resource.file_name, log));
       if (!extracted) continue;
       const clipped = extracted.slice(0, MAX_TOTAL_TEXT - totalText);
       totalText += clipped.length;
@@ -146,8 +210,16 @@ ${excerpts.join("\n\n---\n\n")}`;
       },
       required: ["flashcards"]
     };
+    stage = "gemini_generation";
+    log("gemini_request_started", {
+      model: process.env.GEMINI_MODEL || "gemini-3.8-flash",
+      promptCharacters: prompt.length,
+      flashcardCount: count
+    });
+    const geminiStartedAt = Date.now();
     const geminiResponse = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
       method: "POST",
+      signal: AbortSignal.timeout(35000),
       headers: {
         "Content-Type": "application/json",
         "x-goog-api-key": geminiApiKey
@@ -164,6 +236,10 @@ ${excerpts.join("\n\n---\n\n")}`;
       })
     });
     const geminiResult = await geminiResponse.json().catch(() => ({}));
+    log("gemini_response_received", {
+      status: geminiResponse.status,
+      durationMs: Date.now() - geminiStartedAt
+    });
     if (!geminiResponse.ok) {
       console.error("Gemini API request failed:", geminiResponse.status, geminiResult?.error?.message || "Unknown provider error");
       return respond(res, geminiResponse.status === 429 ? 429 : 502, {
@@ -199,7 +275,12 @@ ${excerpts.join("\n\n---\n\n")}`;
     const flashcards = validatedOutput.data.flashcards;
     return respond(res, 200, { course: { id: course.id, code: course.code, title: course.title }, sources: resources.map(item => item.title), flashcards });
   } catch (error) {
-    console.error("Flashcard generation failed:", error);
+    console.error("Flashcard generation failed:", JSON.stringify({
+      requestId: req.headers["x-vercel-id"] || "unknown",
+      stage,
+      elapsedMs: typeof requestStartedAt === "number" ? Date.now() - requestStartedAt : null,
+      error: error?.message || String(error)
+    }));
     return respond(res, 500, { error: "Flashcard generation failed. Please try again. If the problem continues, contact the UNI-VERSE administrator." });
   }
 }
