@@ -2,7 +2,7 @@ import { generateText, Output } from "ai";
 import { createGateway } from "@ai-sdk/gateway";
 import { getVercelOidcToken } from "@vercel/oidc";
 import { z } from "zod";
-import pdf from "pdf-parse";
+import pdf from "pdf-parse/lib/pdf-parse.js";
 import mammoth from "mammoth";
 import AdmZip from "adm-zip";
 
