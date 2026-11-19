@@ -1,6 +1,10 @@
 import { supabase, requireProfile, signOut } from "./supabase.js";
 const $ = selector => document.querySelector(selector);
 $("#logout").addEventListener("click", signOut);
+if (location.hostname.endsWith("github.io")) {
+  $("#github-pages-notice").hidden = false;
+  $(".flashcard-panel").hidden = true;
+} else {
 const session = await requireProfile();
 if (session) {
   const { profile, user } = session;
@@ -94,4 +98,6 @@ if (session) {
   function rate(isKnown) { ratings.set(index, isKnown); if (isKnown) known.add(index); else known.delete(index); if (index < deck.length - 1) move(1); else renderCard(); }
   function setStatus(message, success = false) { $("#status").textContent = message; $("#status").classList.toggle("success", success); }
   function formatSize(bytes) { if (!bytes) return "Size unknown"; return bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`; }
+}
+
 }
