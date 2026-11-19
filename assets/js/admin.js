@@ -3,8 +3,9 @@ import { supabase, requireProfile, signOut, showMessage } from "./supabase.js";
 document.querySelector("#logout").addEventListener("click", signOut);
 const session = await requireProfile();
 
-if (session) {
-  if (session.profile.role !== "admin") location.replace("./student.html");
+if (session && session.profile.role !== "admin") {
+  location.replace("./student.html");
+} else if (session) {
   document.querySelector("#user-label").textContent = session.profile.full_name || session.user.email;
 
   const departmentSelect = document.querySelector("#department");
