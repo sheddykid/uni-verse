@@ -1,4 +1,6 @@
 import { generateText, Output } from "ai";
+import { createGateway } from "@ai-sdk/gateway";
+import { getVercelOidcToken } from "@vercel/oidc";
 import { z } from "zod";
 import pdfParse from "pdf-parse";
 import mammoth from "mammoth";
@@ -121,8 +123,11 @@ Do not include markdown fences, commentary, citations, or any other keys.
 
 COURSE NOTES:
 ${excerpts.join("\n\n---\n\n")}`;
+    const gatewayToken = process.env.AI_GATEWAY_API_KEY || await getVercelOidcToken();
+    if (!gatewayToken) throw new Error("Vercel AI Gateway authentication is not configured.");
+    const aiGateway = createGateway({ apiKey: gatewayToken });
     const { output } = await generateText({
-      model: "openai/gpt-6-astra",
+      model: aiGateway("openai/gpt-6-astra"),
       output: Output.object({
         schema: z.object({
           flashcards: z.array(z.object({
