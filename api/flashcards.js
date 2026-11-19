@@ -7,6 +7,7 @@ const SUPABASE_URL = "https://xcybjuwearndoljqkzmy.supabase.co";
 const SUPABASE_KEY = "sb_publishable_8egrnqtwHtrfzvtPcldiQw_y1Wqhh9w";
 const MAX_FILES = 5;
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
+const MAX_TOTAL_BYTES = 25 * 1024 * 1024;
 const MAX_TOTAL_TEXT = 90000;
 
 function respond(res, status, body) {
@@ -29,6 +30,8 @@ async function extractText(buffer, fileName) {
     const zip = new AdmZip(buffer);
     const slides = zip.getEntries().filter(entry => /^ppt\/slides\/slide\d+\.xml$/i.test(entry.entryName))
       .sort((a, b) => Number(a.entryName.match(/slide(\d+)/i)?.[1] || 0) - Number(b.entryName.match(/slide(\d+)/i)?.[1] || 0));
+    const expandedSize = slides.reduce((sum, entry) => sum + (entry.header?.size || 0), 0);
+    if (expandedSize > 30 * 1024 * 1024) throw new Error("This PowerPoint file expands beyond the safe processing limit.");
     return slides.map(entry => entry.getData().toString("utf8")
       .replace(/<a:br\s*\/>/g, "\n").replace(/<\/a:p>/g, "\n").replace(/<[^>]+>/g, " ")
       .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
@@ -84,7 +87,7 @@ export default async function handler(req, res) {
 
     const resourceFilter = resourceIds.map(id => id.replace(/[(),]/g, "")).join(",");
     const resourceParams = new URLSearchParams({
-      select: "id,course_id,title,file_name,file_path,mime_type,resource_type,is_active",
+      select: "id,course_id,title,file_name,file_path,file_size,mime_type,resource_type,is_active",
       course_id: `eq.${courseId}`, resource_type: "eq.note", is_active: "eq.true",
       id: "in.(" + resourceFilter + ")"
     });
@@ -93,6 +96,8 @@ export default async function handler(req, res) {
       return respond(res, 403, { error: "One or more selected files are not active notes for this course." });
     }
 
+    const declaredTotalBytes = resources.reduce((sum, item) => sum + Number(item.file_size || 0), 0);
+    if (declaredTotalBytes > MAX_TOTAL_BYTES) return respond(res, 413, { error: "The selected notes exceed the 25 MB total processing limit. Select fewer or smaller files." });
     const excerpts = [];
     let totalText = 0;
     for (const resource of resources) {
@@ -103,6 +108,8 @@ export default async function handler(req, res) {
         headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}` }
       });
       if (!download.ok) return respond(res, 403, { error: `Could not access the selected note “${resource.title}”.` });
+      const contentLength = Number(download.headers.get("content-length") || 0);
+      if (contentLength > MAX_FILE_BYTES) return respond(res, 413, { error: `“${resource.title}” exceeds the 12 MB per-file processing limit.` });
       const bytes = Buffer.from(await download.arrayBuffer());
       if (bytes.length > MAX_FILE_BYTES) return respond(res, 413, { error: `“${resource.title}” exceeds the 12 MB per-file processing limit.` });
       const extracted = cleanText(await extractText(bytes, resource.file_name));
