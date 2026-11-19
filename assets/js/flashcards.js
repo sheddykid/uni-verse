@@ -66,8 +66,11 @@ if (session) {
       const response = await fetch("/api/flashcards", { method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${authSession.access_token}` },
         body: JSON.stringify({ courseId: courseSelect.value, resourceIds, count: Number($("#card-count").value) }) });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Could not generate flashcards.");
+      const responseText = await response.text();
+      let result;
+      try { result = responseText ? JSON.parse(responseText) : {}; }
+      catch { throw new Error(`The flashcard server returned an invalid response (HTTP ${response.status}). Please try again. If it continues, contact the UNI-VERSE administrator.`); }
+      if (!response.ok) throw new Error(result.error || `Could not generate flashcards (HTTP ${response.status}).`);
       deck = result.flashcards || []; index = 0; flipped = false; known.clear(); ratings.clear();
       if (!deck.length) throw new Error("No flashcards were generated from these notes.");
       $("#deck-title").textContent = `${result.course.code} — ${result.course.title}`;
