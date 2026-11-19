@@ -30,7 +30,33 @@ if (session) {
       const info = document.createElement("span");
       const names = (departmentsByCourse.get(course.id) || []).map(d => d.code || d.name).join(", ");
       info.textContent = `${course.code} — ${course.title} · ${names || "No department"} · ${course.is_active ? "Active" : "Inactive"}`;
+      const actions = document.createElement("div");
+      actions.className = "resource-actions";
+
+      const editTitle = document.createElement("button");
+      editTitle.className = "btn secondary";
+      editTitle.textContent = "Edit title";
+      editTitle.addEventListener("click", async () => {
+        const nextTitle = prompt(`Edit title for ${course.code}:`, course.title);
+        if (nextTitle === null) return;
+        const title = nextTitle.trim();
+        if (!title) { alert("The course title cannot be empty."); return; }
+        if (title === course.title) return;
+
+        editTitle.disabled = true;
+        const { error: updateError } = await supabase.from("courses")
+          .update({ title }).eq("id", course.id);
+        if (updateError) {
+          alert("Could not update the course title: " + updateError.message);
+          editTitle.disabled = false;
+          return;
+        }
+        await loadCourses();
+        await loadResources();
+      });
+
       const button = document.createElement("button");
+      button.className = "btn secondary";
       button.textContent = course.is_active ? "Deactivate" : "Activate";
       button.addEventListener("click", async () => {
         if (!confirm(`${course.is_active ? "Deactivate" : "Activate"} ${course.code}?`)) return;
@@ -41,7 +67,9 @@ if (session) {
         await loadCourses();
         await loadResources();
       });
-      row.append(info, button); target.append(row);
+      actions.append(editTitle, button);
+      row.append(info, actions);
+      target.append(row);
     });
   }
 
