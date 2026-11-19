@@ -8,6 +8,30 @@ export function showMessage(element, message, success=false) {
   element.textContent = message;
   element.classList.toggle("success", success);
 }
+export function enablePasswordToggles(root=document) {
+  root.querySelectorAll('input[type="password"]').forEach(input => {
+    if (input.dataset.toggleReady) return;
+    input.dataset.toggleReady = "true";
+    const wrapper = document.createElement("div");
+    wrapper.className = "password-wrap";
+    input.parentNode.insertBefore(wrapper, input);
+    wrapper.append(input);
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "password-toggle";
+    toggle.textContent = "Show";
+    toggle.setAttribute("aria-label", "Show password");
+    toggle.setAttribute("aria-pressed", "false");
+    toggle.addEventListener("click", () => {
+      const reveal = input.type === "password";
+      input.type = reveal ? "text" : "password";
+      toggle.textContent = reveal ? "Hide" : "Show";
+      toggle.setAttribute("aria-label", reveal ? "Hide password" : "Show password");
+      toggle.setAttribute("aria-pressed", String(reveal));
+    });
+    wrapper.append(toggle);
+  });
+}
 export async function requireProfile() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) { location.replace("./index.html"); return null; }
