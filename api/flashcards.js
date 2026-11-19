@@ -2,7 +2,7 @@ import { generateText, Output } from "ai";
 import { createGateway } from "@ai-sdk/gateway";
 import { getVercelOidcToken } from "@vercel/oidc";
 import { z } from "zod";
-import { PDFParse } from "pdf-parse";
+import pdf from "pdf-parse";
 import mammoth from "mammoth";
 import AdmZip from "adm-zip";
 
@@ -28,9 +28,8 @@ async function supabaseRequest(path, token) {
 async function extractText(buffer, fileName) {
   const ext = fileName.split(".").pop().toLowerCase();
   if (ext === "pdf") {
-    const parser = new PDFParse({ data: buffer });
-    try { return (await parser.getText()).text || ""; }
-    finally { await parser.destroy(); }
+    const parsed = await pdf(buffer);
+    return parsed.text || "";
   }
   if (ext === "docx") return (await mammoth.extractRawText({ buffer })).value || "";
   if (ext === "pptx") {
