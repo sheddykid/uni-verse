@@ -32,6 +32,7 @@ if (session) {
       info.textContent = `${course.code} — ${course.title} · ${names || "No department"} · ${course.is_active ? "Active" : "Inactive"}`;
       const actions = document.createElement("div");
       actions.className = "resource-actions";
+      info.className = "course-row-info";
 
       const editTitle = document.createElement("button");
       editTitle.className = "btn secondary";
@@ -67,7 +68,34 @@ if (session) {
         await loadCourses();
         await loadResources();
       });
-      actions.append(editTitle, button);
+      const removeCourse = document.createElement("button");
+      removeCourse.className = "btn danger";
+      removeCourse.textContent = "Delete";
+      removeCourse.addEventListener("click", async () => {
+        if (!confirm(`Permanently delete ${course.code} — ${course.title}? This also deletes all its resource records and uploaded files. This cannot be undone.`)) return;
+        removeCourse.disabled = true;
+        removeCourse.textContent = "Deleting…";
+        const { data: courseResources, error: resourceLookupError } = await supabase.from("course_resources").select("file_path").eq("course_id", course.id);
+        if (resourceLookupError) {
+          alert("Could not check the course resources: " + resourceLookupError.message);
+          removeCourse.disabled = false; removeCourse.textContent = "Delete"; return;
+        }
+        const filePaths = (courseResources || []).map(item => item.file_path).filter(Boolean);
+        if (filePaths.length) {
+          const { error: storageError } = await supabase.storage.from("course-resources").remove(filePaths);
+          if (storageError) {
+            alert("Course was not deleted because its uploaded files could not be removed: " + storageError.message);
+            removeCourse.disabled = false; removeCourse.textContent = "Delete"; return;
+          }
+        }
+        const { error: deleteError } = await supabase.from("courses").delete().eq("id", course.id);
+        if (deleteError) {
+          alert("Uploaded files were removed, but the course record could not be deleted: " + deleteError.message);
+          removeCourse.disabled = false; removeCourse.textContent = "Delete"; return;
+        }
+        await loadCourses(); await loadResources();
+      });
+      actions.append(editTitle, button, removeCourse);
       row.append(info, actions);
       target.append(row);
     });
