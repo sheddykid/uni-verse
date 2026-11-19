@@ -5,7 +5,7 @@ import AdmZip from "adm-zip";
 
 const SUPABASE_URL = "https://xcybjuwearndoljqkzmy.supabase.co";
 const SUPABASE_KEY = "sb_publishable_8egrnqtwHtrfzvtPcldiQw_y1Wqhh9w";
-const MAX_FILES = 5;
+const MAX_FILES = 2;
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 25 * 1024 * 1024;
 const MAX_TOTAL_TEXT = 90000;
