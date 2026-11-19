@@ -50,7 +50,7 @@ if (location.hostname.endsWith("github.io")) {
     }
     function updateSelection() {
       const selected = [...notesList.querySelectorAll('input[type="checkbox"]:checked')];
-      if (selected.length > 5) { selected[selected.length-1].checked = false; setStatus("Select no more than five note files."); }
+      if (selected.length > 1) { selected[selected.length-1].checked = false; setStatus("Select only one note file."); }
       else setStatus("");
       const count = notesList.querySelectorAll('input[type="checkbox"]:checked').length;
       generateButton.disabled = count === 0;
