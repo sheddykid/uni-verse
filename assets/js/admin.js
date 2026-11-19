@@ -8,7 +8,7 @@ if (session && session.profile.role !== "admin") {
 } else if (session) {
   document.querySelector("#user-label").textContent = session.profile.full_name || session.user.email;
 
-  const departmentSelect = document.querySelector("#department");
+  const departmentOptions = document.querySelector("#department-options");
   const resourceCourse = document.querySelector("#resource-course");
   const resourceType = document.querySelector("#resource-type");
   const questionFields = document.querySelector("#question-fields");
@@ -32,13 +32,21 @@ if (session && session.profile.role !== "admin") {
 
   const { data: departments, error: deptError } = await supabase
     .from("departments").select("id,name,code").eq("is_active", true).order("name");
-  if (deptError) departmentSelect.innerHTML = '<option value="">Could not load departments</option>';
-  else {
-    departmentSelect.replaceChildren();
+  if (deptError) {
+    departmentOptions.textContent = "Could not load departments. Refresh the page and try again.";
+  } else {
+    departmentOptions.replaceChildren();
     departments.forEach(d => {
-      const option = document.createElement("option");
-      option.value = d.id; option.textContent = `${d.name} (${d.code})`;
-      departmentSelect.append(option);
+      const label = document.createElement("label");
+      label.className = "department-option";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.name = "departments";
+      checkbox.value = d.id;
+      const name = document.createElement("span");
+      name.textContent = `${d.name} (${d.code})`;
+      label.append(checkbox, name);
+      departmentOptions.append(label);
     });
   }
 
@@ -95,8 +103,8 @@ if (session && session.profile.role !== "admin") {
     const message = document.querySelector("#message");
     const button = event.currentTarget.querySelector("button");
     button.disabled = true;
-    const selectedDepartmentIds = [...departmentSelect.selectedOptions]
-      .map(option => option.value).filter(Boolean);
+    const selectedDepartmentIds = [...departmentOptions.querySelectorAll('input[name="departments"]:checked')]
+      .map(checkbox => checkbox.value);
     if (!selectedDepartmentIds.length) {
       showMessage(message, "Select at least one department.");
       button.disabled = false;
