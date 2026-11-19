@@ -48,7 +48,7 @@ if (session) {
   }
   function updateSelection() {
     const selected = notesList.querySelectorAll('input[type="checkbox"]:checked');
-    if (selected.length > 5) { selected[selected.length - 1].checked = false; setStatus("Select no more than five note files at a time."); }
+    if (selected.length > 2) { selected[selected.length - 1].checked = false; setStatus("Select no more than two note files at a time."); }
     else setStatus("");
     const amount = notesList.querySelectorAll('input[type="checkbox"]:checked').length;
     generateButton.disabled = amount === 0;
