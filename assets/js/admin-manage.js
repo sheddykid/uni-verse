@@ -150,10 +150,10 @@ if (session && session.profile.role !== "admin") {
       const remove = document.createElement("button"); remove.className = "btn danger"; remove.textContent = "Delete";
       remove.addEventListener("click", async () => {
         if (!confirm('Permanently delete "' + resource.title + '" and its uploaded file?')) return;
-        const { error: deleteError } = await supabase.from("course_resources").delete().eq("id", resource.id);
-        if (deleteError) { alert(deleteError.message); return; }
         const { error: storageError } = await supabase.storage.from("course-resources").remove([resource.file_path]);
-        if (storageError) alert("The resource record was deleted, but its stored file could not be removed: " + storageError.message);
+        if (storageError) { alert("The resource was not deleted because its stored file could not be removed: " + storageError.message); return; }
+        const { error: deleteError } = await supabase.from("course_resources").delete().eq("id", resource.id);
+        if (deleteError) { alert("The file was removed, but the resource record could not be deleted: " + deleteError.message); return; }
         await loadResources();
       });
 
@@ -161,6 +161,30 @@ if (session && session.profile.role !== "admin") {
     });
   }
 
+  // Remove previously uploaded objects that have no resource record.
+  // Re-check the database before deleting; never remove a file referenced by a resource.
+  const knownOrphanPaths = [
+    "9e11baf6-9072-4a3d-b1ae-738a19a574d4/503a8d10-aae9-4d5f-bc50-d8c1ec3f215e-Screenshot_20261119-161006.png",
+    "3d9963c9-8ca5-40ed-9750-0970157ee5ca/be3c4872-ca9b-47ea-af6d-c15b9f5d445d-CPE503_Group02_Problem02_Report_DRAFT.pdf",
+    "cbbf9fb3-07d9-47be-a692-689a6120f5d2/3d9963c9-8ca5-40ed-9750-0970157ee5ca/43f3d4a6-3180-4e2d-9cf3-dc58b62d1d55-200L_-_500L_2026-2027_Examination_Timetable.pdf",
+    "15c8fdfe-34ff-4bb5-ac65-ceede2056f07/3e5639c8-b312-4a88-ae5b-df5f040722a8/65385c8d-1c85-4983-ba18-3559cefedf6f-200L_-_500L_2026-2027_Examination_Timetable.pdf"
+  ];
+  async function removeOrphanedUploads() {
+    const { data: referenced, error: lookupError } = await supabase
+      .from("course_resources").select("file_path").in("file_path", knownOrphanPaths);
+    if (lookupError) {
+      console.error("Could not verify orphaned uploads:", lookupError);
+      return;
+    }
+    const referencedPaths = new Set((referenced || []).map(item => item.file_path));
+    const safeToRemove = knownOrphanPaths.filter(path => !referencedPaths.has(path));
+    if (!safeToRemove.length) return;
+    const { error: storageError } = await supabase.storage.from("course-resources").remove(safeToRemove);
+    if (storageError) console.error("Could not remove orphaned uploads:", storageError);
+    else console.info(`Removed ${safeToRemove.length} orphaned upload(s).`);
+  }
+
   await loadCourses();
   await loadResources();
+  await removeOrphanedUploads();
 }
