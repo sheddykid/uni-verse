@@ -15,10 +15,11 @@
 - **Email confirmation:** New accounts must confirm their email address before signing in. The sign-in page also provides a way to resend a confirmation email when needed.
 - **Secure sign-in and sign-out:** Supabase Authentication manages student sessions.
 - **Department-based course listing:** Students see active courses assigned to their registered department.
-- **Learning resources:** Course cards separate uploaded materials into notes and past questions.
+- **Feature hub:** The student dashboard links to dedicated pages for notes, past questions, quizzes, flashcards and video tutorials.
+- **Learning resources:** Notes and past questions have separate pages, with course filtering and test/exam filtering for past questions.
 - **Past-question details:** Resources can identify test or examination questions and optionally include the academic year and semester.
 - **Downloads:** Students can download course files. Image-based past questions can also be previewed in the dashboard.
-- **AI flashcards:** Students can select a course and up to five uploaded notes to generate interactive question-and-answer revision cards through Vercel AI Gateway. Only active course notes are eligible; past questions are excluded.
+- **AI flashcards:** Students can select a course and up to five uploaded notes to generate interactive question-and-answer revision cards through the Gemini API from the authenticated Vercel serverless endpoint. Only active course notes are eligible; past questions are excluded.
 - **Password recovery:** Students can request a password-reset email and set a new password through the recovery link.
 
 ### Administrator features
@@ -33,7 +34,7 @@
 - **Student preview:** Administrators can open the student dashboard to view the student-facing experience.
 
 ### Planned learning tools
-The student dashboard currently identifies video tutorials and an AI study assistant as future additions. These should be treated as planned features, not as currently implemented functionality.
+Dedicated pages now exist for quizzes and video tutorials, but their learning functionality is not implemented yet. These pages are clearly marked as coming soon.
 
 ---
 
@@ -44,8 +45,12 @@ The student dashboard currently identifies video tutorials and an AI study assis
 | `index.html` | Student sign-in |
 | `register.html` | Student account registration |
 | `admin-login.html` | Restricted administrator sign-in |
-| `student.html` | Student learning dashboard |
+| `student.html` | Student feature hub |
+| `notes.html` | Course notes browser and downloads |
+| `past-questions.html` | Past questions browser with test/exam filters |
+| `quizzes.html` | Dedicated quizzes page (planned functionality) |
 | `flashcards.html` | AI flashcard generator and interactive study deck (Vercel deployment) |
+| `videos.html` | Dedicated video tutorials page (planned functionality) |
 | `admin.html` | Create courses and upload resources |
 | `admin-manage.html` | Manage existing courses and uploaded resources |
 | `reset-password.html` | Request a password-reset email |
@@ -61,7 +66,7 @@ The student dashboard currently identifies video tutorials and an AI study assis
 - **Database:** Supabase Postgres for user profiles, departments, courses, course-to-department assignments and resource metadata.
 - **File storage:** Supabase Storage bucket named `course-resources`.
 - **Hosting:** Vercel and GitHub Pages.
-- **AI generation:** Vercel AI Gateway through the Vercel AI SDK; document extraction supports PDF, DOCX and PPTX course notes.
+- **AI generation:** Google Gemini API called from the authenticated Vercel serverless function; document extraction supports PDF, DOCX and PPTX course notes.
 - **Supabase JavaScript client:** Loaded from `https://esm.sh/@supabase/supabase-js@2`.
 
 The project is a static frontend. It does not currently require a Node.js build step or a package manager to run.
@@ -84,7 +89,9 @@ uni-verse/
 │       ├── register.js         # Student registration and department loading
 │       ├── reset-password.js  # Password-reset email request
 │       ├── update-password.js # Password recovery session and password update
-│       ├── student.js          # Student dashboard, resource listing and downloads
+│       ├── student.js          # Student feature hub and profile display
+│       ├── resources.js        # Notes and past-question listing, filters and downloads
+│       ├── placeholder.js      # Authentication for planned feature pages
 │       ├── flashcards.js       # Course-note selection and interactive AI flashcards
 │       ├── admin.js            # Course creation and resource uploads
 │       └── admin-manage.js     # Course and resource administration
@@ -94,8 +101,12 @@ uni-verse/
 ├── index.html                 # Student sign-in page
 ├── register.html              # Registration page
 ├── admin-login.html           # Administrator sign-in page
-├── student.html               # Student dashboard
+├── student.html               # Student feature hub
+├── notes.html                  # Course notes browser
+├── past-questions.html         # Past questions browser
+├── quizzes.html                # Quizzes landing page
 ├── flashcards.html             # AI flashcard generator and study deck
+├── videos.html                 # Video tutorials landing page
 ├── admin.html                 # Administrator content dashboard
 ├── admin-manage.html          # Course and resource management page
 ├── reset-password.html        # Password-reset request page
@@ -211,8 +222,8 @@ For GitHub Pages deployment, ensure GitHub Pages is configured to use **GitHub A
 ## 10. Current scope and limitations
 
 - UNI-VERSE includes authentication, department-based course access, course administration, downloadable learning resources and AI flashcard generation.
-- AI flashcards require the Vercel deployment because GitHub Pages does not run the `/api/flashcards` serverless function. The Vercel deployment uses its deployment OIDC identity to authenticate with AI Gateway; an AI Gateway API key can be configured in Vercel if needed.
-- Video tutorials, multiple-choice quizzes and theory-question generation remain planned additions.
+- AI flashcards require the Vercel deployment because GitHub Pages does not run the `/api/flashcards` serverless function. The Gemini API key is stored as a Vercel environment variable and is never exposed to the browser.
+- Video tutorials and quizzes have dedicated landing pages, but their actual content and quiz-generation features remain planned additions.
 - The frontend validates supported file extensions and file size, but backend Storage policies must also enforce appropriate access and upload restrictions.
 - Email delivery depends on the SMTP provider configured in Supabase Auth and the provider's sending limits.
 
