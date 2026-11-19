@@ -1,4 +1,5 @@
-import { generateText } from "ai";
+import { generateText, Output } from "ai";
+import { z } from "zod";
 import pdfParse from "pdf-parse";
 import mammoth from "mammoth";
 import AdmZip from "adm-zip";
@@ -42,17 +43,6 @@ async function extractText(buffer, fileName) {
 function cleanText(value) {
   return value.replace(/\u0000/g, "").replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
 }
-function parseCards(raw, count) {
-  const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-  const parsed = JSON.parse(cleaned);
-  if (!Array.isArray(parsed.flashcards)) throw new Error("The AI returned an invalid flashcard set.");
-  const cards = parsed.flashcards.slice(0, count).map(card => ({
-    front: String(card.front || "").trim(), back: String(card.back || "").trim()
-  })).filter(card => card.front && card.back && card.front.length <= 300 && card.back.length <= 500);
-  if (cards.length < Math.min(count, 5)) throw new Error("The notes did not produce enough reliable flashcards. Try different notes.");
-  return cards;
-}
-
 export default async function handler(req, res) {
   if (req.method !== "POST") { res.setHeader("Allow", "POST"); return respond(res, 405, { error: "Method not allowed." }); }
   const auth = req.headers.authorization || "";
@@ -131,8 +121,21 @@ Do not include markdown fences, commentary, citations, or any other keys.
 
 COURSE NOTES:
 ${excerpts.join("\n\n---\n\n")}`;
-    const result = await generateText({ model: "openai/gpt-6-astra", prompt, temperature: 0.3, maxOutputTokens: 4500 });
-    const flashcards = parseCards(result.text, count);
+    const { output } = await generateText({
+      model: "openai/gpt-6-astra",
+      output: Output.object({
+        schema: z.object({
+          flashcards: z.array(z.object({
+            front: z.string().min(1).max(300),
+            back: z.string().min(1).max(500)
+          })).min(5).max(count)
+        })
+      }),
+      prompt,
+      temperature: 0.3,
+      maxOutputTokens: 4500
+    });
+    const flashcards = output.flashcards;
     return respond(res, 200, { course: { id: course.id, code: course.code, title: course.title }, sources: resources.map(item => item.title), flashcards });
   } catch (error) {
     console.error("Flashcard generation failed:", error);
