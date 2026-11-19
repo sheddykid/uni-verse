@@ -65,6 +65,7 @@ export default async function handler(req, res) {
     const courseId = String(body.courseId || "");
     const resourceIds = Array.isArray(body.resourceIds) ? [...new Set(body.resourceIds.map(String))] : [];
     const count = Math.max(5, Math.min(30, Number.parseInt(body.count, 10) || 15));
+    if (!/^[0-9a-f-]{36}$/i.test(courseId) || resourceIds.some(id => !/^[0-9a-f-]{36}$/i.test(id))) return respond(res, 400, { error: "Invalid course or note selection." });
     if (!courseId || !resourceIds.length) return respond(res, 400, { error: "Choose a course and at least one set of course notes." });
     if (resourceIds.length > MAX_FILES) return respond(res, 400, { error: `Select no more than ${MAX_FILES} note files at a time.` });
 
