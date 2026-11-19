@@ -5,13 +5,22 @@ const session = await requireProfile();
 
 if (session) {
   const { profile } = session;
-  document.querySelector("#welcome").textContent = `Welcome, ${profile.full_name || "student"}`;
-  document.querySelector("#user-label").textContent = profile.matric_number || session.user.email;
+  const isAdmin = profile.role === "admin";
+  document.querySelector("#welcome").textContent = isAdmin
+    ? `Student View · ${profile.full_name || "Administrator"}`
+    : `Welcome, ${profile.full_name || "student"}`;
+  document.querySelector("#user-label").textContent = isAdmin
+    ? "Admin preview"
+    : (profile.matric_number || session.user.email);
+  const adminBack = document.querySelector("#admin-back");
+  if (isAdmin && adminBack) adminBack.hidden = false;
 
   const target = document.querySelector("#courses");
-  const { data: courses, error } = await supabase.from("courses")
+  let coursesQuery = supabase.from("courses")
     .select("id,code,title,description,course_departments!inner(department_id)")
-    .eq("is_active", true).eq("course_departments.department_id", profile.department_id).order("code");
+    .eq("is_active", true);
+  if (!isAdmin) coursesQuery = coursesQuery.eq("course_departments.department_id", profile.department_id);
+  const { data: courses, error } = await coursesQuery.order("code");
 
   target.replaceChildren();
   if (error) {
