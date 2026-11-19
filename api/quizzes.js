@@ -5,7 +5,7 @@ import AdmZip from "adm-zip";
 
 const SUPABASE_URL = "https://xcybjuwearndoljqkzmy.supabase.co";
 const SUPABASE_KEY = "sb_publishable_8egrnqtwHtrfzvtPcldiQw_y1Wqhh9w";
-const MAX_FILES = 5, MAX_FILE_BYTES = 12 * 1024 * 1024, MAX_TOTAL_BYTES = 25 * 1024 * 1024;
+const MAX_FILES = 1, MAX_FILE_BYTES = 12 * 1024 * 1024, MAX_TOTAL_BYTES = 25 * 1024 * 1024;
 const MAX_TOTAL_TEXT = 90000, MAX_PDF_PAGES = 150;
 
 function respond(res, status, body) {
@@ -63,7 +63,7 @@ async function authorize(req) {
   const courseId = String(body.courseId || "");
   const resourceIds = Array.isArray(body.resourceIds) ? [...new Set(body.resourceIds.map(String))] : [];
   if (!/^[0-9a-f-]{36}$/i.test(courseId) || !resourceIds.length || resourceIds.length > MAX_FILES ||
-      resourceIds.some(id => !/^[0-9a-f-]{36}$/i.test(id))) return { error: [400, "Choose a course and between one and five course-note files."] };
+      resourceIds.some(id => !/^[0-9a-f-]{36}$/i.test(id))) return { error: [400, "Choose a course and one course-note file."] };
   const profiles = await supabaseRequest(`profiles?select=id,role,department_id&id=eq.${encodeURIComponent(user.id)}&limit=1`, token);
   const profile = profiles[0];
   if (!profile || profile.id !== user.id) return { error: [403, "Your account profile could not be verified."] };
