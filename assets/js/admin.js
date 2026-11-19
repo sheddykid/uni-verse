@@ -42,6 +42,7 @@ if (session) {
   }
 
   async function loadCourses() {
+    const previousCourseId = resourceCourse.value;
     const { data, error } = await supabase
       .from("courses")
       .select("id,code,title,is_active")
@@ -58,8 +59,23 @@ if (session) {
       option.textContent = `${course.code} — ${course.title}`;
       resourceCourse.append(option);
     });
+    if ((data || []).some(course => course.id === previousCourseId)) {
+      resourceCourse.value = previousCourseId;
+    }
     return data || [];
   }
+
+  const refreshCoursesButton = document.querySelector("#refresh-courses");
+  refreshCoursesButton.addEventListener("click", async () => {
+    refreshCoursesButton.disabled = true;
+    refreshCoursesButton.textContent = "Refreshing…";
+    try {
+      await loadCourses();
+    } finally {
+      refreshCoursesButton.disabled = false;
+      refreshCoursesButton.textContent = "↻ Refresh";
+    }
+  });
 
   function updateFileAccept() {
     fileInput.accept = resourceType.value === "past_question" ? QUESTION_ACCEPT : DOCUMENT_ACCEPT;
