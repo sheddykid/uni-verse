@@ -85,12 +85,17 @@ uni-verse/
 │       ├── reset-password.js  # Password-reset email request
 │       ├── update-password.js # Password recovery session and password update
 │       ├── student.js          # Student dashboard, resource listing and downloads
+│       ├── flashcards.js       # Course-note selection and interactive AI flashcards
 │       ├── admin.js            # Course creation and resource uploads
 │       └── admin-manage.js     # Course and resource administration
+├── api/
+│   └── flashcards.js            # Authenticated Vercel serverless flashcard API
+├── package.json                # Serverless function dependencies
 ├── index.html                 # Student sign-in page
 ├── register.html              # Registration page
 ├── admin-login.html           # Administrator sign-in page
 ├── student.html               # Student dashboard
+├── flashcards.html             # AI flashcard generator and study deck
 ├── admin.html                 # Administrator content dashboard
 ├── admin-manage.html          # Course and resource management page
 ├── reset-password.html        # Password-reset request page
