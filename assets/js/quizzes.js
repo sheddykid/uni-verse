@@ -77,7 +77,8 @@ if (location.hostname.endsWith("github.io")) {
       $("#quiz-section").hidden = true;
       try {
         const result = await apiRequest({mode:quizMode,courseId:courseSelect.value,resourceIds:activeResourceIds,count});
-        questions = result.questions || []; course = result.course;\n        $("#submit-mcq").disabled = false;
+        questions = result.questions || []; course = result.course;
+        $("#submit-mcq").disabled = false;
         if (!questions.length) throw new Error("No questions were generated from these notes.");
         $("#quiz-title").textContent = `${course.code} — ${course.title}`;
         $("#quiz-sources").textContent = `Generated from: ${(result.sources||[]).join(", ")}`;
