@@ -34,7 +34,9 @@ async function extractPdfText(buffer) {
   try {
     const pageCount = document.numPages;
     if (pageCount > MAX_PDF_PAGES) {
-      throw new Error(`This PDF contains ${pageCount} pages. The current limit is ${MAX_PDF_PAGES} pages per file. Split the document into smaller sections and try again.`);
+      const error = new Error(`This PDF contains ${pageCount} pages. The current limit is ${MAX_PDF_PAGES} pages per file. Split the document into smaller sections and try again.`);
+      error.statusCode = 413;
+      throw error;
     }
 
     const pageTexts = [];
@@ -117,6 +119,7 @@ export default async function handler(req, res) {
     });
     if (!userResponse.ok) return respond(res, 401, { error: "Your session is invalid or has expired. Sign in again." });
     const user = await userResponse.json();
+    stage = "profile_lookup";
     const body = req.body || {};
     const courseId = String(body.courseId || "");
     const resourceIds = Array.isArray(body.resourceIds) ? [...new Set(body.resourceIds.map(String))] : [];
@@ -129,6 +132,7 @@ export default async function handler(req, res) {
     const profile = profiles[0];
     if (!profile || profile.id !== user.id) return respond(res, 403, { error: "Your student profile could not be verified." });
 
+    stage = "course_authorization";
     const courseParams = new URLSearchParams({ select: "id,code,title,course_departments!inner(department_id)", id: `eq.${courseId}`, is_active: "eq.true", limit: "1" });
     if (profile.role !== "admin") {
       if (!profile.department_id) return respond(res, 403, { error: "Your account has no department assigned." });
@@ -138,6 +142,7 @@ export default async function handler(req, res) {
     if (!courses.length) return respond(res, 403, { error: "You do not have access to that active course." });
     const course = courses[0];
 
+    stage = "resource_authorization";
     const resourceFilter = resourceIds.map(id => id.replace(/[(),]/g, "")).join(",");
     const resourceParams = new URLSearchParams({
       select: "id,course_id,title,file_name,file_path,file_size,mime_type,resource_type,is_active",
@@ -168,6 +173,7 @@ export default async function handler(req, res) {
       const bytes = Buffer.from(await download.arrayBuffer());
       if (bytes.length > MAX_FILE_BYTES) return respond(res, 413, { error: `“${resource.title}” exceeds the 12 MB per-file processing limit.` });
       log("note_download_completed", { bytes: bytes.length });
+      stage = "document_extraction";
       const extracted = cleanText(await extractText(bytes, resource.file_name, log));
       if (!extracted) continue;
       const clipped = extracted.slice(0, MAX_TOTAL_TEXT - totalText);
@@ -281,6 +287,9 @@ ${excerpts.join("\n\n---\n\n")}`;
       elapsedMs: typeof requestStartedAt === "number" ? Date.now() - requestStartedAt : null,
       error: error?.message || String(error)
     }));
+    if (Number.isInteger(error?.statusCode) && error.statusCode >= 400 && error.statusCode < 500) {
+      return respond(res, error.statusCode, { error: error.message });
+    }
     return respond(res, 500, { error: "Flashcard generation failed. Please try again. If the problem continues, contact the UNI-VERSE administrator." });
   }
 }
