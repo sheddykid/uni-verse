@@ -27,7 +27,11 @@ async function supabaseRequest(path, token) {
 }
 async function extractText(buffer, fileName) {
   const ext = fileName.split(".").pop().toLowerCase();
-  if (ext === "pdf") {\n    const parser = new PDFParse({ data: buffer });\n    try { return (await parser.getText()).text || ""; }\n    finally { await parser.destroy(); }\n  }
+  if (ext === "pdf") {
+    const parser = new PDFParse({ data: buffer });
+    try { return (await parser.getText()).text || ""; }
+    finally { await parser.destroy(); }
+  }
   if (ext === "docx") return (await mammoth.extractRawText({ buffer })).value || "";
   if (ext === "pptx") {
     const zip = new AdmZip(buffer);
