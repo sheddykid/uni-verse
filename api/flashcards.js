@@ -131,7 +131,7 @@ ${excerpts.join("\n\n---\n\n")}`;
     if (!gatewayToken) throw new Error("Vercel AI Gateway authentication is not configured.");
     const aiGateway = createGateway({ apiKey: gatewayToken });
     const { output } = await generateText({
-      model: aiGateway("openai/gpt-6-astra"),
+      model: aiGateway(process.env.AI_GATEWAY_MODEL || "openai/gpt-5"),
       output: Output.object({
         schema: z.object({
           flashcards: z.array(z.object({
