@@ -10,8 +10,8 @@ if (session) {
 
   const target = document.querySelector("#courses");
   const { data: courses, error } = await supabase.from("courses")
-    .select("id,code,title,description,department_id")
-    .eq("is_active", true).eq("department_id", profile.department_id).order("code");
+    .select("id,code,title,description,course_departments!inner(department_id)")
+    .eq("is_active", true).eq("course_departments.department_id", profile.department_id).order("code");
 
   target.replaceChildren();
   if (error) {
