@@ -12,3 +12,35 @@ form[hidden]{display:none!important}
 
 /* AI flashcards */
 .flashcard-dashboard{max-width:920px}.flashcard-panel{margin-top:28px;background:#fff;border:1px solid #e7eaf1;border-radius:16px;padding:24px}.flashcard-panel>label{margin:18px 0 8px}.note-picker-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:22px 0 10px;font-size:.9rem}.notes-picker{display:grid;gap:8px;max-height:340px;overflow:auto}.note-choice{display:flex;grid-template-columns:auto 1fr;align-items:center;gap:12px;padding:13px;border:1px solid #e7eaf1;border-radius:10px;cursor:pointer}.note-choice:has(input:checked){border-color:#6575eb;background:#f6f7ff}.note-choice input{width:18px;height:18px;flex:0 0 auto}.note-choice span{display:grid;gap:4px;min-width:0}.note-choice strong{font-size:.88rem;overflow-wrap:anywhere}.note-choice small{font-size:.75rem;color:#778198}.flashcard-controls{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-top:22px}.flashcard-controls label{width:min(220px,100%)}.flashcard-controls .btn{min-height:46px}.flashcard-controls button:disabled{opacity:.55;cursor:not-allowed}.deck-section{margin-top:42px}.deck-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.deck-heading h2{margin-bottom:6px}.deck-progress{display:flex;justify-content:space-between;font-size:.82rem;font-weight:700;color:#58627a;margin:20px 0 8px}.progress-track{height:7px;border-radius:99px;background:#e9ecf4;overflow:hidden}.progress-track span{display:block;height:100%;width:0;background:#596be5;transition:width .2s}.flashcard{width:100%;min-height:280px;margin:20px 0;padding:36px;border:1px solid #dfe4f0;border-radius:18px;background:#fff;box-shadow:0 12px 35px #1720330b;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;text-align:center;cursor:pointer;color:#172033}.card-side{font-size:.72rem;font-weight:800;letter-spacing:.15em;color:#596be5}.card-text{font-size:clamp(1.25rem,3vw,1.8rem);line-height:1.45;font-weight:700;max-width:700px;overflow-wrap:anywhere}.card-hint{font-size:.78rem;color:#8a93a6}.deck-actions{display:flex;justify-content:center;gap:9px;flex-wrap:wrap}.deck-actions button:disabled{opacity:.45;cursor:not-allowed}.deck-actions .selected{outline:2px solid #596be5;background:#f0f2ff}.deck-section .message{margin-top:16px}@media(max-width:600px){.flashcard-panel{padding:18px}.flashcard-controls{align-items:stretch;flex-direction:column}.flashcard-controls label{width:100%}.deck-heading{flex-direction:column}.flashcard{min-height:240px;padding:24px}.deck-actions button{flex:1;min-width:42%}}
+
+/* Student learning hub and dedicated resource pages */
+.hub-intro{max-width:650px}
+.hub-grid{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin-top:20px}
+.hub-feature{display:flex;flex-direction:column;align-items:flex-start;min-height:230px;text-decoration:none;color:inherit;transition:border-color .18s,transform .18s,box-shadow .18s}
+.hub-feature:hover{border-color:#cbd1ff;transform:translateY(-2px);box-shadow:0 12px 28px #1720330c}
+.hub-feature h3{font-size:1.08rem;margin:18px 0 8px}
+.hub-feature p{line-height:1.6}
+.hub-icon,.coming-icon{width:44px;height:44px;display:grid;place-items:center;border-radius:13px;background:#eef0ff;color:#5365e8;font-size:1.35rem;font-weight:800}
+.hub-link{margin-top:auto;padding-top:20px;color:#4d5fdb;font-size:.86rem;font-weight:800}
+.resource-dashboard{max-width:1000px}
+.resource-filter-panel{display:grid;grid-template-columns:minmax(220px,1fr);gap:14px;max-width:720px;margin-top:28px;padding:18px;background:#fff;border:1px solid #e7eaf1;border-radius:14px}
+.resource-filter-panel label{gap:8px}
+.resource-filter-panel.filter-grid{grid-template-columns:repeat(2,minmax(0,1fr));max-width:100%}
+.resource-results-head{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.resource-results-head h2{margin-bottom:0}
+.resource-results{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px;margin-top:18px}
+.resource-card{min-width:0;background:#fff;border:1px solid #e7eaf1;border-radius:14px;padding:19px;display:flex;flex-direction:column;align-items:flex-start}
+.resource-card-heading{width:100%}
+.resource-card h3{font-size:1rem;line-height:1.45;overflow-wrap:anywhere;margin:7px 0 0}
+.resource-card .course-code{line-height:1.5;margin:0;overflow-wrap:anywhere}
+.resource-description{font-size:.86rem;margin:12px 0 0}
+.resource-card .resource-meta{margin:12px 0 16px}
+.resource-card .resource-actions{margin-top:auto;width:100%;padding-top:6px}
+.resource-card .resource-actions .btn{flex:1}
+.resource-image-preview{display:block;max-width:100%;max-height:440px;object-fit:contain;margin:14px 0;border:1px solid #e7eaf1;border-radius:10px;background:#fff}
+.resource-empty-state{grid-column:1/-1;padding:22px;background:#fff;border:1px dashed #dce1eb;border-radius:12px}
+.feature-coming-page{max-width:900px}
+.coming-panel{margin-top:30px;padding:clamp(24px,5vw,42px);background:#fff;border:1px solid #e7eaf1;border-radius:16px;max-width:680px}
+.coming-panel h2{margin:20px 0 10px}
+.coming-panel p{margin-bottom:0}
+@media(max-width:600px){.resource-filter-panel.filter-grid{grid-template-columns:1fr}.resource-results-head{align-items:flex-start;flex-direction:column}.hub-feature{min-height:205px}}
