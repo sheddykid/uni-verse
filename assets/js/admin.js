@@ -79,7 +79,7 @@ if (session) {
     const target = document.querySelector("#resources");
     target.replaceChildren();
     const { data, error } = await supabase.from("course_resources")
-      .select("id,title,resource_type,assessment_type,academic_year,semester,file_name,file_size,is_active,created_at,courses(code,title,departments(name))")
+      .select("id,title,description,resource_type,assessment_type,academic_year,semester,file_name,file_path,file_size,is_active,created_at,courses(code,title,departments(name))")
       .order("created_at", { ascending: false });
     if (error) { target.textContent = error.message; return; }
     if (!data?.length) { target.textContent = "No resources have been uploaded yet."; return; }
@@ -105,7 +105,32 @@ if (session) {
           .update({ is_active: !resource.is_active }).eq("id", resource.id);
         if (updateError) alert(updateError.message); else loadResources();
       });
-      actions.append(toggle); row.append(info, actions); target.append(row);
+      const edit = document.createElement("button"); edit.className = "btn secondary"; edit.textContent = "Edit";
+      edit.addEventListener("click", async () => {
+        const nextTitle = prompt("Resource title:", resource.title);
+        if (nextTitle === null) return;
+        if (!nextTitle.trim()) { alert("The title cannot be empty."); return; }
+        const nextDescription = prompt("Resource description:", resource.description || "");
+        if (nextDescription === null) return;
+        const { error: editError } = await supabase.from("course_resources")
+          .update({ title: nextTitle.trim(), description: nextDescription.trim() || null })
+          .eq("id", resource.id);
+        if (editError) alert(editError.message); else loadResources();
+      });
+
+      const remove = document.createElement("button"); remove.className = "btn danger"; remove.textContent = "Delete";
+      remove.addEventListener("click", async () => {
+        if (!confirm('Permanently delete "' + resource.title + '" and its uploaded file?')) return;
+        const { error: deleteError } = await supabase.from("course_resources")
+          .delete().eq("id", resource.id);
+        if (deleteError) { alert(deleteError.message); return; }
+        const { error: storageError } = await supabase.storage.from("course-resources")
+          .remove([resource.file_path]);
+        if (storageError) alert("The resource record was deleted, but its stored file could not be removed: " + storageError.message);
+        await loadResources();
+      });
+
+      actions.append(toggle, edit, remove); row.append(info, actions); target.append(row);
     });
   }
 
