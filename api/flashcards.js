@@ -166,8 +166,7 @@ ${excerpts.join("\n\n---\n\n")}`;
     const geminiResult = await geminiResponse.json().catch(() => ({}));
     if (!geminiResponse.ok) {
       console.error("Gemini API request failed:", geminiResponse.status, geminiResult?.error?.message || "Unknown provider error");
-      const status = geminiResponse.status === 429 ? 429 : geminiResponse.status === 401 || geminiResponse.status === 403 ? 502 : 502;
-      return respond(res, status, {
+      return respond(res, geminiResponse.status === 429 ? 429 : 502, {
         error: geminiResponse.status === 429
           ? "The AI service is currently at its request limit. Wait a little and try again."
           : "The AI service could not complete this request. Please try again later."
@@ -178,7 +177,7 @@ ${excerpts.join("\n\n---\n\n")}`;
       .flatMap(step => step.content || [])
       .filter(part => part.type === "text")
       .map(part => part.text || "")
-      .join("\\n")
+      .join("\n")
       .trim();
     if (!outputText) throw new Error("Gemini returned no text output.");
     let parsedOutput;
