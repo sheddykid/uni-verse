@@ -44,3 +44,14 @@ form[hidden]{display:none!important}
 .coming-panel h2{margin:20px 0 10px}
 .coming-panel p{margin-bottom:0}
 @media(max-width:600px){.resource-filter-panel.filter-grid{grid-template-columns:1fr}.resource-results-head{align-items:flex-start;flex-direction:column}.hub-feature{min-height:205px}}
+
+
+/* Admin department checkbox picker */
+.department-picker{max-width:720px;min-width:0;margin:0;padding:16px;border:1px solid #dce1eb;border-radius:12px;background:#fff}
+.department-picker legend{padding:0 6px;font-size:.88rem;font-weight:700}
+.department-picker legend .muted{display:block;font-size:.78rem;font-weight:400;margin-top:4px}
+.department-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;max-height:260px;overflow:auto;padding:4px}
+.department-option{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #e7eaf1;border-radius:9px;background:#fbfcff;cursor:pointer;font-weight:550}
+.department-option:has(input:checked){border-color:#6575eb;background:#f3f5ff}
+.department-option input{width:17px;height:17px;flex:0 0 auto;margin:0;accent-color:#5365e8}
+.brand-panel .brand-mark{margin-bottom:22px}
