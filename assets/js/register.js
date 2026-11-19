@@ -1,4 +1,5 @@
-import { supabase, showMessage } from "./supabase.js";
+import { supabase, showMessage, enablePasswordToggles } from "./supabase.js";
+enablePasswordToggles();
 const departmentSelect = document.querySelector("#department");
 const message = document.querySelector("#message");
 const { data: departments, error: deptError } = await supabase.from("departments").select("id,name,code").eq("is_active", true).order("name");
@@ -14,7 +15,7 @@ document.querySelector("#register-form").addEventListener("submit", async (event
   const departmentId = departmentSelect.value;
   if (password !== confirm) return showMessage(message, "Passwords do not match.");
   if (!departmentId) return showMessage(message, "Select your department.");
-  const button = event.currentTarget.querySelector("button");
+  const button = event.currentTarget.querySelector('button[type="submit"]');
   button.disabled = true; showMessage(message, "Creating your account…");
   const { error } = await supabase.auth.signUp({
     email, password,
@@ -26,4 +27,5 @@ document.querySelector("#register-form").addEventListener("submit", async (event
   if (error) { showMessage(message, error.message); button.disabled = false; return; }
   showMessage(message, "Registration submitted. Check your email to confirm your account before signing in.", true);
   event.currentTarget.reset();
+  button.disabled = false;
 });
