@@ -1,6 +1,3 @@
-import { generateText, Output } from "ai";
-import { createGateway } from "@ai-sdk/gateway";
-import { getVercelOidcToken } from "@vercel/oidc";
 import { z } from "zod";
 import pdf from "pdf-parse/lib/pdf-parse.js";
 import mammoth from "mammoth";
@@ -126,24 +123,81 @@ Do not include markdown fences, commentary, citations, or any other keys.
 
 COURSE NOTES:
 ${excerpts.join("\n\n---\n\n")}`;
-    const gatewayToken = process.env.AI_GATEWAY_API_KEY || await getVercelOidcToken();
-    if (!gatewayToken) throw new Error("Vercel AI Gateway authentication is not configured.");
-    const aiGateway = createGateway({ apiKey: gatewayToken });
-    const { output } = await generateText({
-      model: aiGateway(process.env.AI_GATEWAY_MODEL || "openai/gpt-5"),
-      output: Output.object({
-        schema: z.object({
-          flashcards: z.array(z.object({
-            front: z.string().min(1).max(300),
-            back: z.string().min(1).max(500)
-          })).min(5).max(count)
-        })
-      }),
-      prompt,
-      temperature: 0.3,
-      maxOutputTokens: 4500
+    const geminiApiKey = process.env.GEMINI_API_KEY;
+    if (!geminiApiKey) {
+      console.error("GEMINI_API_KEY is not configured for this deployment.");
+      return respond(res, 503, { error: "The AI flashcard service is not configured yet. Contact the UNI-VERSE administrator." });
+    }
+
+    const schema = {
+      type: "object",
+      properties: {
+        flashcards: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              front: { type: "string" },
+              back: { type: "string" }
+            },
+            required: ["front", "back"]
+          }
+        }
+      },
+      required: ["flashcards"]
+    };
+    const geminiResponse = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": geminiApiKey
+      },
+      body: JSON.stringify({
+        model: process.env.GEMINI_MODEL || "gemini-3.8-flash",
+        store: false,
+        input: prompt,
+        response_format: {
+          type: "text",
+          mime_type: "application/json",
+          schema
+        }
+      })
     });
-    const flashcards = output.flashcards;
+    const geminiResult = await geminiResponse.json().catch(() => ({}));
+    if (!geminiResponse.ok) {
+      console.error("Gemini API request failed:", geminiResponse.status, geminiResult?.error?.message || "Unknown provider error");
+      const status = geminiResponse.status === 429 ? 429 : geminiResponse.status === 401 || geminiResponse.status === 403 ? 502 : 502;
+      return respond(res, status, {
+        error: geminiResponse.status === 429
+          ? "The AI service is currently at its request limit. Wait a little and try again."
+          : "The AI service could not complete this request. Please try again later."
+      });
+    }
+    const outputText = (geminiResult.steps || [])
+      .filter(step => step.type === "model_output")
+      .flatMap(step => step.content || [])
+      .filter(part => part.type === "text")
+      .map(part => part.text || "")
+      .join("\\n")
+      .trim();
+    if (!outputText) throw new Error("Gemini returned no text output.");
+    let parsedOutput;
+    try {
+      parsedOutput = JSON.parse(outputText);
+    } catch {
+      throw new Error("Gemini returned invalid JSON output.");
+    }
+    const validatedOutput = z.object({
+      flashcards: z.array(z.object({
+        front: z.string().min(1).max(300),
+        back: z.string().min(1).max(500)
+      })).min(5).max(count)
+    }).safeParse(parsedOutput);
+    if (!validatedOutput.success) {
+      console.error("Gemini flashcard output failed validation:", validatedOutput.error.issues);
+      throw new Error("Gemini returned flashcards in an unexpected format.");
+    }
+    const flashcards = validatedOutput.data.flashcards;
     return respond(res, 200, { course: { id: course.id, code: course.code, title: course.title }, sources: resources.map(item => item.title), flashcards });
   } catch (error) {
     console.error("Flashcard generation failed:", error);
