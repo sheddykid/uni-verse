@@ -225,7 +225,7 @@ ${excerpts.join("\n\n---\n\n")}`;
     const geminiStartedAt = Date.now();
     const geminiResponse = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
       method: "POST",
-      signal: AbortSignal.timeout(35000),
+      signal: AbortSignal.timeout(50000),
       headers: {
         "Content-Type": "application/json",
         "x-goog-api-key": geminiApiKey
