@@ -96,7 +96,7 @@ if (session) {
     const target = document.querySelector("#resources");
     target.replaceChildren();
     const { data, error } = await supabase.from("course_resources")
-      .select("id,title,description,resource_type,assessment_type,academic_year,semester,file_name,file_path,file_size,is_active,created_at,courses(code,title,departments(name))")
+      .select("id,title,description,resource_type,assessment_type,academic_year,semester,file_name,file_path,file_size,is_active,created_at,courses(code,title)")
       .order("created_at", { ascending: false });
     if (error) { target.textContent = error.message; return; }
     if (!data?.length) { target.textContent = "No resources have been uploaded yet."; return; }
