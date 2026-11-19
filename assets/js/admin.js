@@ -265,6 +265,7 @@ if (session) {
       } else {
         showMessage(message, "Resource uploaded and published.", true);
         resourceForm.reset();
+        updateFileAccept();
         questionFields.hidden = true;
         assessmentType.required = false;
         await loadResources();
