@@ -20,7 +20,7 @@ if (session) {
     target.textContent = "No active courses have been added for your department yet.";
   } else {
     const { data: resources, error: resourceError } = await supabase.from("course_resources")
-      .select("id,course_id,title,description,resource_type,assessment_type,academic_year,semester,file_name,file_path,file_size")
+      .select("id,course_id,title,description,resource_type,assessment_type,academic_year,semester,file_name,file_path,file_size,mime_type")
       .eq("is_active", true).in("course_id", courses.map(course => course.id))
       .order("created_at", { ascending: false });
 
@@ -75,6 +75,40 @@ function makeResourceSection(label, items) {
     const term = [resource.academic_year, resource.semester ? `Semester ${resource.semester}` : null].filter(Boolean).join(" · ");
     meta.textContent = [kind, term, resource.file_name.split(".").pop().toUpperCase()].filter(Boolean).join(" · ");
     info.append(title, meta);
+    const actions = document.createElement("div"); actions.className = "resource-actions";
+    if (resource.mime_type?.startsWith("image/")) {
+      const previewButton = document.createElement("button");
+      previewButton.className = "btn secondary";
+      previewButton.type = "button";
+      previewButton.textContent = "Preview";
+      const preview = document.createElement("img");
+      preview.className = "question-image-preview";
+      preview.alt = resource.title;
+      preview.hidden = true;
+      info.append(preview);
+      let previewUrl = null;
+      previewButton.addEventListener("click", async () => {
+        if (previewUrl) {
+          preview.hidden = !preview.hidden;
+          previewButton.textContent = preview.hidden ? "Preview" : "Hide preview";
+          return;
+        }
+        previewButton.disabled = true;
+        previewButton.textContent = "Loading…";
+        const { data, error } = await supabase.storage.from("course-resources").download(resource.file_path);
+        if (error) {
+          alert("Could not preview this image: " + error.message);
+          previewButton.textContent = "Preview";
+        } else {
+          previewUrl = URL.createObjectURL(data);
+          preview.src = previewUrl;
+          preview.hidden = false;
+          previewButton.textContent = "Hide preview";
+        }
+        previewButton.disabled = false;
+      });
+      actions.append(previewButton);
+    }
     const button = document.createElement("button"); button.className = "btn secondary";
     button.type = "button"; button.textContent = "Download";
     button.addEventListener("click", async () => {
@@ -91,7 +125,8 @@ function makeResourceSection(label, items) {
       }
       button.disabled = false; button.textContent = "Download";
     });
-    row.append(info, button); list.append(row);
+    actions.append(button);
+    row.append(info, actions); list.append(row);
   });
   section.append(list);
   return section;
