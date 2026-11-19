@@ -1,16 +1,39 @@
-import { supabase, showMessage } from "./supabase.js";
+import { supabase, showMessage, enablePasswordToggles } from "./supabase.js";
 const form = document.querySelector("#login-form");
+enablePasswordToggles(form || document);
 form?.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const button = form.querySelector("button[type=submit]");
+  const button = form.querySelector('button[type="submit"]');
   const message = document.querySelector("#message");
   button.disabled = true;
   showMessage(message, "Signing in…");
+  const email = document.querySelector("#email").value.trim();
   const { data, error } = await supabase.auth.signInWithPassword({
-    email: document.querySelector("#email").value.trim(),
+    email,
     password: document.querySelector("#password").value
   });
-  if (error) { showMessage(message, error.message); button.disabled = false; return; }
+  if (error) {
+    showMessage(message, error.message);
+    button.disabled = false;
+    if (/email not confirmed/i.test(error.message)) {
+      let resend = form.querySelector("#resend-confirmation");
+      if (!resend) {
+        resend = document.createElement("button");
+        resend.type = "button";
+        resend.id = "resend-confirmation";
+        resend.className = "btn secondary";
+        resend.textContent = "Resend confirmation email";
+        form.insertBefore(resend, message);
+        resend.addEventListener("click", async () => {
+          resend.disabled = true;
+          const { error: resendError } = await supabase.auth.resend({ type: "signup", email });
+          showMessage(message, resendError ? resendError.message : "Confirmation email sent. Check your inbox and spam folder.", !resendError);
+          resend.disabled = false;
+        });
+      }
+    }
+    return;
+  }
   const { data: profile, error: profileError } = await supabase.from("profiles").select("role").eq("id", data.user.id).single();
   if (profileError || !profile) {
     await supabase.auth.signOut();
