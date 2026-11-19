@@ -2,9 +2,27 @@ import { supabase, showMessage, enablePasswordToggles } from "./supabase.js";
 enablePasswordToggles();
 const departmentSelect = document.querySelector("#department");
 const message = document.querySelector("#message");
-const { data: departments, error: deptError } = await supabase.from("departments").select("id,name,code").eq("is_active", true).order("name");
-if (deptError) showMessage(message, "Could not load departments: " + deptError.message);
-else departmentSelect.innerHTML = '<option value="">Select your department</option>' + departments.map(d => `<option value="${d.id}">${d.name} (${d.code})</option>`).join("");
+
+const { data: departments, error: deptError } = await supabase
+  .from("departments").select("id,name,code").eq("is_active", true).order("name");
+
+if (deptError) {
+  showMessage(message, "Could not load departments: " + deptError.message);
+} else {
+  departmentSelect.replaceChildren();
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "Select your department";
+  departmentSelect.append(placeholder);
+
+  departments.forEach(department => {
+    const option = document.createElement("option");
+    option.value = department.id;
+    option.textContent = `${department.name} (${department.code})`;
+    departmentSelect.append(option);
+  });
+}
+
 document.querySelector("#register-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const name = document.querySelector("#full-name").value.trim();
