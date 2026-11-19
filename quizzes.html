@@ -1,5 +1,25 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101827"><title>UNI-VERSE | Quizzes</title><link rel="stylesheet" href="./assets/css/styles.css"></head>
-<body><header class="topbar"><a class="brand" href="./student.html"><span class="brand-mark small">U</span> UNI-VERSE</a><div><span id="user-label" class="muted"></span> <button id="logout" class="btn ghost">Sign out</button></div></header>
-<main class="dashboard feature-coming-page"><a class="back-link" href="./student.html">← Back to learning hub</a><p class="eyebrow">PRACTICE &amp; ASSESSMENT</p><h1>Quizzes</h1><p class="muted">Build your understanding with course-based practice.</p><section class="coming-panel"><span class="coming-icon" aria-hidden="true">✓</span><h2>Quizzes are coming soon</h2><p class="muted">This space is reserved for multiple-choice quizzes and theory questions. The quiz experience will be added here as a separate feature.</p></section></main>
-<script type="module" src="./assets/js/placeholder.js"></script></body></html>
+<body>
+<header class="topbar"><a class="brand" href="./student.html"><span class="brand-mark small">U</span> UNI-VERSE</a><div><span id="user-label" class="muted"></span> <button id="logout" class="btn ghost">Sign out</button></div></header>
+<main class="dashboard quiz-dashboard">
+<a class="back-link" href="./student.html">← Back to learning hub</a><p class="eyebrow">PRACTICE &amp; ASSESSMENT</p><h1>Course quizzes</h1><p class="muted">Generate practice questions from your uploaded course notes. Past questions are not used.</p>
+<section id="github-pages-notice" class="flashcard-panel" hidden><h2>AI quizzes run on Vercel</h2><p class="muted">The GitHub Pages mirror cannot run the secure AI backend. Open the Vercel deployment and sign in there to use quizzes.</p><a class="btn primary" href="https://uni-verse-sheddykid.vercel.app/index.html">Open UNI-VERSE on Vercel</a></section>
+<section class="flashcard-panel quiz-builder">
+<h2>Build a practice quiz</h2><p class="muted">Choose an active course, select up to five note files, and choose a question format.</p>
+<label for="course-select">Course</label><select id="course-select"><option value="">Loading your courses…</option></select>
+<div class="note-picker-head"><strong>Available course notes</strong><span id="note-count" class="muted">Select a course first</span></div>
+<div id="notes-list" class="notes-picker"><p class="muted">Choose a course to see its notes.</p></div>
+<div class="quiz-settings">
+<label for="quiz-mode">Question format<select id="quiz-mode"><option value="mcq">Multiple-choice quiz</option><option value="theory">Theory practice</option></select></label>
+<label for="question-count">Number of questions<select id="question-count"><option value="5">5 questions</option><option value="10" selected>10 questions</option><option value="15">15 questions</option><option value="20">20 questions</option></select></label>
+</div>
+<div class="quiz-generate-row"><button id="generate" class="btn primary" type="button" disabled>Generate quiz</button></div>
+<p id="status" class="message" role="status" aria-live="polite"></p>
+</section>
+<section id="quiz-section" class="quiz-section" hidden>
+<div class="quiz-heading"><div><p class="eyebrow">YOUR PRACTICE SESSION</p><h2 id="quiz-title">Quiz</h2><p id="quiz-sources" class="muted"></p></div><button id="new-quiz" class="btn secondary" type="button">New quiz</button></div>
+<div id="mcq-panel" hidden><div id="mcq-questions" class="mcq-questions"></div><div class="quiz-submit-row"><button id="submit-mcq" class="btn primary" type="button">Submit answers</button></div><div id="mcq-results" class="quiz-results" hidden></div></div>
+<div id="theory-panel" hidden><p class="muted">Write your answer and submit it for AI-assisted feedback. Each response is assessed against a marking guide based on the selected notes.</p><div id="theory-questions" class="theory-questions"></div></div>
+</section>
+</main><script type="module" src="./assets/js/quizzes.js"></script></body></html>
