@@ -14,6 +14,7 @@ if (location.hostname.endsWith("github.io")) {
     const courseSelect = $("#course-select");
     const notesList = $("#notes-list");
     const generateButton = $("#generate");
+    let availableNotes = [];
 
 
     const courseQuery = supabase.from("courses")
@@ -38,7 +39,7 @@ if (location.hostname.endsWith("github.io")) {
         return;
       }
       const { data, error } = await supabase.from("course_resources")
-        .select("id,title,file_name,file_size,mime_type,created_at")
+        .select("id,title,file_name,file_path,file_size,mime_type,created_at")
         .eq("course_id", courseSelect.value).eq("resource_type", "note").eq("is_active", true)
         .order("created_at", { ascending: false });
       if (error) {
@@ -93,13 +94,31 @@ if (location.hostname.endsWith("github.io")) {
       try {
         const { data: { session: authSession } } = await supabase.auth.getSession();
         if (!authSession?.access_token) throw new Error("Your session has expired. Sign in again.");
+        const ocrTextByResource = {};
+        const selectedNotes = availableNotes.filter(note => resourceIds.includes(note.id));
+        const pdfNotes = selectedNotes.filter(note => /\\.pdf$/i.test(note.file_name || ""));
+        if (pdfNotes.length) {
+          const { extractResourceText } = await import("./question-ocr.js");
+          for (const note of pdfNotes) {
+            setStatus(`Preparing ${note.title} for summarization. Scanned pages will be read with OCR.`);
+            const { data: blob, error: downloadError } = await supabase.storage.from("course-resources").download(note.file_path);
+            if (downloadError || !blob) throw new Error(downloadError?.message || `Could not download ${note.title}.`);
+            const file = new File([blob], note.file_name, { type: note.mime_type || blob.type });
+            ocrTextByResource[note.id] = await extractResourceText(file, (stage, progress) => {
+              const percent = Math.round(Math.max(0, Math.min(1, progress)) * 100);
+              setStatus(percent ? `Reading ${note.title}: ${stage} (${percent}%)` : `Reading ${note.title}: ${stage}…`);
+            }, { maxPdfPages: 150, maxOcrPages: 30, maxCharacters: 100000 });
+          }
+        }
+        setStatus("Sending the extracted course material to the summarizer…");
         const response = await fetch("/api/note-summary", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${authSession.access_token}` },
           body: JSON.stringify({
             courseId: courseSelect.value,
             resourceIds,
-            detail: $("#summary-detail").value
+            detail: $("#summary-detail").value,
+            ocrTextByResource
           })
         });
         const raw = await response.text();
