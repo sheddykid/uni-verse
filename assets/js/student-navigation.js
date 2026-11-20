@@ -28,7 +28,7 @@ if (session) {
     </aside>
     <div class="contact-widget">
       <button class="contact-widget-drag" type="button" aria-label="Move contact button" title="Drag to move">⠿</button>
-      <button class="contact-widget-open" type="button"><span aria-hidden="true">✉</span> Contact Admin</button>
+      <button class="contact-widget-open" type="button" aria-label="Contact Admin" title="Contact Admin"><span aria-hidden="true">✉</span></button>
       <button class="contact-widget-tuck" type="button" aria-label="Hide contact button at screen edge" title="Hide at screen edge">›</button>
     </div>
     <button class="contact-widget-restore" type="button" aria-label="Show Contact Admin" hidden>‹</button>
@@ -100,6 +100,24 @@ if (session) {
   const dialog = $(".contact-dialog");
   const form = $(".contact-form");
   const status = $(".contact-status");
+
+  // Show the support shortcut briefly once per authenticated tab/session.
+  const contactIntroKey = "universe-contact-intro-shown";
+  let showContactIntro = false;
+  try {
+    showContactIntro = sessionStorage.getItem(contactIntroKey) !== "1";
+    if (showContactIntro) sessionStorage.setItem(contactIntroKey, "1");
+  } catch {
+    showContactIntro = true;
+  }
+  if (showContactIntro) {
+    widget.hidden = false;
+    window.setTimeout(() => {
+      if (!dialog.open) widget.hidden = true;
+    }, 3000);
+  } else {
+    widget.hidden = true;
+  }
   const emailInput = form.elements.email;
   emailInput.value = session.user.email || "";
   $(".contact-widget-open").addEventListener("click", () => {
@@ -137,7 +155,7 @@ if (session) {
     drag.setPointerCapture(event.pointerId);
     event.preventDefault();
   });
-  drag.addEventListener("pointermove", event => {
+  function moveWidget(event) {
     if (!dragState || event.pointerId !== dragState.pointerId) return;
     const left = Math.max(8, Math.min(innerWidth - widget.offsetWidth - 8, event.clientX - dragState.dx));
     const top = Math.max(8, Math.min(innerHeight - widget.offsetHeight - 8, event.clientY - dragState.dy));
@@ -145,13 +163,14 @@ if (session) {
     widget.style.top = top + "px";
     widget.style.right = "auto";
     widget.style.bottom = "auto";
-  });
+  }
   function endDrag(event) {
     if (!dragState || event.pointerId !== dragState.pointerId) return;
     dragState = null;
     const rect = widget.getBoundingClientRect();
     try { localStorage.setItem("universe-contact-position", JSON.stringify({ left: rect.left, top: rect.top })); } catch {}
   }
+  drag.addEventListener("pointermove", moveWidget);
   drag.addEventListener("pointerup", endDrag);
   drag.addEventListener("pointercancel", endDrag);
 
