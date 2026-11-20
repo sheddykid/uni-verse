@@ -220,12 +220,199 @@ if (session && session.profile.role !== "admin") {
         catch (refreshError) { console.error("Resource was deleted, but the management list could not refresh:", refreshError); }
         if (storageError) alert("The resource record was deleted, but its stored file could not be removed. The file is now orphaned in the private bucket and needs cleanup: " + (storageError.message || String(storageError)));
       });
+
+      const extension = resource.file_name.split(".").pop().toLowerCase();
+      if (resource.resource_type === "past_question" && ["pdf", "jpg", "jpeg", "png", "webp"].includes(extension) && resource.is_active) {
+        const extract = document.createElement("button");
+        extract.className = "btn secondary";
+        extract.textContent = "Extract questions";
+        extract.addEventListener("click", () => processQuestionResource(resource, extract));
+        actions.append(extract);
+      }
       actions.append(toggle, edit, remove);
       card.append(actions);
       target.append(card);
     });
   }
 
+
+  async function questionBankRequest(method = "GET", body) {
+    const { data: { session: authSession } } = await supabase.auth.getSession();
+    if (!authSession?.access_token) throw new Error("Your session has expired. Sign in again.");
+    const response = await fetch("/api/question-bank", {
+      method,
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${authSession.access_token}` },
+      ...(body ? { body: JSON.stringify(body) } : {})
+    });
+    const raw = await response.text();
+    let result;
+    try { result = raw ? JSON.parse(raw) : {}; }
+    catch { throw new Error(`The question-bank service returned an invalid response (HTTP ${response.status}).`); }
+    if (!response.ok) throw new Error(result.error || `Question-bank request failed (HTTP ${response.status}).`);
+    return result;
+  }
+
+  async function processQuestionResource(resource, button) {
+    const status = document.querySelector("#question-bank-status");
+    button.disabled = true;
+    try {
+      status.textContent = "Downloading the source document…";
+      const { data: blob, error } = await supabase.storage.from("course-resources").download(resource.file_path);
+      if (error || !blob) throw new Error(error?.message || "Could not download the source document.");
+      const file = new File([blob], resource.file_name, { type: resource.mime_type || blob.type });
+      const { extractResourceText } = await import("./question-ocr.js");
+      const extractedText = await extractResourceText(file, (stage, progress) => {
+        const percent = Math.round(Math.max(0, Math.min(1, progress)) * 100);
+        status.textContent = percent ? `OCR: ${stage} (${percent}%)` : `OCR: ${stage}…`;
+      });
+      if (extractedText.replace(/\s/g, "").length < 100) {
+        throw new Error("Very little readable text was found. Try a clearer scan or a higher-resolution image.");
+      }
+      status.textContent = "Structuring questions with AI…";
+      const result = await questionBankRequest("POST", {
+        courseId: resource.course_id,
+        resourceId: resource.id,
+        extractedText
+      });
+      status.textContent = `Processed ${result.extracted} questions. ${result.staged} new questions were added to the review queue; ${result.duplicatesSkipped} duplicates were skipped.`;
+      await loadPendingQuestions();
+    } catch (error) {
+      status.textContent = error?.message || "Could not process this question document.";
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function loadPendingQuestions() {
+    const root = document.querySelector("#pending-questions");
+    const status = document.querySelector("#question-bank-status");
+    root.replaceChildren();
+    try {
+      const { questions = [] } = await questionBankRequest("GET");
+      if (!questions.length) {
+        root.textContent = "No questions are waiting for review.";
+        return;
+      }
+      questions.forEach(item => renderPendingQuestion(root, item));
+    } catch (error) {
+      root.textContent = error?.message || "Could not load pending questions.";
+      if (status) status.textContent = "Question review could not be loaded.";
+    }
+  }
+
+  function renderPendingQuestion(root, item) {
+    const card = document.createElement("article");
+    card.className = "resource-card question-review-card";
+    const course = document.createElement("p");
+    course.className = "course-code";
+    course.textContent = item.courses?.code
+      ? `${item.courses.code} · ${item.course_resources?.title || "Past-question source"}`
+      : "Past-question source";
+    const heading = document.createElement("h3");
+    heading.textContent = item.question_type === "mcq" ? "Multiple-choice question" : "Theory question";
+    const page = document.createElement("p");
+    page.className = "resource-meta";
+    page.textContent = [item.course_resources?.file_name, item.source_page ? `Page ${item.source_page}` : null, "Pending review"].filter(Boolean).join(" · ");
+    const question = document.createElement("textarea");
+    question.rows = 3;
+    question.maxLength = 1200;
+    question.value = item.question || "";
+    const questionLabel = document.createElement("label");
+    questionLabel.textContent = "Question";
+    questionLabel.append(question);
+    card.append(course, heading, page, questionLabel);
+
+    let optionInputs = [];
+    let correctAnswer;
+    let explanation;
+    let markingGuide;
+    let modelAnswer;
+    if (item.question_type === "mcq") {
+      const optionsWrap = document.createElement("div");
+      optionsWrap.className = "question-review-options";
+      ["A", "B", "C", "D"].forEach((letter, index) => {
+        const input = document.createElement("input");
+        input.value = item.options?.[index] || "";
+        input.maxLength = 500;
+        input.setAttribute("aria-label", `Option ${letter}`);
+        const label = document.createElement("label");
+        label.textContent = `Option ${letter}`;
+        label.append(input);
+        optionsWrap.append(label);
+        optionInputs.push(input);
+      });
+      correctAnswer = document.createElement("select");
+      correctAnswer.add(new Option("Choose verified answer", ""));
+      ["A", "B", "C", "D"].forEach((letter, index) => correctAnswer.add(new Option(`Option ${letter}`, String(index))));
+      if (Number.isInteger(item.correct_index)) correctAnswer.value = String(item.correct_index);
+      const answerLabel = document.createElement("label");
+      answerLabel.textContent = "Correct answer (verify against the source)";
+      answerLabel.append(correctAnswer);
+      explanation = document.createElement("textarea");
+      explanation.rows = 2;
+      explanation.value = item.explanation || "";
+      const explanationLabel = document.createElement("label");
+      explanationLabel.textContent = "Explanation";
+      explanationLabel.append(explanation);
+      card.append(optionsWrap, answerLabel, explanationLabel);
+    } else {
+      markingGuide = document.createElement("textarea");
+      markingGuide.rows = 4;
+      markingGuide.value = item.marking_guide || "";
+      const guideLabel = document.createElement("label");
+      guideLabel.textContent = "Marking guide (required to publish)";
+      guideLabel.append(markingGuide);
+      modelAnswer = document.createElement("textarea");
+      modelAnswer.rows = 4;
+      modelAnswer.value = item.model_answer || "";
+      const answerLabel = document.createElement("label");
+      answerLabel.textContent = "Model answer";
+      answerLabel.append(modelAnswer);
+      card.append(guideLabel, answerLabel);
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "resource-actions";
+    const publish = document.createElement("button");
+    publish.className = "btn primary";
+    publish.textContent = "Approve & publish";
+    publish.addEventListener("click", () => saveQuestionReview(item, {
+      status: "active",
+      question: question.value,
+      ...(item.question_type === "mcq" ? {
+        options: optionInputs.map(input => input.value),
+        correctIndex: correctAnswer.value === "" ? null : Number(correctAnswer.value),
+        explanation: explanation.value
+      } : {
+        markingGuide: markingGuide.value,
+        modelAnswer: modelAnswer.value
+      })
+    }, publish, card));
+    const retire = document.createElement("button");
+    retire.className = "btn danger";
+    retire.textContent = "Discard";
+    retire.addEventListener("click", () => saveQuestionReview(item, { status: "retired" }, retire, card));
+    actions.append(publish, retire);
+    card.append(actions);
+    root.append(card);
+  }
+
+  async function saveQuestionReview(item, payload, button, card) {
+    const status = document.querySelector("#question-bank-status");
+    button.disabled = true;
+    try {
+      await questionBankRequest("PATCH", { id: item.id, ...payload });
+      status.textContent = payload.status === "active" ? "Question published to the course bank." : "Question discarded.";
+      await loadPendingQuestions();
+    } catch (error) {
+      status.textContent = error?.message || "Could not save the review.";
+      button.disabled = false;
+    }
+  }
+
+  document.querySelector("#refresh-question-bank")?.addEventListener("click", loadPendingQuestions);
+
   await loadCourses();
   await loadResources();
+  await loadPendingQuestions();
 }
