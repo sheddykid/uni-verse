@@ -46,7 +46,8 @@ if (session) {
   document.querySelector(".topbar")?.prepend(mount.querySelector(".student-menu-trigger"));
 
   const $ = selector => mount.querySelector(selector);
-  const trigger = $(".student-menu-trigger");
+  // The trigger is moved from the mount into the top bar above, so query it from the document.
+  const trigger = document.querySelector(".topbar .student-menu-trigger");
   const drawer = $(".student-drawer");
   const backdrop = $(".student-drawer-backdrop");
   const profile = session.profile;
