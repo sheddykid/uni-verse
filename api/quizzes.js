@@ -8,7 +8,7 @@ const SUPABASE_URL = "https://xcybjuwearndoljqkzmy.supabase.co";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_KEY = "sb_publishable_8egrnqtwHtrfzvtPcldiQw_y1Wqhh9w";
 const MAX_FILES = 1, MAX_FILE_BYTES = 12 * 1024 * 1024, MAX_TOTAL_BYTES = 25 * 1024 * 1024;
-const MAX_TOTAL_TEXT = 180000, MAX_AI_NOTE_TEXT = 16000, MAX_NOTE_CHUNK = 2000, MAX_PDF_PAGES = 150;
+const MAX_TOTAL_TEXT = 180000, MAX_AI_NOTE_TEXT = 8000, MAX_NOTE_CHUNK = 2000, MAX_PDF_PAGES = 150;
 
 function respond(res, status, body) {
   res.status(status).setHeader("Content-Type", "application/json; charset=utf-8");
@@ -237,7 +237,7 @@ async function callGemini(prompt, schema, log) {
       const timedOut = error?.name === "TimeoutError" || error?.name === "AbortError";
       log(timedOut ? "gemini_timeout" : "gemini_network_error", { durationMs:Date.now()-attemptStarted, attempt:attempt+1, error:error?.message || String(error) });
       const failure = new Error(timedOut
-        ? "The AI took too long to generate this quiz. Try a smaller question count or try again shortly."
+        ? "Gemini did not respond within 50 seconds. Try again shortly; if it keeps happening, the AI service may be temporarily slow."
         : "The AI service could not be reached. Check your connection and try again.");
       failure.statusCode = timedOut ? 504 : 502;
       throw failure;
