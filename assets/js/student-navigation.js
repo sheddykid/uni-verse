@@ -120,6 +120,7 @@ if (session) {
     }, 3000);
   } else {
     widget.hidden = true;
+    restore.hidden = false;
   }
   const emailInput = form.elements.email;
   emailInput.value = session.user.email || "";
