@@ -26,7 +26,6 @@ if (location.hostname.endsWith("github.io")) {
       $("#question-count").querySelectorAll("option").forEach(option => { option.disabled = Number(option.value) > max; });
       $("#question-count").value = isTheory ? "5" : "10";
     });
-    $("#new-quiz").addEventListener("click", () => { $("#quiz-section").hidden = true; $("#status").textContent = ""; });
     $("#submit-mcq").addEventListener("click", submitMcq);
     await Promise.resolve();
     async function loadNotes() {
@@ -86,7 +85,9 @@ if (location.hostname.endsWith("github.io")) {
         $("#mcq-panel").hidden = quizMode !== "mcq"; $("#theory-panel").hidden = quizMode !== "theory";
         $("#mcq-results").hidden = true;
         if (quizMode === "mcq") renderMcq(); else renderTheory();
-        $("#quiz-section").hidden = false; setStatus(`Prepared ${questions.length} ${quizMode==="mcq"?"multiple-choice":"theory"} questions${quizMode==="mcq" && result.reusedCount ? ` (${result.reusedCount} reused from the shared note bank)` : ""}.`,true);
+        sessionStorage.setItem("universeActiveQuiz", JSON.stringify({result, quizMode, resourceIds:activeResourceIds}));
+        setStatus("Quiz generated. Opening your practice page…",true);
+        location.href = "./quiz-session.html";
       } catch(error) { setStatus(error.message || "Could not generate the quiz."); }
       finally {
         generateButton.disabled = notesList.querySelectorAll('input[type="checkbox"]:checked').length===0;
