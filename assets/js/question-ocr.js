@@ -42,18 +42,22 @@ async function extractImageText(file, onProgress) {
   }
 }
 
-async function extractPdfText(file, onProgress) {
+async function extractPdfText(file, onProgress, options = {}) {
+  const maxPages = Number.isInteger(options.maxPdfPages) ? options.maxPdfPages : 30;
+  const maxOcrPages = Number.isInteger(options.maxOcrPages) ? options.maxOcrPages : 30;
+  const maxCharacters = Number.isInteger(options.maxCharacters) ? options.maxCharacters : 60000;
   const pdfjsLib = await import("https://esm.sh/pdfjs-dist@4.10.38/build/pdf.mjs");
   pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.mjs`;
   const document = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
-  if (document.numPages > 30) {
+  if (document.numPages > maxPages) {
     await document.destroy();
-    throw new Error("This PDF has more than 30 pages. Split it into smaller files before processing.");
+    throw new Error(`This PDF has more than ${maxPages} pages. Split it into smaller files before processing.`);
   }
 
   let worker;
   const pages = [];
   let totalCharacters = 0;
+  let ocrPages = 0;
   try {
     for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber++) {
       onProgress?.(`Reading PDF page ${pageNumber} of ${document.numPages}`, pageNumber / document.numPages);
@@ -85,8 +89,8 @@ async function extractPdfText(file, onProgress) {
       pages.push(`[PAGE ${pageNumber}]\n${pageText}`);
       totalCharacters += pageText.length;
       page.cleanup();
-      if (totalCharacters > 60000) {
-        throw new Error("This document contains more than 60,000 characters. Split it into smaller files before processing.");
+      if (totalCharacters > maxCharacters) {
+        throw new Error(`This document contains more than ${maxCharacters.toLocaleString()} characters. Split it into smaller files before processing.`);
       }
     }
     return pages.join("\n\n");
@@ -96,9 +100,9 @@ async function extractPdfText(file, onProgress) {
   }
 }
 
-export async function extractResourceText(file, onProgress) {
+export async function extractResourceText(file, onProgress, options = {}) {
   const extension = String(file?.name || "").split(".").pop().toLowerCase();
   if (["jpg", "jpeg", "png", "webp"].includes(extension)) return extractImageText(file, onProgress);
-  if (extension === "pdf") return extractPdfText(file, onProgress);
+  if (extension === "pdf") return extractPdfText(file, onProgress, options);
   throw new Error("Question extraction currently supports PDF, JPG, PNG and WEBP files. Convert DOCX/PPTX to PDF first.");
 }
