@@ -110,33 +110,57 @@ async function callGemini(prompt, schema, log) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) { const e = new Error("The AI quiz service is not configured. Contact the administrator."); e.statusCode = 503; throw e; }
   const started = Date.now();
-  let response;
-  try {
-    response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
-      method:"POST", signal:AbortSignal.timeout(50000),
-      headers:{"Content-Type":"application/json","x-goog-api-key":key},
-      body:JSON.stringify({
-        model:process.env.GEMINI_MODEL || "gemini-3.6-flash",
-        store:false,
-        input:prompt,
-        generation_config:{thinking_level:"low"},
-        response_format:{type:"text",mime_type:"application/json",schema}
-      })
-    });
-  } catch (error) {
-    const timedOut = error?.name === "TimeoutError" || error?.name === "AbortError";
-    log(timedOut ? "gemini_timeout" : "gemini_network_error", { durationMs:Date.now()-started, error:error?.message || String(error) });
-    const failure = new Error(timedOut
-      ? "The AI took too long to generate this quiz. Try a smaller question count or try again shortly."
-      : "The AI service could not be reached. Check your connection and try again.");
-    failure.statusCode = timedOut ? 504 : 502;
+  let response, result = {}, attempt = 0;
+  while (attempt < 2) {
+    const attemptStarted = Date.now();
+    try {
+      response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
+        method:"POST", signal:AbortSignal.timeout(50000),
+        headers:{"Content-Type":"application/json","x-goog-api-key":key},
+        body:JSON.stringify({
+          model:process.env.GEMINI_MODEL || "gemini-3.6-flash",
+          store:false,
+          input:prompt,
+          generation_config:{thinking_level:"low"},
+          response_format:{type:"text",mime_type:"application/json",schema}
+        })
+      });
+    } catch (error) {
+      const timedOut = error?.name === "TimeoutError" || error?.name === "AbortError";
+      log(timedOut ? "gemini_timeout" : "gemini_network_error", { durationMs:Date.now()-attemptStarted, attempt:attempt+1, error:error?.message || String(error) });
+      const failure = new Error(timedOut
+        ? "The AI took too long to generate this quiz. Try a smaller question count or try again shortly."
+        : "The AI service could not be reached. Check your connection and try again.");
+      failure.statusCode = timedOut ? 504 : 502;
+      throw failure;
+    }
+    result = await response.json().catch(()=>({}));
+    const durationMs = Date.now()-attemptStarted;
+    if (response.ok) {
+      log("gemini_response", { status:response.status, durationMs, attempt:attempt+1, providerStatus:result.status || null });
+      break;
+    }
+    const providerMessage = String(result?.error?.message || result?.message || "").slice(0,240);
+    log("gemini_http_error", { status:response.status, durationMs, attempt:attempt+1, providerMessage });
+    // Gemini can briefly return 503 while the service is unavailable. Retry once
+    // only when the failure is quick, leaving the main request timeout intact.
+    if (response.status === 503 && attempt === 0 && durationMs < 8000) {
+      attempt++;
+      await new Promise(resolve=>setTimeout(resolve,700));
+      continue;
+    }
+    const failure = new Error(response.status === 429
+      ? "The AI service is at its request limit. Wait a moment and try again."
+      : response.status === 503
+        ? "Gemini is temporarily unavailable. Please wait a moment and try again."
+        : "The AI service could not complete this request. Try again.");
+    failure.statusCode = response.status === 429 ? 429 : response.status === 503 ? 503 : 502;
     throw failure;
   }
-  const result = await response.json().catch(()=>({}));
-  log("gemini_response", { status:response.status, durationMs:Date.now()-started, providerStatus:result.status || null });
-  if (!response.ok) {
-    const e = new Error(response.status === 429 ? "The AI service is at its request limit. Wait and try again." : "The AI service could not complete this request. Try again.");
-    e.statusCode = response.status === 429 ? 429 : 502; throw e;
+  if (!response?.ok) {
+    const failure = new Error("The AI service could not complete this request. Try again.");
+    failure.statusCode = 502;
+    throw failure;
   }
   if (result.status && result.status !== "completed") {
     log("gemini_incomplete", { providerStatus:result.status });
