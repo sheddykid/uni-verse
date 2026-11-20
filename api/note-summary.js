@@ -149,7 +149,7 @@ async function callGemini(prompt, log) {
   try {
     response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
       method: "POST",
-      signal: AbortSignal.timeout(42000),
+      signal: AbortSignal.timeout(30000),
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
         model: process.env.GEMINI_MODEL || "gemini-3.6-flash",
@@ -194,7 +194,7 @@ async function callGroq(prompt, log) {
   try {
     response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
-      signal: AbortSignal.timeout(26000),
+      signal: AbortSignal.timeout(20000),
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({
         model,
