@@ -331,6 +331,7 @@ export default async function handler(req, res) {
     if (resources.length !== resourceIds.length || resources.some(item => item.course_id !== courseId || item.resource_type !== "note")) {
       return respond(res, 403, { error: "One or more selected files are not active notes for this course." });
     }
+    resources.sort((a, b) => a.id.localeCompare(b.id));
 
     stage = "download_and_extract";
     const declaredTotalBytes = resources.reduce((sum, item) => sum + Number(item.file_size || 0), 0);
@@ -483,7 +484,7 @@ ${excerpts.join("\n\n---\n\n")}`;
       elapsedMs: typeof requestStartedAt === "number" ? Date.now() - requestStartedAt : null,
       error: error?.message || String(error)
     }));
-    if (Number.isInteger(error?.statusCode) && error.statusCode >= 400 && error.statusCode < 500) {
+    if (Number.isInteger(error?.statusCode) && error.statusCode >= 400 && error.statusCode < 600) {
       return respond(res, error.statusCode, { error: error.message });
     }
     return respond(res, 500, { error: "Flashcard generation failed. Please try again. If the problem continues, contact the UNI-VERSE administrator." });
