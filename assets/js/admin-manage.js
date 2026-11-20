@@ -136,19 +136,41 @@ if (session && session.profile.role !== "admin") {
     if (!data?.length) { target.textContent = "No resources have been uploaded yet."; return; }
 
     data.forEach(resource => {
-      const row = document.createElement("div"); row.className = "resource-item";
-      const info = document.createElement("div");
-      const heading = document.createElement("strong"); heading.textContent = resource.title;
-      const detail = document.createElement("p"); detail.className = "resource-meta";
-      const type = resource.resource_type === "note" ? "Note" : `${resource.assessment_type === "test" ? "Test" : "Exam"} question`;
-      const term = [resource.academic_year, resource.semester ? `Semester ${resource.semester}` : null].filter(Boolean).join(" · ");
-      detail.textContent = `${resource.courses?.code || "Course"} — ${resource.courses?.title || ""} · ${type}${term ? " · " + term : ""} · ${resource.file_name}`;
-      const status = document.createElement("p"); status.className = "resource-meta";
+      const card = document.createElement("article");
+      card.className = "resource-card admin-resource-card";
+      const heading = document.createElement("div");
+      heading.className = "resource-card-heading";
+      const courseLabel = document.createElement("p");
+      courseLabel.className = "course-code";
+      courseLabel.textContent = resource.courses?.code
+        ? `${resource.courses.code} · ${resource.courses.title || ""}`
+        : "Course resource";
+      const title = document.createElement("h3");
+      title.textContent = resource.title;
+      heading.append(courseLabel, title);
+      card.append(heading);
+      if (resource.description) {
+        const description = document.createElement("p");
+        description.className = "muted resource-description";
+        description.textContent = resource.description;
+        card.append(description);
+      }
+      const type = resource.resource_type === "note" ? "Course note"
+        : resource.assessment_type === "test" ? "Test question" : "Examination question";
+      const meta = document.createElement("p");
+      meta.className = "resource-meta";
+      meta.textContent = [type, resource.academic_year,
+        resource.semester ? `Semester ${resource.semester}` : null, resource.file_name]
+        .filter(Boolean).join(" · ");
+      card.append(meta);
+      const status = document.createElement("p");
+      status.className = resource.is_active ? "resource-status is-published" : "resource-status is-hidden";
       status.textContent = resource.is_active ? "Visible to students" : "Hidden from students";
-      info.append(heading, detail, status);
-
-      const actions = document.createElement("div"); actions.className = "resource-actions";
-      const toggle = document.createElement("button"); toggle.className = "btn secondary";
+      card.append(status);
+      const actions = document.createElement("div");
+      actions.className = "resource-actions";
+      const toggle = document.createElement("button");
+      toggle.className = "btn secondary";
       toggle.textContent = resource.is_active ? "Hide" : "Publish";
       toggle.addEventListener("click", async () => {
         toggle.disabled = true;
@@ -157,8 +179,9 @@ if (session && session.profile.role !== "admin") {
         if (updateError) alert(updateError.message);
         await loadResources();
       });
-
-      const edit = document.createElement("button"); edit.className = "btn secondary"; edit.textContent = "Edit";
+      const edit = document.createElement("button");
+      edit.className = "btn secondary";
+      edit.textContent = "Edit";
       edit.addEventListener("click", async () => {
         const nextTitle = prompt("Resource title:", resource.title);
         if (nextTitle === null) return;
@@ -170,16 +193,14 @@ if (session && session.profile.role !== "admin") {
           .eq("id", resource.id);
         if (editError) alert(editError.message); else await loadResources();
       });
-
-      const remove = document.createElement("button"); remove.className = "btn danger"; remove.textContent = "Delete";
+      const remove = document.createElement("button");
+      remove.className = "btn danger";
+      remove.textContent = "Delete";
       remove.addEventListener("click", async () => {
         if (!confirm('Permanently delete "' + resource.title + '" and its uploaded file?')) return;
         remove.disabled = true;
         remove.textContent = "Deleting…";
-
         try {
-          // Remove metadata first. A database failure must not leave a valid record
-          // pointing to a file that has already been permanently deleted.
           const { data: deletedResource, error: deleteError } = await supabase
             .from("course_resources").delete().eq("id", resource.id).select("id").maybeSingle();
           if (deleteError) throw new Error("Resource was not deleted: " + deleteError.message);
@@ -190,27 +211,18 @@ if (session && session.profile.role !== "admin") {
           remove.textContent = "Delete";
           return;
         }
-
         let storageError = null;
         try {
           const result = await supabase.storage.from("course-resources").remove([resource.file_path]);
           storageError = result.error;
-        } catch (error) {
-          storageError = error;
-        }
-
-        try {
-          await loadResources();
-        } catch (refreshError) {
-          console.error("Resource was deleted, but the management list could not refresh:", refreshError);
-        }
-
-        if (storageError) {
-          alert("The resource record was deleted, but its stored file could not be removed. The file is now orphaned in the private bucket and needs cleanup: " + (storageError.message || String(storageError)));
-        }
+        } catch (error) { storageError = error; }
+        try { await loadResources(); }
+        catch (refreshError) { console.error("Resource was deleted, but the management list could not refresh:", refreshError); }
+        if (storageError) alert("The resource record was deleted, but its stored file could not be removed. The file is now orphaned in the private bucket and needs cleanup: " + (storageError.message || String(storageError)));
       });
-
-      actions.append(toggle, edit, remove); row.append(info, actions); target.append(row);
+      actions.append(toggle, edit, remove);
+      card.append(actions);
+      target.append(card);
     });
   }
 
