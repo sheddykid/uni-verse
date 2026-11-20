@@ -116,5 +116,5 @@ function toPlainText(result) {
     "",
     "REVISION CHECKLIST",
     ...(s.revisionChecklist || []).map(value => `□ ${value}`)
-  ].join("\\n");
+  ].join("\n");
 }
