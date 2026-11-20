@@ -113,7 +113,10 @@ if (session) {
   if (showContactIntro) {
     widget.hidden = false;
     window.setTimeout(() => {
-      if (!dialog.open) widget.hidden = true;
+      if (!dialog.open) {
+        widget.hidden = true;
+        restore.hidden = false;
+      }
     }, 3000);
   } else {
     widget.hidden = true;
