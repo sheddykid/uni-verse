@@ -139,7 +139,7 @@ const validatedSummary = z.object({
 function normalizeSummary(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return value;
   const summary = { ...value };
-  const sentences = String(summary.overview || "").split(/(?<=[.!?])\\s+/).map(text => text.trim()).filter(text => text.length > 20);
+  const sentences = String(summary.overview || "").split(/(?<=[.!?])\s+/).map(text => text.trim()).filter(text => text.length > 20);
   const existingPoints = Array.isArray(summary.keyPoints) ? summary.keyPoints.filter(item => typeof item === "string" && item.trim()) : [];
   summary.keyPoints = existingPoints.length ? existingPoints : sentences.slice(0, 8);
   if (!summary.keyPoints.length && summary.overview) summary.keyPoints = [summary.overview];
