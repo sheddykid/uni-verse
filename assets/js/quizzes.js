@@ -86,7 +86,7 @@ if (location.hostname.endsWith("github.io")) {
         $("#mcq-panel").hidden = quizMode !== "mcq"; $("#theory-panel").hidden = quizMode !== "theory";
         $("#mcq-results").hidden = true;
         if (quizMode === "mcq") renderMcq(); else renderTheory();
-        $("#quiz-section").hidden = false; setStatus(`Generated ${questions.length} ${quizMode==="mcq"?"multiple-choice":"theory"} questions.`,true);
+        $("#quiz-section").hidden = false; setStatus(`Prepared ${questions.length} ${quizMode==="mcq"?"multiple-choice":"theory"} questions${quizMode==="mcq" && result.reusedCount ? ` (${result.reusedCount} reused from the shared note bank)` : ""}.`,true);
       } catch(error) { setStatus(error.message || "Could not generate the quiz."); }
       finally {
         generateButton.disabled = notesList.querySelectorAll('input[type="checkbox"]:checked').length===0;
