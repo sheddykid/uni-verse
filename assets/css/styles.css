@@ -127,3 +127,13 @@ body.student-drawer-open{overflow:hidden}
 .contact-widget-tuck{width:24px;height:34px;padding:0}
 .contact-widget-restore{width:25px;height:48px}
 @media(max-width:600px){.contact-widget{right:10px;bottom:12px}.contact-widget-open{width:40px;height:40px}}
+
+
+/* OCR question-bank review */
+.question-review-card{gap:12px}
+.question-review-card label{width:100%;font-size:.82rem}
+.question-review-card textarea{resize:vertical;min-height:72px;line-height:1.5}
+.question-review-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%}
+.question-review-options input{font-weight:500}
+.question-review-card .resource-actions{margin-top:8px}
+@media(max-width:600px){.question-review-options{grid-template-columns:1fr}.question-review-card .resource-actions{flex-direction:column}.question-review-card .resource-actions .btn{width:100%}}
