@@ -23,7 +23,7 @@ if (session) {
       $("#quiz-sources").textContent = `Generated from: ${(result.sources || []).join(", ")}`;
       $("#mcq-panel").hidden = quizMode !== "mcq";
       $("#theory-panel").hidden = quizMode !== "theory";
-      $("#session-status").textContent = `Prepared ${questions.length} ${quizMode === "mcq" ? "multiple-choice" : "theory"} questions${quizMode === "mcq" && result.reusedCount ? ` (${result.reusedCount} reused from the shared note bank)` : ""}.`;
+      $("#session-status").textContent = `Prepared ${questions.length} ${quizMode === "mcq" ? "multiple-choice" : "theory"} questions${quizMode === "mcq" && result.reusedCount ? ` (${result.reusedCount} reused from the course question bank)` : ""}.`;
       if (quizMode === "mcq") renderMcq();
       else renderTheory();
 
