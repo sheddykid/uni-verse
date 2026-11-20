@@ -281,9 +281,10 @@ The live schema confirms that deleting a course cascades to its course-departmen
 ## 13. Navigation and resource management UI update (2026-11-20)
 
 - The administrator **Manage resources** list now uses the student resource-browser card hierarchy: course label, resource title, optional description, file/type metadata, visibility status and grouped actions. Cards adapt to narrow screens.
-- Student learning pages include a persistent bottom quick-navigation bar linking directly to the learning hub, notes, past questions, quizzes, flashcards, note summaries and video tutorials.
-- Administrator pages include matching bottom navigation for the admin dashboard, course/resource management and student view.
-- The shared stylesheet handles the fixed navigation, mobile safe-area insets and responsive resource-card actions.
+- Student learning pages now use a hamburger-triggered slide-out navigation drawer instead of the previous bottom quick-navigation bar.
+- The drawer displays the signed-in student's full name and matriculation number, and links to the learning hub and study pages.
+- Administrator pages retain their own navigation controls; the student drawer is shared across student-facing pages.
+- A movable Contact Admin control is available on student pages. It can be dragged, tucked against the screen edge, and restored with an arrow tab.
 
 ### Verification still required
 - [ ] Run JavaScript syntax checks for the changed admin management script.
@@ -303,3 +304,32 @@ When changing the application:
 6. Never commit private credentials or service-role keys.
 
 For bugs or feature requests, open an issue in the GitHub repository.
+
+
+## 14. Student navigation and Contact Admin (2026-11-20)
+
+- Replaced the student bottom navigation bar with a hamburger-triggered slide-out drawer across the student learning pages.
+- The drawer reads the authenticated user's `profiles.full_name` and `profiles.matric_number` and provides links to the learning hub, notes, past questions, quizzes, flashcards, summaries and videos.
+- Added a floating Contact Admin control. Students can drag it, tuck it against the screen edge, restore it with the edge arrow, and open a form containing an email address and complaint.
+- The form invokes the authenticated Supabase Edge Function `contact-admin`. The function validates the Supabase access token, validates the submitted email/message, applies a per-user cooldown, and sends a plain-text email to **babularbossman@gmail.com** through Gmail SMTP. The student's supplied email is set as Reply-To.
+- The function is deployed with JWT verification enabled. SMTP credentials are read only from Edge Function environment secrets; they are not stored in browser code or the repository.
+
+### Required Gmail SMTP secrets
+
+The email form will not send until these two secrets are added in **Supabase Dashboard → Edge Functions → Secrets** for the UNI-VERSE project:
+
+| Secret | Value |
+|---|---|
+| `SMTP_USERNAME` | The Gmail address used as the SMTP sender (the same sender account configured for Auth SMTP may be reused) |
+| `SMTP_PASSWORD` | A Gmail App Password for that sender account (not the normal Gmail login password) |
+
+After saving the secrets, the Edge Function reads them without requiring another deployment. Do not put either value in frontend code, GitHub, or a chat message.
+
+### Verification status
+
+- [x] Student navigation drawer and profile details implemented on student-facing pages.
+- [x] Draggable/tuckable Contact Admin control and complaint form implemented.
+- [x] Authenticated `contact-admin` Edge Function deployed with JWT verification enabled.
+- [ ] Add `SMTP_USERNAME` and `SMTP_PASSWORD` as Supabase Edge Function secrets.
+- [ ] Send a test complaint from a signed-in student account and confirm receipt at the admin Gmail inbox.
+- [ ] Verify the latest Vercel deployment and GitHub Pages workflow after the latest commit.
