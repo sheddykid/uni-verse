@@ -171,7 +171,7 @@ async function authorize(req) {
   const courseId = String(body.courseId || "");
   const resourceIds = Array.isArray(body.resourceIds) ? [...new Set(body.resourceIds.map(String))] : [];
   if (!/^[0-9a-f-]{36}$/i.test(courseId) || !resourceIds.length || resourceIds.length > MAX_FILES ||
-      resourceIds.some(id => !/^[0-9a-f-]{36}$/i.test(id))) return { error: [400, "Choose a course and one course-note file."] };
+      resourceIds.some(id => !/^[0-9a-f-]{36}$/i.test(id))) return { error: [400, "Choose a course and one course material file."] };
   const profiles = await supabaseRequest(`profiles?select=id,role,department_id&id=eq.${encodeURIComponent(user.id)}&limit=1`, token);
   const profile = profiles[0];
   if (!profile || profile.id !== user.id) return { error: [403, "Your account profile could not be verified."] };
@@ -184,11 +184,11 @@ async function authorize(req) {
   if (!courses.length) return { error: [403, "You do not have access to that active course."] };
   const ids = resourceIds.join(",");
   const resources = await supabaseRequest(`course_resources?${new URLSearchParams({
-    select:"id,course_id,title,file_name,file_path,file_size,resource_type,is_active",
-    course_id:`eq.${courseId}`, resource_type:"eq.note", is_active:"eq.true", id:`in.(${ids})`
+    select:"id,course_id,title,file_name,file_path,file_size,resource_type,assessment_type,is_active",
+    course_id:`eq.${courseId}`, resource_type:"in.(note,past_question)", is_active:"eq.true", id:`in.(${ids})`
   }).toString()}`, token);
-  if (resources.length !== resourceIds.length || resources.some(r => r.course_id !== courseId || r.resource_type !== "note")) {
-    return { error: [403, "One or more selected files are not active course notes for this course."] };
+  if (resources.length !== resourceIds.length || resources.some(r => r.course_id !== courseId || !["note","past_question"].includes(r.resource_type))) {
+    return { error: [403, "One or more selected files are not active course materials for this course."] };
   }
   return { token, user, course: courses[0], resources, body };
 }
