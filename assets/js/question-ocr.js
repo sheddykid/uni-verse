@@ -48,9 +48,9 @@ async function extractPdfText(file, onProgress, options = {}) {
   const maxCharacters = Number.isInteger(options.maxCharacters) ? options.maxCharacters : 60000;
   const pdfjsLib = await import("https://esm.sh/pdfjs-dist@4.10.38/build/pdf.mjs");
   pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.mjs`;
-  const document = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
-  if (document.numPages > maxPages) {
-    await document.destroy();
+  const pdfDocument = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+  if (pdfDocument.numPages > maxPages) {
+    await pdfDocument.destroy();
     throw new Error(`This PDF has more than ${maxPages} pages. Split it into smaller files before processing.`);
   }
 
@@ -59,9 +59,9 @@ async function extractPdfText(file, onProgress, options = {}) {
   let totalCharacters = 0;
   let ocrPages = 0;
   try {
-    for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber++) {
-      onProgress?.(`Reading PDF page ${pageNumber} of ${document.numPages}`, pageNumber / document.numPages);
-      const page = await document.getPage(pageNumber);
+    for (let pageNumber = 1; pageNumber <= pdfDocument.numPages; pageNumber++) {
+      onProgress?.(`Reading PDF page ${pageNumber} of ${pdfDocument.numPages}`, pageNumber / pdfDocument.numPages);
+      const page = await pdfDocument.getPage(pageNumber);
       const content = await page.getTextContent();
       const selectable = content.items
         .filter(item => typeof item.str === "string")
@@ -71,6 +71,8 @@ async function extractPdfText(file, onProgress, options = {}) {
       let pageText = selectable;
 
       if (selectable.replace(/\s/g, "").length < 35) {
+        ocrPages++;
+        if (ocrPages > maxOcrPages) throw new Error(`This PDF needs OCR on more than ${maxOcrPages} pages. Split it into smaller files before processing.`);
         if (!worker) worker = await createOcrWorker(onProgress);
         const base = page.getViewport({ scale: 1 });
         const maxPixels = 9000000;
@@ -96,7 +98,7 @@ async function extractPdfText(file, onProgress, options = {}) {
     return pages.join("\n\n");
   } finally {
     if (worker) await worker.terminate();
-    await document.destroy();
+    await pdfDocument.destroy();
   }
 }
 
