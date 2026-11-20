@@ -26,6 +26,12 @@ jobs:
           node --check assets/js/admin.js
           node --check assets/js/admin-manage.js
           node --check assets/js/student-navigation.js
+          node --check assets/js/quizzes.js
+          node --check assets/js/note-summarizer.js
+          node --check assets/js/question-ocr.js
+          node --check api/quizzes.js
+          node --check api/note-summary.js
+          node --check api/question-bank.js
       - name: Upload site
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
