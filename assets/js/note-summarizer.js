@@ -14,7 +14,7 @@ if (location.hostname.endsWith("github.io")) {
     const courseSelect = $("#course-select");
     const notesList = $("#notes-list");
     const generateButton = $("#generate");
-    let currentSummaryText = "";
+
 
     const courseQuery = supabase.from("courses")
       .select("id,code,title,course_departments!inner(department_id)")
@@ -27,8 +27,6 @@ if (location.hostname.endsWith("github.io")) {
 
     courseSelect.addEventListener("change", loadNotes);
     generateButton.addEventListener("click", generateSummary);
-    $("#copy-summary").addEventListener("click", copySummary);
-    $("#print-summary").addEventListener("click", () => window.print());
 
     async function loadNotes() {
       generateButton.disabled = true;
@@ -112,122 +110,14 @@ if (location.hostname.endsWith("github.io")) {
         catch { throw new Error(`The summary server returned an invalid response (HTTP ${response.status}).`); }
         if (!response.ok) throw new Error(result.error || `Summary request failed (HTTP ${response.status}).`);
         if (!result.summary) throw new Error("The AI did not return a summary. Please try again.");
-        renderSummary(result);
-        setStatus("Your study summary is ready.", true);
-        $("#summary-result").hidden = false;
-        $("#summary-result").scrollIntoView({ behavior: "smooth", block: "start" });
+        sessionStorage.setItem("universeActiveSummary", JSON.stringify(result));
+        setStatus("Your study summary is ready. Opening your summary page…", true);
+        location.href = "./summary-session.html";
       } catch (error) {
         setStatus(error.message || "Could not generate the summary.");
       } finally {
         generateButton.disabled = notesList.querySelectorAll('input[type="checkbox"]:checked').length === 0;
         generateButton.textContent = "Generate summary";
-      }
-    }
-
-    function renderSummary(result) {
-      const summary = result.summary;
-      $("#summary-title").textContent = summary.title;
-      $("#summary-meta").textContent = `${result.course.code} — ${result.course.title} · ${result.sources.join(", ")} · ${result.provider} AI${result.sampled ? " · long notes sampled to fit the AI context limit" : ""}`;
-      $("#summary-overview").textContent = summary.overview;
-      fillList($("#summary-key-points"), summary.keyPoints);
-      fillList($("#summary-checklist"), summary.revisionChecklist);
-
-      const sections = $("#summary-sections");
-      sections.replaceChildren();
-      (summary.sections || []).forEach(item => {
-        const article = document.createElement("article");
-        article.className = "summary-topic";
-        const heading = document.createElement("h4");
-        heading.textContent = item.heading;
-        const description = document.createElement("p");
-        description.textContent = item.summary;
-        article.append(heading, description);
-        if (item.details?.length) {
-          const list = document.createElement("ul");
-          fillList(list, item.details);
-          article.append(list);
-        }
-        sections.append(article);
-      });
-
-      const terms = $("#summary-terms");
-      terms.replaceChildren();
-      (summary.keyTerms || []).forEach(item => {
-        const term = document.createElement("dt");
-        const definition = document.createElement("dd");
-        term.textContent = item.term;
-        definition.textContent = item.definition;
-        terms.append(term, definition);
-      });
-      $("#summary-terms-block").hidden = !summary.keyTerms?.length;
-
-      const formulas = $("#summary-formulas");
-      formulas.replaceChildren();
-      (summary.formulas || []).forEach(item => {
-        const article = document.createElement("article");
-        article.className = "summary-formula";
-        const heading = document.createElement("h4");
-        heading.textContent = item.name;
-        const expression = document.createElement("code");
-        expression.textContent = item.expression;
-        const explanation = document.createElement("p");
-        explanation.textContent = item.explanation;
-        article.append(heading, expression, explanation);
-        formulas.append(article);
-      });
-      $("#summary-formulas-block").hidden = !summary.formulas?.length;
-      currentSummaryText = toPlainText(result);
-    }
-
-    function fillList(root, items) {
-      root.replaceChildren();
-      (items || []).forEach(value => {
-        const item = document.createElement("li");
-        item.textContent = value;
-        root.append(item);
-      });
-    }
-
-    function toPlainText(result) {
-      const s = result.summary;
-      const lines = [
-        s.title,
-        `${result.course.code} — ${result.course.title}`,
-        `Source notes: ${result.sources.join(", ")}`,
-        "",
-        "OVERVIEW",
-        s.overview,
-        "",
-        "KEY POINTS",
-        ...(s.keyPoints || []).map(value => `• ${value}`),
-        "",
-        "TOPIC BREAKDOWN",
-        ...(s.sections || []).flatMap(section => [
-          section.heading,
-          section.summary,
-          ...(section.details || []).map(value => `• ${value}`)
-        ]),
-        "",
-        "KEY TERMS",
-        ...(s.keyTerms || []).flatMap(item => [`${item.term}: ${item.definition}`]),
-        "",
-        "FORMULAS AND EQUATIONS",
-        ...(s.formulas || []).flatMap(item => [`${item.name}: ${item.expression}`, item.explanation]),
-        "",
-        "REVISION CHECKLIST",
-        ...(s.revisionChecklist || []).map(value => `□ ${value}`)
-      ];
-      return lines.join("\n");
-    }
-
-    async function copySummary() {
-      if (!currentSummaryText) return;
-      try {
-        await navigator.clipboard.writeText(currentSummaryText);
-        $("#copy-summary").textContent = "Copied";
-        setTimeout(() => { $("#copy-summary").textContent = "Copy text"; }, 1600);
-      } catch {
-        setStatus("Could not copy automatically. Use Print / Save PDF instead.");
       }
     }
 
