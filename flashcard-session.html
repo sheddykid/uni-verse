@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101827"><title>UNI-VERSE | Flashcard Study Session</title><link rel="stylesheet" href="./assets/css/styles.css"></head>
+<body>
+<header class="topbar"><a class="brand" href="./student.html"><span class="brand-mark small">U</span> UNI-VERSE</a><div><span id="user-label" class="muted"></span> <button id="logout" class="btn ghost">Sign out</button></div></header>
+<main class="dashboard flashcard-dashboard">
+<a class="back-link" href="./flashcards.html">← Back to flashcard generator</a>
+<div class="deck-heading"><div><p class="eyebrow">YOUR STUDY SESSION</p><h1 id="deck-title">Flashcards</h1><p id="deck-sources" class="muted"></p></div><button id="restart" class="btn secondary" type="button">Restart deck</button></div>
+<p id="session-status" class="message" role="status" aria-live="polite"></p>
+<section id="deck-section" class="deck-section" hidden>
+<div class="deck-progress"><span id="progress-label">Card 1 of 15</span><span id="known-label">0 known</span></div><div class="progress-track"><span id="progress-fill"></span></div>
+<button id="flashcard" class="flashcard" type="button" aria-label="Reveal answer"><span id="card-side" class="card-side">QUESTION</span><span id="card-text" class="card-text"></span><span id="card-hint" class="card-hint">Tap to reveal answer</span></button>
+<div class="deck-actions"><button id="previous" class="btn secondary" type="button">Previous</button><button id="mark-known" class="btn secondary" type="button">✓ Know this</button><button id="mark-learning" class="btn secondary" type="button">Still learning</button><button id="next" class="btn primary" type="button">Next</button></div>
+<p id="deck-finish" class="message success" role="status"></p>
+<div class="quiz-submit-row"><button id="finish" class="btn primary" type="button">Finish and return to generator</button></div>
+</section>
+</main><script type="module" src="./assets/js/flashcard-session.js"></script></body></html>
