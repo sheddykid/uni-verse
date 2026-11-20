@@ -76,25 +76,36 @@ if (session && session.profile.role !== "admin") {
         if (!confirm(`Permanently delete ${course.code} — ${course.title}? This also deletes all its resource records and uploaded files. This cannot be undone.`)) return;
         removeCourse.disabled = true;
         removeCourse.textContent = "Deleting…";
-        const { data: courseResources, error: resourceLookupError } = await supabase.from("course_resources").select("file_path").eq("course_id", course.id);
-        if (resourceLookupError) {
-          alert("Could not check the course resources: " + resourceLookupError.message);
-          removeCourse.disabled = false; removeCourse.textContent = "Delete"; return;
-        }
-        const filePaths = (courseResources || []).map(item => item.file_path).filter(Boolean);
-        if (filePaths.length) {
-          const { error: storageError } = await supabase.storage.from("course-resources").remove(filePaths);
-          if (storageError) {
-            alert("Course was not deleted because its uploaded files could not be removed: " + storageError.message);
-            removeCourse.disabled = false; removeCourse.textContent = "Delete"; return;
+        try {
+          const { data: courseResources, error: resourceLookupError } = await supabase
+            .from("course_resources").select("file_path").eq("course_id", course.id);
+          if (resourceLookupError) throw new Error("Could not check the course resources: " + resourceLookupError.message);
+
+          const filePaths = [...new Set((courseResources || []).map(item => item.file_path).filter(Boolean))];
+
+          // Delete the database row first. Its foreign keys cascade to resource metadata.
+          // If this fails, leave every stored file untouched so existing records stay valid.
+          const { data: deletedCourse, error: deleteError } = await supabase
+            .from("courses").delete().eq("id", course.id).select("id").maybeSingle();
+          if (deleteError) throw new Error("Course was not deleted: " + deleteError.message);
+          if (!deletedCourse) throw new Error("No course record was deleted. The page may be out of date; refresh and try again.");
+
+          let storageError = null;
+          for (let index = 0; index < filePaths.length; index += 1000) {
+            const result = await supabase.storage.from("course-resources").remove(filePaths.slice(index, index + 1000));
+            if (result.error) { storageError = result.error; break; }
           }
+
+          await loadCourses();
+          await loadResources();
+          if (storageError) {
+            alert("The course and its resource records were deleted, but some stored files could not be removed. They are now orphaned in the private bucket and need cleanup: " + storageError.message);
+          }
+        } catch (error) {
+          alert(error?.message || "The course could not be deleted. Please try again.");
+          removeCourse.disabled = false;
+          removeCourse.textContent = "Delete";
         }
-        const { error: deleteError } = await supabase.from("courses").delete().eq("id", course.id);
-        if (deleteError) {
-          alert("Uploaded files were removed, but the course record could not be deleted: " + deleteError.message);
-          removeCourse.disabled = false; removeCourse.textContent = "Delete"; return;
-        }
-        await loadCourses(); await loadResources();
       });
       actions.append(editTitle, button, removeCourse);
       row.append(info, actions);
@@ -150,38 +161,30 @@ if (session && session.profile.role !== "admin") {
       const remove = document.createElement("button"); remove.className = "btn danger"; remove.textContent = "Delete";
       remove.addEventListener("click", async () => {
         if (!confirm('Permanently delete "' + resource.title + '" and its uploaded file?')) return;
-        const { error: storageError } = await supabase.storage.from("course-resources").remove([resource.file_path]);
-        if (storageError) { alert("The resource was not deleted because its stored file could not be removed: " + storageError.message); return; }
-        const { error: deleteError } = await supabase.from("course_resources").delete().eq("id", resource.id);
-        if (deleteError) { alert("The file was removed, but the resource record could not be deleted: " + deleteError.message); return; }
-        await loadResources();
+        remove.disabled = true;
+        remove.textContent = "Deleting…";
+        try {
+          // Remove the metadata first. A database failure must not leave a valid record
+          // pointing to a file that has already been permanently deleted.
+          const { data: deletedResource, error: deleteError } = await supabase
+            .from("course_resources").delete().eq("id", resource.id).select("id").maybeSingle();
+          if (deleteError) throw new Error("Resource was not deleted: " + deleteError.message);
+          if (!deletedResource) throw new Error("No resource record was deleted. Refresh the page and try again.");
+
+          const { error: storageError } = await supabase.storage.from("course-resources").remove([resource.file_path]);
+          await loadResources();
+          if (storageError) {
+            alert("The resource record was deleted, but its stored file could not be removed. The file is now orphaned in the private bucket and needs cleanup: " + storageError.message);
+          }
+        } catch (error) {
+          alert(error?.message || "The resource could not be deleted. Please try again.");
+          remove.disabled = false;
+          remove.textContent = "Delete";
+        }
       });
 
       actions.append(toggle, edit, remove); row.append(info, actions); target.append(row);
     });
-  }
-
-  // Remove previously uploaded objects that have no resource record.
-  // Re-check the database before deleting; never remove a file referenced by a resource.
-  const knownOrphanPaths = [
-    "9e11baf6-9072-4a3d-b1ae-738a19a574d4/503a8d10-aae9-4d5f-bc50-d8c1ec3f215e-Screenshot_20261119-161006.png",
-    "3d9963c9-8ca5-40ed-9750-0970157ee5ca/be3c4872-ca9b-47ea-af6d-c15b9f5d445d-CPE503_Group02_Problem02_Report_DRAFT.pdf",
-    "cbbf9fb3-07d9-47be-a692-689a6120f5d2/3d9963c9-8ca5-40ed-9750-0970157ee5ca/43f3d4a6-3180-4e2d-9cf3-dc58b62d1d55-200L_-_500L_2026-2027_Examination_Timetable.pdf",
-    "15c8fdfe-34ff-4bb5-ac65-ceede2056f07/3e5639c8-b312-4a88-ae5b-df5f040722a8/65385c8d-1c85-4983-ba18-3559cefedf6f-200L_-_500L_2026-2027_Examination_Timetable.pdf"
-  ];
-  async function removeOrphanedUploads() {
-    const { data: referenced, error: lookupError } = await supabase
-      .from("course_resources").select("file_path").in("file_path", knownOrphanPaths);
-    if (lookupError) {
-      console.error("Could not verify orphaned uploads:", lookupError);
-      return;
-    }
-    const referencedPaths = new Set((referenced || []).map(item => item.file_path));
-    const safeToRemove = knownOrphanPaths.filter(path => !referencedPaths.has(path));
-    if (!safeToRemove.length) return;
-    const { error: storageError } = await supabase.storage.from("course-resources").remove(safeToRemove);
-    if (storageError) console.error("Could not remove orphaned uploads:", storageError);
-    else console.info(`Removed ${safeToRemove.length} orphaned upload(s).`);
   }
 
   await loadCourses();
