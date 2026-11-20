@@ -118,7 +118,7 @@ const summarySchema = {
 const validatedSummary = z.object({
   title: z.string().min(1).max(180),
   overview: z.string().min(20).max(1800),
-  keyPoints: z.array(z.string().min(1).max(600)).min(3).max(12),
+  keyPoints: z.array(z.string().min(1).max(600)).min(1).max(12),
   sections: z.array(z.object({
     heading: z.string().min(1).max(160),
     summary: z.string().min(1).max(1200),
@@ -133,8 +133,30 @@ const validatedSummary = z.object({
     expression: z.string().min(1).max(240),
     explanation: z.string().max(500)
   })).max(15),
-  revisionChecklist: z.array(z.string().min(1).max(400)).min(3).max(12)
+  revisionChecklist: z.array(z.string().min(1).max(400)).min(1).max(12)
 });
+
+function normalizeSummary(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const summary = { ...value };
+  const sentences = String(summary.overview || "").split(/(?<=[.!?])\\s+/).map(text => text.trim()).filter(text => text.length > 20);
+  const existingPoints = Array.isArray(summary.keyPoints) ? summary.keyPoints.filter(item => typeof item === "string" && item.trim()) : [];
+  summary.keyPoints = existingPoints.length ? existingPoints : sentences.slice(0, 8);
+  if (!summary.keyPoints.length && summary.overview) summary.keyPoints = [summary.overview];
+  if (!Array.isArray(summary.sections) || !summary.sections.length) {
+    summary.sections = summary.overview ? [{
+      heading: summary.title || "Summary",
+      summary: summary.overview,
+      details: summary.keyPoints.slice(0, 8)
+    }] : [];
+  }
+  if (!Array.isArray(summary.keyTerms)) summary.keyTerms = [];
+  if (!Array.isArray(summary.formulas)) summary.formulas = [];
+  const checklist = Array.isArray(summary.revisionChecklist)
+    ? summary.revisionChecklist.filter(item => typeof item === "string" && item.trim()) : [];
+  summary.revisionChecklist = checklist.length ? checklist : summary.keyPoints.slice(0, 8).map(point => `Review and be able to explain: ${point}`);
+  return summary;
+}
 
 function parseGeminiText(result) {
   return (result.steps || []).filter(step => step.type === "model_output")
@@ -342,7 +364,7 @@ Do not invent headings or topics absent from the notes. Keep the output useful f
 COURSE NOTE TEXT:
 ${noteText}`;
     const generated = await generateSummary(prompt, log);
-    const parsed = validatedSummary.safeParse(generated.result);
+    const parsed = validatedSummary.safeParse(normalizeSummary(generated.result));
     if (!parsed.success) {
       log("summary_validation_failed", { issues: parsed.error.issues.slice(0, 4).map(issue => issue.path.join(".")) });
       return respond(res, 502, { error: "The AI returned a summary in an invalid format. Please try again." });
