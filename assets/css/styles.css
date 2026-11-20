@@ -117,3 +117,13 @@ body.student-drawer-open{overflow:hidden}
 .contact-dialog .message{margin:0}
 @media(max-width:600px){.student-menu-trigger{margin-right:8px}.contact-widget{right:12px;bottom:14px}.student-drawer{padding:18px 14px}}
 @media(prefers-reduced-motion:reduce){.student-drawer{transition:none}}
+
+
+/* Compact, draggable Contact Admin shortcut */
+.contact-widget{gap:4px;padding:4px;border-radius:13px}
+.contact-widget-open{width:42px;height:42px;padding:0;display:grid;place-items:center;border-radius:11px;font-size:1.15rem;line-height:1}
+.contact-widget-drag{width:22px;height:34px;padding:0;font-size:1rem;cursor:grab}
+.contact-widget-drag:active{cursor:grabbing}
+.contact-widget-tuck{width:24px;height:34px;padding:0}
+.contact-widget-restore{width:25px;height:48px}
+@media(max-width:600px){.contact-widget{right:10px;bottom:12px}.contact-widget-open{width:40px;height:40px}}
