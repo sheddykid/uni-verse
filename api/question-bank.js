@@ -231,11 +231,11 @@ export default async function handler(req, res) {
       if (!/^[0-9a-f-]{36}$/i.test(id) || !["active", "retired"].includes(status)) {
         return respond(res, 400, { error: "Choose a valid question and review action." });
       }
-      const existing = await adminRequest(`quiz_question_bank?select=id,question_type& id=eq.${id}&status=eq.pending&limit=1`.replace("& ", "&"));
+      const existing = await adminRequest(`quiz_question_bank?select=id,question_type,correct_index,marking_guide&id=eq.${id}&status=eq.pending&limit=1`);
       const question = existing[0];
       if (!question) return respond(res, 404, { error: "This question is no longer awaiting review. Refresh the list." });
 
-      const patch = { status, updated_at: new Date().toISOString() };
+      const patch = { status };
       if (typeof body.question === "string") {
         const nextQuestion = body.question.trim().slice(0, 1200);
         if (nextQuestion.length < 5) return respond(res, 400, { error: "The question text is too short." });
@@ -255,21 +255,17 @@ export default async function handler(req, res) {
           }
           patch.correct_index = body.correctIndex;
         }
-        if (status === "active" && patch.correct_index === undefined) {
-          const rows = await adminRequest(`quiz_question_bank?select=correct_index&id=eq.${id}&limit=1`);
-          if (rows[0]?.correct_index === null || rows[0]?.correct_index === undefined) {
-            return respond(res, 400, { error: "Select and verify the correct answer before publishing this MCQ." });
-          }
+        const finalCorrectIndex = patch.correct_index !== undefined ? patch.correct_index : question.correct_index;
+        if (status === "active" && (finalCorrectIndex === null || finalCorrectIndex === undefined)) {
+          return respond(res, 400, { error: "Select and verify the correct answer before publishing this MCQ." });
         }
         if (typeof body.explanation === "string") patch.explanation = body.explanation.trim().slice(0, 1000) || null;
       } else {
         if (typeof body.markingGuide === "string") patch.marking_guide = body.markingGuide.trim().slice(0, 2000) || null;
         if (typeof body.modelAnswer === "string") patch.model_answer = body.modelAnswer.trim().slice(0, 3000) || null;
-        if (status === "active" && !String(patch.marking_guide || "").trim()) {
-          const rows = await adminRequest(`quiz_question_bank?select=marking_guide&id=eq.${id}&limit=1`);
-          if (!String(rows[0]?.marking_guide || "").trim()) {
-            return respond(res, 400, { error: "Add or verify a marking guide before publishing this theory question." });
-          }
+        const finalMarkingGuide = patch.marking_guide !== undefined ? patch.marking_guide : question.marking_guide;
+        if (status === "active" && !String(finalMarkingGuide || "").trim()) {
+          return respond(res, 400, { error: "Add or verify a marking guide before publishing this theory question." });
         }
       }
       const updated = await adminRequest(`quiz_question_bank?id=eq.${id}&status=eq.pending`, {
