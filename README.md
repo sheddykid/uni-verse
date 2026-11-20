@@ -281,7 +281,7 @@ The live schema confirms that deleting a course cascades to its course-departmen
 ## 13. Navigation and resource management UI update (2026-11-20)
 
 - The administrator **Manage resources** list now uses the student resource-browser card hierarchy: course label, resource title, optional description, file/type metadata, visibility status and grouped actions. Cards adapt to narrow screens.
-- Student learning pages include a persistent bottom quick-navigation bar linking directly to the learning hub, notes, past questions, quizzes, flashcards and video tutorials.
+- Student learning pages include a persistent bottom quick-navigation bar linking directly to the learning hub, notes, past questions, quizzes, flashcards, note summaries and video tutorials.
 - Administrator pages include matching bottom navigation for the admin dashboard, course/resource management and student view.
 - The shared stylesheet handles the fixed navigation, mobile safe-area insets and responsive resource-card actions.
 
