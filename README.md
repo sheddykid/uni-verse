@@ -237,8 +237,17 @@ A focused review of the admin course/resource management and deletion paths iden
 - **Resource deletion order:** The workflow now deletes the resource metadata first and removes its Storage object only after the database confirms a row was deleted. A failed database delete no longer destroys the file referenced by that row.
 - **Large course cleanup:** Course-file deletion is split into batches of at most 1,000 paths, matching the Supabase Storage API limit.
 - **Course creation rollback:** If department assignment fails after course creation, the compensating course deletion is checked. A failed rollback is surfaced with the affected course ID instead of being silently ignored.
-- **Upload rollback:** If resource metadata insertion fails after a successful upload, the Storage cleanup result is checked. If cleanup also fails, the admin receives the orphaned file path and cleanup error.
+- **Upload rollback:** If resource metadata insertion fails after a successful upload, the Storage cleanup result is checked, including thrown network errors. If cleanup also fails, the admin receives the orphaned file path and cleanup error.
 - **One-off orphan cleanup:** Removed the hard-coded list of historical file paths that ran automatically whenever an admin opened the management page. Cleanup of orphaned objects must be deliberate and verified; page visits should not trigger deletion of unrelated files.
+
+### Implementation commits
+
+- Admin deletion safety: [9571f225](https://github.com/sheddykid/uni-verse/commit/9571f225a8880e280d43425b89814551793cd189)
+- Admin creation/upload rollback reporting: [bc1206cc](https://github.com/sheddykid/uni-verse/commit/bc1206cc3205f433e37cef112154bc94534eb4de)
+- Follow-up deletion error handling: [c7ea745b](https://github.com/sheddykid/uni-verse/commit/c7ea745b1882ef866ec8c4e408172776e8106146)
+- Thrown-error handling for creation/upload rollback: [7460840a](https://github.com/sheddykid/uni-verse/commit/7460840a3720d38e933a01919dcc658c02b379cb)
+- GitHub Actions syntax checks: [10cf5776](https://github.com/sheddykid/uni-verse/commit/10cf5776f26bcca73da169e72f19f73af7de31d6)
+- README audit record: [849441d](https://github.com/sheddykid/uni-verse/commit/849441d63413ca9765821d0cf9eb4c2f53911b2c)
 
 ### Database behavior verified
 
@@ -250,7 +259,7 @@ The live schema confirms that deleting a course cascades to its `course_resource
 - [x] Verified the relevant course/resource foreign-key delete rules in Supabase.
 - [x] Verified the four historical orphan paths are no longer present in the Storage object metadata.
 - [x] Updated failure ordering and rollback reporting in the admin scripts.
-- [ ] Run JavaScript syntax/workflow checks against the committed revision.
+- [ ] Confirm the new GitHub Actions syntax-check step passes for both admin scripts.
 - [ ] Deploy the committed changes to Vercel after the deployment quota becomes available.
 - [ ] Test course deletion with resources, resource deletion, failed-delete behavior, course creation rollback, and upload rollback in an authenticated admin session.
 - [ ] Confirm that no resource records point to missing Storage objects and no new orphaned objects are created by the tested workflows.
