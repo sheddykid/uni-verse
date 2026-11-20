@@ -36,7 +36,9 @@ if (location.hostname.endsWith("github.io")) {
         .select("id,title,file_name,file_size,mime_type,resource_type,assessment_type,created_at").eq("course_id",courseSelect.value)
         .in("resource_type",["note","past_question"]).eq("is_active",true).order("created_at",{ascending:false});
       if (error) { notesList.textContent = "Could not load course materials."; $("#note-count").textContent = "Unavailable"; return; }
-      notes = (data || []).filter(item => /\.(pdf|docx|pptx)$/i.test(item.file_name || ""));
+      notes = (data || []).filter(item => item.resource_type === "note"
+        ? /\.(pdf|docx|pptx)$/i.test(item.file_name || "")
+        : /\.(pdf|docx|pptx|jpg|jpeg|png|webp)$/i.test(item.file_name || ""));
       $("#note-count").textContent = `${notes.length} available`;
       if (!notes.length) { notesList.textContent = "No supported course materials are available for this course yet."; return; }
       notes.forEach(note => {
