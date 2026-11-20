@@ -43,6 +43,7 @@ if (session) {
       </form>
     </dialog>`;
   document.body.append(mount);
+  document.querySelector(".topbar")?.prepend(mount.querySelector(".student-menu-trigger"));
 
   const $ = selector => mount.querySelector(selector);
   const trigger = $(".student-menu-trigger");
