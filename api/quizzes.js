@@ -253,9 +253,10 @@ export default async function handler(req,res) {
         question:item.question, options:item.options, correctIndex:item.correctIndex,
         explanation:item.explanation, selectedIndex:answers[index]
       }));
-      await adminRequest(`quiz_sessions?id=eq.${sessionId}&user_id=eq.${user.id}`,{
-        method:"PATCH",body:{submitted_at:new Date().toISOString()},prefer:"return=minimal"
+      const locked = await adminRequest(`quiz_sessions?id=eq.${sessionId}&user_id=eq.${user.id}&submitted_at=is.null`,{
+        method:"PATCH",body:{submitted_at:new Date().toISOString()},prefer:"return=representation"
       });
+      if (!locked.length) return respond(res,409,{error:"This quiz has already been submitted. Generate a new quiz to try again."});
       return respond(res,200,{score,total:snapshot.length,percentage:Math.round(score/snapshot.length*100),review});
     }
     if (mode !== "mcq" && mode !== "theory") return respond(res,400,{error:"Choose multiple-choice or theory practice."});
@@ -311,10 +312,11 @@ ${notes}`;
       });
       const session = created[0];
       if (!session?.id) throw new Error("Could not start a secure quiz session. Please try again.");
-      log("quiz_generated",{mode,count:snapshot.length,bankReused:Math.min(bank.length,count)-Math.max(0,count-missing),sourceHash});
+      const reusedCount = count - missing;
+      log("quiz_generated",{mode,count:snapshot.length,bankReused:reusedCount,sourceHash});
       return respond(res,200,{
         course:{id:course.id,code:course.code,title:course.title},
-        sources:resources.map(r=>r.title),mode,quizSessionId:session.id,
+        sources:resources.map(r=>r.title),mode,reusedCount,quizSessionId:session.id,
         questions:snapshot.map(item=>({question:item.question,options:item.options}))
       });
     }
