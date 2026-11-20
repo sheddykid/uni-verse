@@ -136,10 +136,18 @@ if (session && session.profile.role !== "admin") {
       );
       if (assignmentError) {
         // Check the compensating delete instead of silently ignoring a failed rollback.
-        const { data: rolledBackCourse, error: rollbackError } = await supabase
-          .from("courses").delete().eq("id", course.id).select("id").maybeSingle();
+        let rolledBackCourse = null;
+        let rollbackError = null;
+        try {
+          const rollback = await supabase.from("courses")
+            .delete().eq("id", course.id).select("id").maybeSingle();
+          rolledBackCourse = rollback.data;
+          rollbackError = rollback.error;
+        } catch (error) {
+          rollbackError = error;
+        }
         if (rollbackError || !rolledBackCourse) {
-          showMessage(message, "Department assignment failed, and the new course could not be rolled back. Course ID: " + course.id + ". Assignment error: " + assignmentError.message + (rollbackError ? " Rollback error: " + rollbackError.message : ""));
+          showMessage(message, "Department assignment failed, and the new course could not be confirmed as rolled back. Course ID: " + course.id + ". Assignment error: " + assignmentError.message + (rollbackError ? " Rollback error: " + (rollbackError.message || String(rollbackError)) : ""));
         } else {
           showMessage(message, "Course was not saved: " + assignmentError.message);
         }
@@ -216,9 +224,15 @@ if (session && session.profile.role !== "admin") {
       };
       const { error: insertError } = await supabase.from("course_resources").insert(payload);
       if (insertError) {
-        const { error: cleanupError } = await supabase.storage.from("course-resources").remove([filePath]);
+        let cleanupError = null;
+        try {
+          const cleanup = await supabase.storage.from("course-resources").remove([filePath]);
+          cleanupError = cleanup.error;
+        } catch (error) {
+          cleanupError = error;
+        }
         showMessage(message, cleanupError
-          ? insertError.message + " Storage cleanup also failed; orphaned file path: " + filePath + ". Cleanup error: " + cleanupError.message
+          ? insertError.message + " Storage cleanup also failed; orphaned file path: " + filePath + ". Cleanup error: " + (cleanupError.message || String(cleanupError))
           : insertError.message);
       } else {
         showMessage(message, "Resource uploaded and published.", true);
