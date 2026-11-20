@@ -48,6 +48,7 @@ if (location.hostname.endsWith("github.io")) {
         return;
       }
       const supported = (data || []).filter(note => /\.(pdf|docx|pptx)$/i.test(note.file_name || ""));
+      availableNotes = supported;
       $("#note-count").textContent = `${supported.length} available`;
       if (!supported.length) {
         notesList.textContent = "No supported course notes are available for this course yet.";
@@ -96,7 +97,7 @@ if (location.hostname.endsWith("github.io")) {
         if (!authSession?.access_token) throw new Error("Your session has expired. Sign in again.");
         const ocrTextByResource = {};
         const selectedNotes = availableNotes.filter(note => resourceIds.includes(note.id));
-        const pdfNotes = selectedNotes.filter(note => /\\.pdf$/i.test(note.file_name || ""));
+        const pdfNotes = selectedNotes.filter(note => String(note.file_name || "").toLowerCase().endsWith(".pdf"));
         if (pdfNotes.length) {
           const { extractResourceText } = await import("./question-ocr.js");
           for (const note of pdfNotes) {
