@@ -11,7 +11,7 @@ if (location.hostname.endsWith("github.io")) {
     const { profile, user } = session;
     $("#user-label").textContent = profile.full_name || user.email;
     const courseSelect = $("#course-select"), notesList = $("#notes-list"), generateButton = $("#generate");
-    let notes = [], activeResourceIds = [], questions = [], course = null, quizMode = "mcq";
+    let notes = [], activeResourceIds = [], questions = [], course = null, quizMode = "mcq", quizSessionId = null;
     const courseQuery = supabase.from("courses").select("id,code,title,course_departments!inner(department_id)").eq("is_active", true);
     if (profile.role !== "admin") courseQuery.eq("course_departments.department_id", profile.department_id);
     const { data: courses, error: courseError } = await courseQuery.order("code");
@@ -24,7 +24,7 @@ if (location.hostname.endsWith("github.io")) {
       const isTheory = $("#quiz-mode").value === "theory";
       const max = isTheory ? 10 : 20;
       $("#question-count").querySelectorAll("option").forEach(option => { option.disabled = Number(option.value) > max; });
-      $("#question-count").value = isTheory ? "5" : "15";
+      $("#question-count").value = isTheory ? "5" : "10";
     });
     $("#new-quiz").addEventListener("click", () => { $("#quiz-section").hidden = true; $("#status").textContent = ""; });
     $("#submit-mcq").addEventListener("click", submitMcq);
@@ -78,7 +78,7 @@ if (location.hostname.endsWith("github.io")) {
       $("#quiz-section").hidden = true;
       try {
         const result = await apiRequest({mode:quizMode,courseId:courseSelect.value,resourceIds:activeResourceIds,count});
-        questions = result.questions || []; course = result.course;
+        questions = result.questions || []; course = result.course; quizSessionId = result.quizSessionId || null;
         $("#submit-mcq").disabled = false;
         if (!questions.length) throw new Error("No questions were generated from these notes.");
         $("#quiz-title").textContent = `${course.code} — ${course.title}`;
@@ -109,28 +109,37 @@ if (location.hostname.endsWith("github.io")) {
         card.append(choices); root.append(card);
       });
     }
-    function submitMcq() {
+    async function submitMcq() {
       const answers = questions.map((_,index) => {
         const selected = document.querySelector(`input[name="question-${index}"]:checked`);
         return selected ? Number(selected.value) : -1;
       });
       if (answers.some(value=>value<0)) { setStatus("Answer every question before submitting."); return; }
-      const score = answers.reduce((sum,value,index)=>sum+(value===questions[index].correctIndex?1:0),0);
-      const results = $("#mcq-results"); results.replaceChildren();
-      const summary = document.createElement("div"); summary.className = "score-summary";
-      const scoreTitle = document.createElement("h2"); scoreTitle.textContent = `Your score: ${score} / ${questions.length}`;
-      const scoreText = document.createElement("p"); scoreText.className = "muted"; scoreText.textContent = `${Math.round(score/questions.length*100)}% · Review the explanations below.`;
-      summary.append(scoreTitle,scoreText); results.append(summary);
-      questions.forEach((item,index) => {
-        const correct = answers[index]===item.correctIndex, review = document.createElement("article"); review.className = `answer-review ${correct?"answer-correct":"answer-incorrect"}`;
-        const title = document.createElement("h3"); title.textContent = `${index+1}. ${item.question}`;
-        const chosen = document.createElement("p"); chosen.textContent = `Your answer: ${answers[index]>=0?item.options[answers[index]]:"No answer"}`;
-        const right = document.createElement("p"); right.textContent = `Correct answer: ${item.options[item.correctIndex]}`;
-        const explanation = document.createElement("p"); explanation.className = "muted"; explanation.textContent = item.explanation;
-        review.append(title,chosen,right,explanation); results.append(review);
-      });
-      results.hidden = false; $("#submit-mcq").disabled = true;
-      results.scrollIntoView({behavior:"smooth",block:"start"});
+      if (!quizSessionId) { setStatus("This quiz session is invalid. Generate a new quiz."); return; }
+      const submitButton = $("#submit-mcq");
+      submitButton.disabled = true; submitButton.textContent = "Marking…";
+      try {
+        const result = await apiRequest({mode:"mcq_submit",courseId:course.id,resourceIds:activeResourceIds,quizSessionId,answers});
+        const results = $("#mcq-results"); results.replaceChildren();
+        const summary = document.createElement("div"); summary.className = "score-summary";
+        const scoreTitle = document.createElement("h2"); scoreTitle.textContent = `Your score: ${result.score} / ${result.total}`;
+        const scoreText = document.createElement("p"); scoreText.className = "muted"; scoreText.textContent = `${result.percentage}% · Review the explanations below.`;
+        summary.append(scoreTitle,scoreText); results.append(summary);
+        (result.review||[]).forEach((item,index) => {
+          const correct = item.selectedIndex===item.correctIndex, review = document.createElement("article");
+          review.className = `answer-review ${correct?"answer-correct":"answer-incorrect"}`;
+          const title = document.createElement("h3"); title.textContent = `${index+1}. ${item.question}`;
+          const chosen = document.createElement("p"); chosen.textContent = `Your answer: ${item.options[item.selectedIndex]}`;
+          const right = document.createElement("p"); right.textContent = `Correct answer: ${item.options[item.correctIndex]}`;
+          const explanation = document.createElement("p"); explanation.className = "muted"; explanation.textContent = item.explanation;
+          review.append(title,chosen,right,explanation); results.append(review);
+        });
+        results.hidden = false; submitButton.textContent = "Submitted";
+        results.scrollIntoView({behavior:"smooth",block:"start"});
+      } catch(error) {
+        setStatus(error.message || "Could not mark this quiz.");
+        submitButton.disabled = false; submitButton.textContent = "Submit answers";
+      }
     }
     function renderTheory() {
       const root = $("#theory-questions"); root.replaceChildren();
