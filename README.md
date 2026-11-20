@@ -333,3 +333,30 @@ After saving the secrets, the Edge Function reads them without requiring another
 - [ ] Add `SMTP_USERNAME` and `SMTP_PASSWORD` as Supabase Edge Function secrets.
 - [ ] Send a test complaint from a signed-in student account and confirm receipt at the admin Gmail inbox.
 - [ ] Verify the latest Vercel deployment and GitHub Pages workflow after the latest commit.
+
+
+## 15. Contact Admin shortcut refinement — production verified (2026-11-21)
+
+The student Contact Admin shortcut has been refined and the user has confirmed that the deployed behavior works:
+
+- The floating control is now a compact, icon-only envelope button rather than a large panel.
+- On the first authenticated student page visit in a browser tab/session, the shortcut appears for approximately three seconds, then tucks itself to the screen edge.
+- The introductory display is tracked per authenticated student for the current tab session, so navigating between student pages does not repeatedly show the floating control.
+- The edge arrow remains available; students can tap it to restore the Contact Admin button. Students can also tuck it away again.
+- The control can be dragged to a different screen position. Its position is saved locally so it can be retained across student pages.
+- The student navigation remains a hamburger-triggered drawer showing the student's profile details; the old bottom navigation bar is not used.
+
+### Verification status
+
+- [x] Compact icon-only Contact Admin control implemented.
+- [x] Three-second introductory display implemented.
+- [x] Introductory display limited to once per student per tab session.
+- [x] Tucked state and edge-arrow restore behavior persist while navigating between student pages.
+- [x] Drag interaction and saved position confirmed by the user in the live application.
+- [x] User confirmed the deployed feature is working.
+- [x] Vercel production deployment reached READY for commit `04af62f28c7df531f105fab7188e59ab3348f5fa`.
+- [x] User reports that `SMTP_USERNAME` and `SMTP_PASSWORD` have been added as Supabase Edge Function secrets.
+- [ ] Send a test complaint from a signed-in student account and confirm receipt in the admin Gmail inbox. SMTP secret configuration alone does not prove email delivery.
+- [ ] Verify the latest GitHub Pages workflow after the latest commit.
+
+Implementation files: `assets/js/student-navigation.js`, `assets/css/styles.css`, and `supabase/functions/contact-admin/index.ts`.
