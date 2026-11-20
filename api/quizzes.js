@@ -219,7 +219,8 @@ async function callGemini(prompt, schema, log) {
   if (!key) { const e = new Error("The AI quiz service is not configured. Contact the administrator."); e.statusCode = 503; throw e; }
   const started = Date.now();
   let response, result = {}, attempt = 0;
-  while (attempt < 2) {
+  const maxAttempts = 3;
+  while (attempt < maxAttempts) {
     const attemptStarted = Date.now();
     try {
       response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
@@ -250,11 +251,13 @@ async function callGemini(prompt, schema, log) {
     }
     const providerMessage = String(result?.error?.message || result?.message || "").slice(0,240);
     log("gemini_http_error", { status:response.status, durationMs, attempt:attempt+1, providerMessage });
-    // Gemini can briefly return 503 while the service is unavailable. Retry once
-    // only when the failure is quick, leaving the main request timeout intact.
-    if (response.status === 503 && attempt === 0 && durationMs < 8000) {
+    // Gemini can return brief 503 overload responses. Retry quick 503s with
+    // increasing delays; do not retry slow responses or quota (429) errors.
+    if (response.status === 503 && durationMs < 8000 && attempt < maxAttempts - 1) {
+      const delayMs = 1500 * (attempt + 1);
       attempt++;
-      await new Promise(resolve=>setTimeout(resolve,700));
+      log("gemini_retry_scheduled", { status:503, nextAttempt:attempt+1, delayMs });
+      await new Promise(resolve=>setTimeout(resolve,delayMs));
       continue;
     }
     const failure = new Error(response.status === 429
