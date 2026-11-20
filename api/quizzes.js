@@ -5,6 +5,7 @@ import mammoth from "mammoth";
 import AdmZip from "adm-zip";
 
 const SUPABASE_URL = "https://xcybjuwearndoljqkzmy.supabase.co";
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_KEY = "sb_publishable_8egrnqtwHtrfzvtPcldiQw_y1Wqhh9w";
 const MAX_FILES = 1, MAX_FILE_BYTES = 12 * 1024 * 1024, MAX_TOTAL_BYTES = 25 * 1024 * 1024;
 const MAX_TOTAL_TEXT = 90000, MAX_PDF_PAGES = 150;
