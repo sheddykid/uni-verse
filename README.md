@@ -229,7 +229,35 @@ For GitHub Pages deployment, ensure GitHub Pages is configured to use **GitHub A
 
 ---
 
-## 11. Contributing and maintenance
+## 11. Admin management reliability audit (2026-11-20)
+
+A focused review of the admin course/resource management and deletion paths identified and corrected the following failure-handling defects:
+
+- **Course deletion order:** Previously, stored files were deleted before the course row. If the database delete then failed, resource metadata could remain while its file was already gone. The workflow now deletes the course row first (the database cascades to its course-resource and course-department rows), then removes the associated files from the private Storage bucket. A failed database delete leaves files untouched. A failed Storage cleanup is reported as orphaned private files rather than a successful complete deletion.
+- **Resource deletion order:** The workflow now deletes the resource metadata first and removes its Storage object only after the database confirms a row was deleted. A failed database delete no longer destroys the file referenced by that row.
+- **Large course cleanup:** Course-file deletion is split into batches of at most 1,000 paths, matching the Supabase Storage API limit.
+- **Course creation rollback:** If department assignment fails after course creation, the compensating course deletion is checked. A failed rollback is surfaced with the affected course ID instead of being silently ignored.
+- **Upload rollback:** If resource metadata insertion fails after a successful upload, the Storage cleanup result is checked. If cleanup also fails, the admin receives the orphaned file path and cleanup error.
+- **One-off orphan cleanup:** Removed the hard-coded list of historical file paths that ran automatically whenever an admin opened the management page. Cleanup of orphaned objects must be deliberate and verified; page visits should not trigger deletion of unrelated files.
+
+### Database behavior verified
+
+The live schema confirms that deleting a course cascades to its `course_resources` and `course_departments` rows. The current read-only integrity check found 3 resource records and 5 course-department assignment rows. The four historical paths previously listed for one-off cleanup were not present in `storage.objects` at the time of this audit.
+
+### Verification status
+
+- [x] Reviewed the current admin upload, course creation, course deletion and resource deletion code.
+- [x] Verified the relevant course/resource foreign-key delete rules in Supabase.
+- [x] Verified the four historical orphan paths are no longer present in the Storage object metadata.
+- [x] Updated failure ordering and rollback reporting in the admin scripts.
+- [ ] Run JavaScript syntax/workflow checks against the committed revision.
+- [ ] Deploy the committed changes to Vercel after the deployment quota becomes available.
+- [ ] Test course deletion with resources, resource deletion, failed-delete behavior, course creation rollback, and upload rollback in an authenticated admin session.
+- [ ] Confirm that no resource records point to missing Storage objects and no new orphaned objects are created by the tested workflows.
+
+**Important:** Database-first deletion avoids leaving a live resource record pointing to a file that was already deleted. It cannot make Postgres and Storage one atomic transaction; if Storage cleanup fails after the database deletion, the remaining private file is an orphan and requires a separate cleanup. Do not report a deletion as fully complete until both stages succeed.
+
+## 12. Contributing and maintenance
 
 When changing the application:
 
