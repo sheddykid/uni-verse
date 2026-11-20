@@ -21,9 +21,10 @@ if (location.hostname.endsWith("github.io")) {
     courseSelect.addEventListener("change", loadNotes);
     generateButton.addEventListener("click", generateQuiz);
     $("#quiz-mode").addEventListener("change", () => {
-      const max = $("#quiz-mode").value === "theory" ? 10 : 20;
+      const isTheory = $("#quiz-mode").value === "theory";
+      const max = isTheory ? 10 : 20;
       $("#question-count").querySelectorAll("option").forEach(option => { option.disabled = Number(option.value) > max; });
-      if (Number($("#question-count").value) > max) $("#question-count").value = String(max);
+      $("#question-count").value = isTheory ? "5" : "15";
     });
     $("#new-quiz").addEventListener("click", () => { $("#quiz-section").hidden = true; $("#status").textContent = ""; });
     $("#submit-mcq").addEventListener("click", submitMcq);
