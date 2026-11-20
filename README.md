@@ -277,6 +277,20 @@ The live schema confirms that deleting a course cascades to its course-departmen
 
 **Important:** Database-first deletion avoids leaving a live resource record pointing to a file that was already deleted. It cannot make Postgres and Storage one atomic transaction; if Storage cleanup fails after the database deletion, the remaining private file is an orphan and requires a separate cleanup. Do not report a deletion as fully complete until both stages succeed.
 
+
+## 13. Navigation and resource management UI update (2026-11-20)
+
+- The administrator **Manage resources** list now uses the student resource-browser card hierarchy: course label, resource title, optional description, file/type metadata, visibility status and grouped actions. Cards adapt to narrow screens.
+- Student learning pages include a persistent bottom quick-navigation bar linking directly to the learning hub, notes, past questions, quizzes, flashcards and video tutorials.
+- Administrator pages include matching bottom navigation for the admin dashboard, course/resource management and student view.
+- The shared stylesheet handles the fixed navigation, mobile safe-area insets and responsive resource-card actions.
+
+### Verification still required
+- [ ] Run JavaScript syntax checks for the changed admin management script.
+- [ ] Verify every student/admin route and navigation link on both hosting environments.
+- [ ] Check resource cards and fixed navigation on mobile and desktop.
+- [ ] Confirm the updated UI is deployed to Vercel and GitHub Pages.
+
 ## 12. Contributing and maintenance
 
 When changing the application:
