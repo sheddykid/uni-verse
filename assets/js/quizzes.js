@@ -31,14 +31,14 @@ if (location.hostname.endsWith("github.io")) {
     async function loadNotes() {
       notes = []; generateButton.disabled = true; notesList.replaceChildren();
       $("#note-count").textContent = "Loading…";
-      if (!courseSelect.value) { notesList.textContent = "Choose a course to see its materials." $("#note-count").textContent = "Select a course first"; return; }
+      if (!courseSelect.value) { notesList.textContent = "Choose a course to see its materials."; $("#note-count").textContent = "Select a course first"; return; }
       const { data, error } = await supabase.from("course_resources")
         .select("id,title,file_name,file_size,mime_type,resource_type,assessment_type,created_at").eq("course_id",courseSelect.value)
         .in("resource_type",["note","past_question"]).eq("is_active",true).order("created_at",{ascending:false});
-      if (error) { notesList.textContent = "Could not load course materials." $("#note-count").textContent = "Unavailable"; return; }
+      if (error) { notesList.textContent = "Could not load course materials."; $("#note-count").textContent = "Unavailable"; return; }
       notes = (data || []).filter(item => /\.(pdf|docx|pptx)$/i.test(item.file_name || ""));
       $("#note-count").textContent = `${notes.length} available`;
-      if (!notes.length) { notesList.textContent = "No supported course materials are available for this course yet." return; }
+      if (!notes.length) { notesList.textContent = "No supported course materials are available for this course yet."; return; }
       notes.forEach(note => {
         const label = document.createElement("label"); label.className = "note-choice";
         const checkbox = document.createElement("input"); checkbox.type = "checkbox"; checkbox.value = note.id; checkbox.addEventListener("change", updateSelection);
@@ -52,7 +52,7 @@ if (location.hostname.endsWith("github.io")) {
     }
     function updateSelection() {
       const selected = [...notesList.querySelectorAll('input[type="checkbox"]:checked')];
-      if (selected.length > 1) { selected[selected.length-1].checked = false; setStatus("Select only one note file."); }
+      if (selected.length > 1) { selected[selected.length-1].checked = false; setStatus("Select only one course material file."); }
       else setStatus("");
       const count = notesList.querySelectorAll('input[type="checkbox"]:checked').length;
       generateButton.disabled = count === 0;
@@ -85,7 +85,7 @@ if (location.hostname.endsWith("github.io")) {
         const result = await apiRequest({mode:quizMode,courseId:courseSelect.value,resourceIds:activeResourceIds,count});
         questions = result.questions || []; course = result.course; quizSessionId = result.quizSessionId || null;
         $("#submit-mcq").disabled = false;
-        if (!questions.length) throw new Error("No questions were generated from these notes.");
+        if (!questions.length) throw new Error("No questions are available for this material yet. If it is a past-question file, ask an administrator to extract and review its questions first.");
         $("#quiz-title").textContent = `${course.code} — ${course.title}`;
         $("#quiz-sources").textContent = `Generated from: ${(result.sources||[]).join(", ")}`;
         $("#mcq-panel").hidden = quizMode !== "mcq"; $("#theory-panel").hidden = quizMode !== "theory";
