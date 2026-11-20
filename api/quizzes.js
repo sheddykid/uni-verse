@@ -113,7 +113,7 @@ async function authorize(req) {
   if (resources.length !== resourceIds.length || resources.some(r => r.course_id !== courseId || r.resource_type !== "note")) {
     return { error: [403, "One or more selected files are not active course notes for this course."] };
   }
-  return { token, course: courses[0], resources, body };
+  return { token, user, course: courses[0], resources, body };
 }
 async function readNotes(context, log) {
   const totalBytes = context.resources.reduce((s,r) => s + Number(r.file_size || 0), 0);
