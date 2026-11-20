@@ -24,14 +24,10 @@ async function supabaseRequest(path, token) {
   if (!response.ok) throw new Error(`Supabase request failed (${response.status})`);
   return response.json();
 }
-async function bankRequest(path, { method = "GET", body, prefer } = {}) {
-  if (!SUPABASE_SERVICE_ROLE_KEY) {
-    const error = new Error("The flashcard question bank is not configured. Contact the administrator.");
-    error.statusCode = 503; throw error;
-  }
+async function bankRequest(path, token, { method = "GET", body, prefer } = {}) {
   const headers = {
-    apikey: SUPABASE_SERVICE_ROLE_KEY,
-    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    apikey: SUPABASE_KEY,
+    Authorization: `Bearer ${token}`,
     Accept: "application/json"
   };
   if (body !== undefined) headers["Content-Type"] = "application/json";
@@ -365,7 +361,7 @@ export default async function handler(req, res) {
     const sourceHash = createHash("sha256").update(excerpts.join("\n\n---\n\n")).digest("hex");
     const sourceKey = createHash("sha256").update([...resourceIds].sort().join("|") + ":" + sourceHash).digest("hex");
     const bankPath = `flashcard_question_bank?select=id,front,back,usage_count&course_id=eq.${course.id}&source_key=eq.${sourceKey}&status=eq.active&order=usage_count.asc,created_at.asc&limit=${count}`;
-    let bank = await bankRequest(bankPath);
+    let bank = await bankRequest(bankPath, token);
     log("flashcard_bank_loaded", { sourceKey, available: bank.length });
     const missing = count - bank.length;
     const prompt = `You are the study flashcard generator for UNI-VERSE, a university learning platform.
@@ -453,10 +449,10 @@ ${excerpts.join("\n\n---\n\n")}`;
         back: item.back,
         created_by: user.id
       }));
-      await bankRequest("flashcard_question_bank?on_conflict=course_id,source_key,normalized_front", {
+      await bankRequest("flashcard_question_bank?on_conflict=course_id,source_key,normalized_front", token, {
         method: "POST", body: rows, prefer: "resolution=ignore-duplicates,return=minimal"
       });
-      bank = await bankRequest(bankPath);
+      bank = await bankRequest(bankPath, token);
     }
     if (bank.length < count) {
       const error = new Error("The saved flashcard bank does not contain enough unique cards. Generate again.");
@@ -464,7 +460,7 @@ ${excerpts.join("\n\n---\n\n")}`;
     }
     const chosen = bank.slice(0, count);
     for (const item of chosen) {
-      await bankRequest(`flashcard_question_bank?id=eq.${item.id}`, {
+      await bankRequest(`flashcard_question_bank?id=eq.${item.id}`, token, {
         method: "PATCH", body: { usage_count: Number(item.usage_count || 0) + 1 }, prefer: "return=minimal"
       });
     }
