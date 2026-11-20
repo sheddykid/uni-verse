@@ -10,8 +10,7 @@ if (session) {
   const { profile, user } = session;
   $("#user-label").textContent = profile.full_name || user.email;
   const courseSelect = $("#course-select"), notesList = $("#notes-list"), generateButton = $("#generate");
-  let currentNotes = [], deck = [], index = 0, flipped = false;
-  const known = new Set(), ratings = new Map();
+  let currentNotes = [];
   const courseQuery = supabase.from("courses").select("id,code,title,course_departments!inner(department_id)").eq("is_active", true);
   if (profile.role !== "admin") courseQuery.eq("course_departments.department_id", profile.department_id);
   const { data: courses, error } = await courseQuery.order("code");
@@ -20,12 +19,6 @@ if (session) {
   if (error) setStatus("Could not load courses. Refresh the page and try again.");
   courseSelect.addEventListener("change", loadNotes);
   generateButton.addEventListener("click", generateDeck);
-  $("#flashcard").addEventListener("click", () => { flipped = !flipped; renderCard(); });
-  $("#previous").addEventListener("click", () => move(-1));
-  $("#next").addEventListener("click", () => move(1));
-  $("#restart").addEventListener("click", () => { index = 0; flipped = false; known.clear(); ratings.clear(); renderCard(); });
-  $("#mark-known").addEventListener("click", () => rate(true));
-  $("#mark-learning").addEventListener("click", () => rate(false));
 
   async function loadNotes() {
     currentNotes = []; generateButton.disabled = true; notesList.replaceChildren();
@@ -71,34 +64,14 @@ if (session) {
       try { result = responseText ? JSON.parse(responseText) : {}; }
       catch { throw new Error(`The flashcard server returned an invalid response (HTTP ${response.status}). Please try again. If it continues, contact the UNI-VERSE administrator.`); }
       if (!response.ok) throw new Error(result.error || `Could not generate flashcards (HTTP ${response.status}).`);
-      deck = result.flashcards || []; index = 0; flipped = false; known.clear(); ratings.clear();
+      const deck = result.flashcards || [];
       if (!deck.length) throw new Error("No flashcards were generated from these notes.");
-      $("#deck-title").textContent = `${result.course.code} — ${result.course.title}`;
-      $("#deck-sources").textContent = `Generated from: ${(result.sources || []).join(", ")}`;
-      $("#deck-section").hidden = false; $("#deck-finish").textContent = ""; renderCard();
-      setStatus(`Generated ${deck.length} flashcards.`, true);
+      sessionStorage.setItem("universeActiveFlashcards", JSON.stringify({ result }));
+      setStatus(`Prepared ${deck.length} flashcards${result.reusedCount ? ` (${result.reusedCount} reused from the saved note bank)` : ""}. Opening your study page…`, true);
+      location.href = "./flashcard-session.html";
     } catch (error) { setStatus(error.message || "Flashcard generation failed."); }
     finally { generateButton.disabled = notesList.querySelectorAll('input[type="checkbox"]:checked').length === 0; generateButton.textContent = "Generate flashcards"; }
   }
-  function renderCard() {
-    if (!deck.length) return;
-    const card = deck[index];
-    $("#card-side").textContent = flipped ? "ANSWER" : "QUESTION";
-    $("#card-text").textContent = flipped ? card.back : card.front;
-    $("#card-hint").textContent = flipped ? "Tap to see question" : "Tap to reveal answer";
-    $("#progress-label").textContent = `Card ${index + 1} of ${deck.length}`;
-    $("#known-label").textContent = `${known.size} known`;
-    $("#progress-fill").style.width = `${((index + 1) / deck.length) * 100}%`;
-    $("#previous").disabled = index === 0; $("#next").textContent = index === deck.length - 1 ? "Finish" : "Next";
-    $("#mark-known").classList.toggle("selected", ratings.get(index) === true);
-    $("#mark-learning").classList.toggle("selected", ratings.get(index) === false);
-    $("#deck-finish").textContent = known.size === deck.length ? "All cards marked as known." : "";
-  }
-  function move(direction) {
-    if (direction > 0 && index === deck.length - 1) { $("#deck-finish").textContent = `Deck complete: ${known.size} of ${deck.length} marked as known.`; return; }
-    index = Math.max(0, Math.min(deck.length - 1, index + direction)); flipped = false; renderCard();
-  }
-  function rate(isKnown) { ratings.set(index, isKnown); if (isKnown) known.add(index); else known.delete(index); if (index < deck.length - 1) move(1); else renderCard(); }
   function setStatus(message, success = false) { $("#status").textContent = message; $("#status").classList.toggle("success", success); }
   function formatSize(bytes) { if (!bytes) return "Size unknown"; return bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`; }
 }
