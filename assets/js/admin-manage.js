@@ -73,7 +73,7 @@ if (session && session.profile.role !== "admin") {
       removeCourse.className = "btn danger";
       removeCourse.textContent = "Delete";
       removeCourse.addEventListener("click", async () => {
-        if (!confirm(`Permanently delete ${course.code} — ${course.title}? This also deletes all its resource records and uploaded files. This cannot be undone.`)) return;
+        if (!confirm(`Permanently delete ${course.code} — ${course.title}? This also deletes its course-linked records and uploaded files. This cannot be undone.`)) return;
         removeCourse.disabled = true;
         removeCourse.textContent = "Deleting…";
 
