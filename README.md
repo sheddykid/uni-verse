@@ -253,6 +253,14 @@ A focused review of the admin course/resource management and deletion paths iden
 
 The live schema confirms that deleting a course cascades to its `course_resources` and `course_departments` rows. The current read-only integrity check found 3 resource records and 5 course-department assignment rows. The four historical paths previously listed for one-off cleanup were not present in `storage.objects` at the time of this audit.
 
+### Current deployment state (2026-11-20)
+
+- Vercel automatically deployed the first deletion-safety commit `9571f225a8880e280d43425b89814551793cd189` as production deployment `dpl_7aya35bUP8fZ1aF34QttB2spSqMs` (READY).
+- That deployed revision is intermediate: its admin management script still calls the historical `removeOrphanedUploads()` function after the function was removed. The lists render first, but the stale call raises a runtime error afterward.
+- Follow-up commit `c7ea745b1882ef866ec8c4e408172776e8106146` removes the stale call and separates Storage cleanup errors from database deletion errors. Later rollback-handling and CI changes are also committed on `main`.
+- The combined GitHub status for the later README revision reports the Vercel check as failed with a build-rate-limit link. The latest production deployment therefore does not yet contain the follow-up correction.
+- Do not mark production as verified until Vercel deploys the latest `main` commit and the management page is checked.
+
 ### Verification status
 
 - [x] Reviewed the current admin upload, course creation, course deletion and resource deletion code.
