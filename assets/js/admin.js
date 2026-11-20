@@ -103,36 +103,57 @@ if (session && session.profile.role !== "admin") {
     const message = document.querySelector("#message");
     const button = event.currentTarget.querySelector("button");
     button.disabled = true;
-    const selectedDepartmentIds = [...departmentOptions.querySelectorAll('input[name="departments"]:checked')]
-      .map(checkbox => checkbox.value);
-    if (!selectedDepartmentIds.length) {
-      showMessage(message, "Select at least one department.");
-      button.disabled = false;
-      return;
-    }
-    const payload = {
-      department_id: selectedDepartmentIds[0],
-      code: document.querySelector("#code").value.trim().toUpperCase(),
-      title: document.querySelector("#title").value.trim(),
-      description: document.querySelector("#description").value.trim() || null
-    };
-    const { data: course, error } = await supabase.from("courses").insert(payload).select("id").single();
-    if (error) {
-      showMessage(message, error.message);
-    } else {
+
+    try {
+      const selectedDepartmentIds = [...departmentOptions.querySelectorAll('input[name="departments"]:checked')]
+        .map(checkbox => checkbox.value);
+      if (!selectedDepartmentIds.length) {
+        showMessage(message, "Select at least one department.");
+        return;
+      }
+
+      const code = document.querySelector("#code").value.trim().toUpperCase();
+      const title = document.querySelector("#title").value.trim();
+      if (!code || !title) {
+        showMessage(message, "Enter both a course code and course title.");
+        return;
+      }
+
+      const payload = {
+        department_id: selectedDepartmentIds[0],
+        code,
+        title,
+        description: document.querySelector("#description").value.trim() || null
+      };
+      const { data: course, error } = await supabase.from("courses").insert(payload).select("id").single();
+      if (error) {
+        showMessage(message, error.message);
+        return;
+      }
+
       const { error: assignmentError } = await supabase.from("course_departments").insert(
         selectedDepartmentIds.map(department_id => ({ course_id: course.id, department_id }))
       );
       if (assignmentError) {
-        await supabase.from("courses").delete().eq("id", course.id);
-        showMessage(message, "Course was not saved: " + assignmentError.message);
-      } else {
-        showMessage(message, "Course added to " + selectedDepartmentIds.length + " department(s).", true);
-        event.currentTarget.reset();
-        await loadCourses();
+        // Check the compensating delete instead of silently ignoring a failed rollback.
+        const { data: rolledBackCourse, error: rollbackError } = await supabase
+          .from("courses").delete().eq("id", course.id).select("id").maybeSingle();
+        if (rollbackError || !rolledBackCourse) {
+          showMessage(message, "Department assignment failed, and the new course could not be rolled back. Course ID: " + course.id + ". Assignment error: " + assignmentError.message + (rollbackError ? " Rollback error: " + rollbackError.message : ""));
+        } else {
+          showMessage(message, "Course was not saved: " + assignmentError.message);
+        }
+        return;
       }
+
+      showMessage(message, "Course added to " + selectedDepartmentIds.length + " department(s).", true);
+      event.currentTarget.reset();
+      await loadCourses();
+    } catch (error) {
+      showMessage(message, error?.message || "The course could not be saved. Check your connection and try again.");
+    } finally {
+      button.disabled = false;
     }
-    button.disabled = false;
   });
 
   resourceForm.addEventListener("submit", async event => {
@@ -195,8 +216,10 @@ if (session && session.profile.role !== "admin") {
       };
       const { error: insertError } = await supabase.from("course_resources").insert(payload);
       if (insertError) {
-        await supabase.storage.from("course-resources").remove([filePath]);
-        showMessage(message, insertError.message);
+        const { error: cleanupError } = await supabase.storage.from("course-resources").remove([filePath]);
+        showMessage(message, cleanupError
+          ? insertError.message + " Storage cleanup also failed; orphaned file path: " + filePath + ". Cleanup error: " + cleanupError.message
+          : insertError.message);
       } else {
         showMessage(message, "Resource uploaded and published.", true);
         resourceForm.reset();
