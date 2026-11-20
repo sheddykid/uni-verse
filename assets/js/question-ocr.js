@@ -1,8 +1,8 @@
-const TESSERACT_VERSION = "6.0.1";
+const TESSERACT_VERSION = "7.0.0";
 const PDFJS_VERSION = "4.10.38";
 
 async function createOcrWorker(onProgress) {
-  const { createWorker } = await import("https://esm.sh/tesseract.js@6.0.1?bundle");
+  const { createWorker } = await import("https://esm.sh/tesseract.js@7.0.0?bundle");
   return createWorker("eng", 1, {
     workerPath: `https://cdn.jsdelivr.net/npm/tesseract.js@${TESSERACT_VERSION}/dist/worker.min.js`,
     corePath: `https://cdn.jsdelivr.net/npm/tesseract.js-core@${TESSERACT_VERSION}`,
