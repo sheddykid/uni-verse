@@ -204,9 +204,7 @@ async function callGroq(prompt, log) {
         ],
         reasoning_effort: "low",
         max_completion_tokens: 6500,
-        response_format: { type: "json_schema", json_schema: {
-          name: "course_note_summary", strict: true, schema: makeStrictJsonSchema(summarySchema)
-        } }
+        response_format: { type: "json_object" }
       })
     });
   } catch {
@@ -216,7 +214,13 @@ async function callGroq(prompt, log) {
   }
   const result = await response.json().catch(() => ({}));
   if (!response.ok) {
-    log("groq_http_error", { status: response.status });
+    const providerError = result?.error || {};
+    log("groq_http_error", {
+      status: response.status,
+      code: typeof providerError.code === "string" ? providerError.code : undefined,
+      type: typeof providerError.type === "string" ? providerError.type : undefined,
+      message: typeof providerError.message === "string" ? providerError.message.slice(0, 500) : undefined
+    });
     const error = new Error(response.status === 429 ? "The backup AI provider has reached its rate limit." : "The backup AI provider could not complete the summary.");
     error.statusCode = response.status;
     throw error;
