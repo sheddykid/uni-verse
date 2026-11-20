@@ -247,11 +247,12 @@ A focused review of the admin course/resource management and deletion paths iden
 - Follow-up deletion error handling: [c7ea745b](https://github.com/sheddykid/uni-verse/commit/c7ea745b1882ef866ec8c4e408172776e8106146)
 - Thrown-error handling for creation/upload rollback: [7460840a](https://github.com/sheddykid/uni-verse/commit/7460840a3720d38e933a01919dcc658c02b379cb)
 - GitHub Actions syntax checks: [10cf5776](https://github.com/sheddykid/uni-verse/commit/10cf5776f26bcca73da169e72f19f73af7de31d6)
+- Clarified course deletion cascade warning: [7ada1317](https://github.com/sheddykid/uni-verse/commit/7ada131750b622de108b68b3ec36b316ea2d7aaf)
 - README audit record: [849441d](https://github.com/sheddykid/uni-verse/commit/849441d63413ca9765821d0cf9eb4c2f53911b2c)
 
 ### Database behavior verified
 
-The live schema confirms that deleting a course cascades to its `course_resources` and `course_departments` rows. The current read-only integrity check found 3 resource records and 5 course-department assignment rows. The four historical paths previously listed for one-off cleanup were not present in `storage.objects` at the time of this audit.
+The live schema confirms that deleting a course cascades to its course-department mappings, resource metadata, and other course-scoped records. The current read-only integrity check found 3 resource records and 5 course-department assignment rows. The four historical paths previously listed for one-off cleanup were not present in `storage.objects` at the time of this audit.
 
 ### Current deployment state (2026-11-20)
 
