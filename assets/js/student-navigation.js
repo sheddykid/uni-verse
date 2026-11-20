@@ -105,8 +105,8 @@ if (session) {
   const contactIntroKey = "universe-contact-intro-shown";
   let showContactIntro = false;
   try {
-    showContactIntro = sessionStorage.getItem(contactIntroKey) !== "1";
-    if (showContactIntro) sessionStorage.setItem(contactIntroKey, "1");
+    showContactIntro = sessionStorage.getItem(contactIntroKey) !== session.user.id;
+    if (showContactIntro) sessionStorage.setItem(contactIntroKey, session.user.id);
   } catch {
     showContactIntro = true;
   }
