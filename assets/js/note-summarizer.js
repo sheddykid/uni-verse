@@ -1,0 +1,244 @@
+import { supabase, requireProfile, signOut } from "./supabase.js";
+
+const $ = selector => document.querySelector(selector);
+$("#logout").addEventListener("click", signOut);
+
+if (location.hostname.endsWith("github.io")) {
+  $("#github-pages-notice").hidden = false;
+  $(".summary-builder").hidden = true;
+} else {
+  const session = await requireProfile();
+  if (session) {
+    const { profile, user } = session;
+    $("#user-label").textContent = profile.full_name || user.email;
+    const courseSelect = $("#course-select");
+    const notesList = $("#notes-list");
+    const generateButton = $("#generate");
+    let currentSummaryText = "";
+
+    const courseQuery = supabase.from("courses")
+      .select("id,code,title,course_departments!inner(department_id)")
+      .eq("is_active", true);
+    if (profile.role !== "admin") courseQuery.eq("course_departments.department_id", profile.department_id);
+    const { data: courses, error } = await courseQuery.order("code");
+    courseSelect.replaceChildren(new Option(error ? "Could not load courses" : "Select a course", ""));
+    if (!error) (courses || []).forEach(course => courseSelect.add(new Option(`${course.code} — ${course.title}`, course.id)));
+    if (error) setStatus("Could not load courses. Refresh the page and try again.");
+
+    courseSelect.addEventListener("change", loadNotes);
+    generateButton.addEventListener("click", generateSummary);
+    $("#copy-summary").addEventListener("click", copySummary);
+    $("#print-summary").addEventListener("click", () => window.print());
+
+    async function loadNotes() {
+      generateButton.disabled = true;
+      notesList.replaceChildren();
+      $("#note-count").textContent = "Loading…";
+      $("#summary-result").hidden = true;
+      if (!courseSelect.value) {
+        notesList.textContent = "Choose a course to see its notes.";
+        $("#note-count").textContent = "Select a course first";
+        return;
+      }
+      const { data, error } = await supabase.from("course_resources")
+        .select("id,title,file_name,file_size,mime_type,created_at")
+        .eq("course_id", courseSelect.value).eq("resource_type", "note").eq("is_active", true)
+        .order("created_at", { ascending: false });
+      if (error) {
+        notesList.textContent = "Could not load course notes.";
+        $("#note-count").textContent = "Unavailable";
+        return;
+      }
+      const supported = (data || []).filter(note => /\.(pdf|docx|pptx)$/i.test(note.file_name || ""));
+      $("#note-count").textContent = `${supported.length} available`;
+      if (!supported.length) {
+        notesList.textContent = "No supported course notes are available for this course yet.";
+        return;
+      }
+      supported.forEach(note => {
+        const label = document.createElement("label");
+        label.className = "note-choice";
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = note.id;
+        checkbox.addEventListener("change", updateSelection);
+        const details = document.createElement("span");
+        const title = document.createElement("strong");
+        const meta = document.createElement("small");
+        title.textContent = note.title;
+        meta.textContent = `${note.file_name.split(".").pop().toUpperCase()} · ${formatSize(note.file_size)}`;
+        details.append(title, meta);
+        label.append(checkbox, details);
+        notesList.append(label);
+      });
+      updateSelection();
+    }
+
+    function updateSelection() {
+      const checked = [...notesList.querySelectorAll('input[type="checkbox"]:checked')];
+      if (checked.length > 2) {
+        checked[checked.length - 1].checked = false;
+        setStatus("Select no more than two note files at a time.");
+      } else {
+        setStatus("");
+      }
+      const count = notesList.querySelectorAll('input[type="checkbox"]:checked').length;
+      generateButton.disabled = count === 0;
+      generateButton.textContent = count ? `Summarize ${count} note file${count === 1 ? "" : "s"}` : "Generate summary";
+    }
+
+    async function generateSummary() {
+      const resourceIds = [...notesList.querySelectorAll('input[type="checkbox"]:checked')].map(input => input.value);
+      if (!resourceIds.length) return;
+      generateButton.disabled = true;
+      generateButton.textContent = "Summarizing…";
+      setStatus("Reading your selected notes and preparing the summary. This may take a little while.");
+      $("#summary-result").hidden = true;
+      try {
+        const { data: { session: authSession } } = await supabase.auth.getSession();
+        if (!authSession?.access_token) throw new Error("Your session has expired. Sign in again.");
+        const response = await fetch("/api/note-summary", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${authSession.access_token}` },
+          body: JSON.stringify({
+            courseId: courseSelect.value,
+            resourceIds,
+            detail: $("#summary-detail").value
+          })
+        });
+        const raw = await response.text();
+        let result;
+        try { result = raw ? JSON.parse(raw) : {}; }
+        catch { throw new Error(`The summary server returned an invalid response (HTTP ${response.status}).`); }
+        if (!response.ok) throw new Error(result.error || `Summary request failed (HTTP ${response.status}).`);
+        if (!result.summary) throw new Error("The AI did not return a summary. Please try again.");
+        renderSummary(result);
+        setStatus("Your study summary is ready.", true);
+        $("#summary-result").hidden = false;
+        $("#summary-result").scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch (error) {
+        setStatus(error.message || "Could not generate the summary.");
+      } finally {
+        generateButton.disabled = notesList.querySelectorAll('input[type="checkbox"]:checked').length === 0;
+        generateButton.textContent = "Generate summary";
+      }
+    }
+
+    function renderSummary(result) {
+      const summary = result.summary;
+      $("#summary-title").textContent = summary.title;
+      $("#summary-meta").textContent = `${result.course.code} — ${result.course.title} · ${result.sources.join(", ")} · ${result.provider} AI${result.sampled ? " · long notes sampled to fit the AI context limit" : ""}`;
+      $("#summary-overview").textContent = summary.overview;
+      fillList($("#summary-key-points"), summary.keyPoints);
+      fillList($("#summary-checklist"), summary.revisionChecklist);
+
+      const sections = $("#summary-sections");
+      sections.replaceChildren();
+      (summary.sections || []).forEach(item => {
+        const article = document.createElement("article");
+        article.className = "summary-topic";
+        const heading = document.createElement("h4");
+        heading.textContent = item.heading;
+        const description = document.createElement("p");
+        description.textContent = item.summary;
+        article.append(heading, description);
+        if (item.details?.length) {
+          const list = document.createElement("ul");
+          fillList(list, item.details);
+          article.append(list);
+        }
+        sections.append(article);
+      });
+
+      const terms = $("#summary-terms");
+      terms.replaceChildren();
+      (summary.keyTerms || []).forEach(item => {
+        const term = document.createElement("dt");
+        const definition = document.createElement("dd");
+        term.textContent = item.term;
+        definition.textContent = item.definition;
+        terms.append(term, definition);
+      });
+      $("#summary-terms-block").hidden = !summary.keyTerms?.length;
+
+      const formulas = $("#summary-formulas");
+      formulas.replaceChildren();
+      (summary.formulas || []).forEach(item => {
+        const article = document.createElement("article");
+        article.className = "summary-formula";
+        const heading = document.createElement("h4");
+        heading.textContent = item.name;
+        const expression = document.createElement("code");
+        expression.textContent = item.expression;
+        const explanation = document.createElement("p");
+        explanation.textContent = item.explanation;
+        article.append(heading, expression, explanation);
+        formulas.append(article);
+      });
+      $("#summary-formulas-block").hidden = !summary.formulas?.length;
+      currentSummaryText = toPlainText(result);
+    }
+
+    function fillList(root, items) {
+      root.replaceChildren();
+      (items || []).forEach(value => {
+        const item = document.createElement("li");
+        item.textContent = value;
+        root.append(item);
+      });
+    }
+
+    function toPlainText(result) {
+      const s = result.summary;
+      const lines = [
+        s.title,
+        `${result.course.code} — ${result.course.title}`,
+        `Source notes: ${result.sources.join(", ")}`,
+        "",
+        "OVERVIEW",
+        s.overview,
+        "",
+        "KEY POINTS",
+        ...(s.keyPoints || []).map(value => `• ${value}`),
+        "",
+        "TOPIC BREAKDOWN",
+        ...(s.sections || []).flatMap(section => [
+          section.heading,
+          section.summary,
+          ...(section.details || []).map(value => `• ${value}`)
+        ]),
+        "",
+        "KEY TERMS",
+        ...(s.keyTerms || []).flatMap(item => [`${item.term}: ${item.definition}`]),
+        "",
+        "FORMULAS AND EQUATIONS",
+        ...(s.formulas || []).flatMap(item => [`${item.name}: ${item.expression}`, item.explanation]),
+        "",
+        "REVISION CHECKLIST",
+        ...(s.revisionChecklist || []).map(value => `□ ${value}`)
+      ];
+      return lines.join("\n");
+    }
+
+    async function copySummary() {
+      if (!currentSummaryText) return;
+      try {
+        await navigator.clipboard.writeText(currentSummaryText);
+        $("#copy-summary").textContent = "Copied";
+        setTimeout(() => { $("#copy-summary").textContent = "Copy text"; }, 1600);
+      } catch {
+        setStatus("Could not copy automatically. Use Print / Save PDF instead.");
+      }
+    }
+
+    function setStatus(message, success = false) {
+      $("#status").textContent = message;
+      $("#status").classList.toggle("success", success);
+    }
+
+    function formatSize(bytes) {
+      if (!bytes) return "Size unknown";
+      return bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+  }
+}
