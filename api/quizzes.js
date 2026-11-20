@@ -110,17 +110,39 @@ async function callGemini(prompt, schema, log) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) { const e = new Error("The AI quiz service is not configured. Contact the administrator."); e.statusCode = 503; throw e; }
   const started = Date.now();
-  const response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
-    method:"POST", signal:AbortSignal.timeout(50000),
-    headers:{"Content-Type":"application/json","x-goog-api-key":key},
-    body:JSON.stringify({ model:process.env.GEMINI_MODEL || "gemini-3.6-flash", store:false, input:prompt,
-      response_format:{type:"text",mime_type:"application/json",schema} })
-  });
+  let response;
+  try {
+    response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
+      method:"POST", signal:AbortSignal.timeout(50000),
+      headers:{"Content-Type":"application/json","x-goog-api-key":key},
+      body:JSON.stringify({
+        model:process.env.GEMINI_MODEL || "gemini-3.6-flash",
+        store:false,
+        input:prompt,
+        generation_config:{thinking_level:"low"},
+        response_format:{type:"text",mime_type:"application/json",schema}
+      })
+    });
+  } catch (error) {
+    const timedOut = error?.name === "TimeoutError" || error?.name === "AbortError";
+    log(timedOut ? "gemini_timeout" : "gemini_network_error", { durationMs:Date.now()-started, error:error?.message || String(error) });
+    const failure = new Error(timedOut
+      ? "The AI took too long to generate this quiz. Try a smaller question count or try again shortly."
+      : "The AI service could not be reached. Check your connection and try again.");
+    failure.statusCode = timedOut ? 504 : 502;
+    throw failure;
+  }
   const result = await response.json().catch(()=>({}));
-  log("gemini_response", { status:response.status, durationMs:Date.now()-started });
+  log("gemini_response", { status:response.status, durationMs:Date.now()-started, providerStatus:result.status || null });
   if (!response.ok) {
     const e = new Error(response.status === 429 ? "The AI service is at its request limit. Wait and try again." : "The AI service could not complete this request. Try again.");
     e.statusCode = response.status === 429 ? 429 : 502; throw e;
+  }
+  if (result.status && result.status !== "completed") {
+    log("gemini_incomplete", { providerStatus:result.status });
+    const failure = new Error("The AI could not finish generating the quiz. Try fewer questions or try again.");
+    failure.statusCode = 504;
+    throw failure;
   }
   const output = (result.steps || []).filter(s=>s.type==="model_output").flatMap(s=>s.content||[])
     .filter(p=>p.type==="text").map(p=>p.text||"").join("\n").trim();
@@ -167,8 +189,8 @@ export default async function handler(req,res) {
     const raw = await callGemini(prompt,mode==="mcq"?mcqSchema:theorySchema,log);
     const optionSchema = z.array(z.string().min(1).max(500)).length(4);
     const questionSchema = mode==="mcq"
-      ? z.object({question:z.string().min(5).max(1200),options:optionSchema,correctIndex:z.number().int().min(0).max(3),explanation:z.string().min(1).max(1500)})
-      : z.object({question:z.string().min(5).max(1200),markingGuide:z.string().min(1).max(3000),modelAnswer:z.string().min(1).max(4000)});
+      ? z.object({question:z.string().min(5).max(900),options:optionSchema,correctIndex:z.number().int().min(0).max(3),explanation:z.string().min(1).max(700)})
+      : z.object({question:z.string().min(5).max(900),markingGuide:z.string().min(1).max(1400),modelAnswer:z.string().min(1).max(2200)});
     const parsed = z.object({questions:z.array(questionSchema).min(mode==="mcq"?5:3).max(count)}).safeParse(raw);
     if (!parsed.success) { console.error("[quizzes] output validation",parsed.error.issues); throw new Error("The AI returned questions in an unexpected format. Please try again."); }
     log("quiz_generated",{mode,count:parsed.data.questions.length});
