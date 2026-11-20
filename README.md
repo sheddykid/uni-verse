@@ -330,9 +330,10 @@ After saving the secrets, the Edge Function reads them without requiring another
 - [x] Student navigation drawer and profile details implemented on student-facing pages.
 - [x] Draggable/tuckable Contact Admin control and complaint form implemented.
 - [x] Authenticated `contact-admin` Edge Function deployed with JWT verification enabled.
-- [ ] Add `SMTP_USERNAME` and `SMTP_PASSWORD` as Supabase Edge Function secrets.
+- [x] User reports adding `SMTP_USERNAME` and `SMTP_PASSWORD` as Supabase Edge Function secrets.
 - [ ] Send a test complaint from a signed-in student account and confirm receipt at the admin Gmail inbox.
-- [ ] Verify the latest Vercel deployment and GitHub Pages workflow after the latest commit.
+- [x] Verify the latest Vercel production deployment is READY for commit `04af62f28c7df531f105fab7188e59ab3348f5fa`.
+- [ ] Verify the GitHub Pages workflow after the latest commit.
 
 
 ## 15. Contact Admin shortcut refinement — production verified (2026-11-21)
