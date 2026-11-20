@@ -48,7 +48,7 @@ async function adminRequest(path, { method = "GET", body, prefer } = {}) {
   return text ? JSON.parse(text) : [];
 }
 function normalizeQuestion(value) {
-  return String(value).normalize("NFKC").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\\s+/g, " ");
+  return String(value).normalize("NFKC").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
 function cleanText(value) {
