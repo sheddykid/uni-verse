@@ -222,7 +222,7 @@ export default async function handler(req,res) {
   try {
     const context = await authorize(req);
     if (context.error) return respond(res,context.error[0],{error:context.error[1]});
-    const { body, course, resources } = context;
+    const { body, user, course, resources } = context;
     const mode = String(body.mode || "");
     if (mode === "grade") {
       const question = String(body.question || "").slice(0,2000);
