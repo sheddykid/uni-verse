@@ -28,6 +28,22 @@ async function supabaseRequest(path, token) {
   return response.json();
 }
 
+
+async function callSummaryQuotaRpc(name, token) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      Accept: "application/json"
+    },
+    body: "{}"
+  });
+  if (!response.ok) throw new Error(`Could not verify summary limits (${response.status}).`);
+  return response.json();
+}
+
 function cleanText(value) {
   return String(value || "").replace(/\u0000/g, "").replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
 }
@@ -275,6 +291,7 @@ export default async function handler(req, res) {
 
   const requestId = req.headers["x-vercel-id"] || "unknown";
   const log = (event, details = {}) => console.info("[note-summary]", JSON.stringify({ requestId, event, ...details }));
+  let quotaReserved = false;
 
   try {
     const userResponse = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
@@ -319,6 +336,20 @@ export default async function handler(req, res) {
 
     const totalBytes = resources.reduce((sum, item) => sum + Number(item.file_size || 0), 0);
     if (totalBytes > MAX_TOTAL_BYTES) return respond(res, 413, { error: "The selected notes exceed the 25 MB total processing limit." });
+
+    if (profile.role !== "admin") {
+      const quota = await callSummaryQuotaRpc("begin_note_summary", token);
+      if (!quota?.allowed) {
+        const seconds = Math.max(1, Number(quota?.retryAfterSeconds) || 1);
+        const message = quota?.reason === "daily_limit"
+          ? "You have used all five summaries for today. Your limit resets at midnight Lagos time."
+          : quota?.reason === "active"
+            ? `A summary is already being generated for your account. Try again in about ${seconds} seconds.`
+            : `Please wait ${seconds} seconds before generating another summary.`;
+        return respond(res, 429, { error: message, reason: quota?.reason || "limited", retryAfterSeconds: seconds });
+      }
+      quotaReserved = true;
+    }
 
     const sourceParts = [];
     let totalText = 0;
@@ -382,5 +413,10 @@ ${noteText}`;
   } catch (error) {
     log("request_failed", { statusCode: error.statusCode || 500, message: error.message || String(error) });
     return respond(res, error.statusCode || 500, { error: error.statusCode ? error.message : "The summary could not be generated. Please try again." });
+  } finally {
+    if (quotaReserved) {
+      try { await callSummaryQuotaRpc("finish_note_summary", token); }
+      catch (releaseError) { console.warn("[note-summary] quota_lock_release_failed", releaseError?.message || String(releaseError)); }
+    }
   }
 }
