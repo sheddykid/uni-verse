@@ -52,7 +52,6 @@ if (session) {
     if (!resourceIds.length) return;
     generateButton.disabled = true; generateButton.textContent = "Generating…";
     setStatus("Reading your notes and generating flashcards. This may take a little while.");
-    $("#deck-section").hidden = true;
     try {
       const { data: { session: authSession } } = await supabase.auth.getSession();
       if (!authSession?.access_token) throw new Error("Your session has expired. Sign in again.");
