@@ -261,6 +261,8 @@ The live schema confirms that deleting a course cascades to its course-departmen
 - Follow-up commit `c7ea745b1882ef866ec8c4e408172776e8106146` removes the stale call and separates Storage cleanup errors from database deletion errors. Later rollback-handling and CI changes are also committed on `main`.
 - The combined GitHub status for the later README revision reports the Vercel check as failed with a build-rate-limit link. The latest production deployment therefore does not yet contain the follow-up correction.
 - Do not mark production as verified until Vercel deploys the latest `main` commit and the management page is checked.
+- Latest main commit at this audit checkpoint: `eb9c4e63358edab3018f41d398050f7c1ce25969` (the commit may advance as this record is updated).
+- A one-time follow-up is scheduled for **2026-11-21 at 10:45 (Africa/Lagos)** to recheck Vercel quota, deploy the latest `main` revision if allowed, and verify production routes. Destructive authenticated tests remain manual.
 
 ### Verification status
 
