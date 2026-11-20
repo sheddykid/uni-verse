@@ -76,12 +76,13 @@ if (session && session.profile.role !== "admin") {
         if (!confirm(`Permanently delete ${course.code} — ${course.title}? This also deletes all its resource records and uploaded files. This cannot be undone.`)) return;
         removeCourse.disabled = true;
         removeCourse.textContent = "Deleting…";
-        try {
-          const { data: courseResources, error: resourceLookupError } = await supabase
-            .from("course_resources").select("file_path").eq("course_id", course.id);
-          if (resourceLookupError) throw new Error("Could not check the course resources: " + resourceLookupError.message);
 
-          const filePaths = [...new Set((courseResources || []).map(item => item.file_path).filter(Boolean))];
+        let filePaths = [];
+        try {
+          const { data: courseResources, error: lookupError } = await supabase
+            .from("course_resources").select("file_path").eq("course_id", course.id);
+          if (lookupError) throw new Error("Could not check the course resources: " + lookupError.message);
+          filePaths = [...new Set((courseResources || []).map(item => item.file_path).filter(Boolean))];
 
           // Delete the database row first. Its foreign keys cascade to resource metadata.
           // If this fails, leave every stored file untouched so existing records stay valid.
@@ -89,22 +90,34 @@ if (session && session.profile.role !== "admin") {
             .from("courses").delete().eq("id", course.id).select("id").maybeSingle();
           if (deleteError) throw new Error("Course was not deleted: " + deleteError.message);
           if (!deletedCourse) throw new Error("No course record was deleted. The page may be out of date; refresh and try again.");
-
-          let storageError = null;
-          for (let index = 0; index < filePaths.length; index += 1000) {
-            const result = await supabase.storage.from("course-resources").remove(filePaths.slice(index, index + 1000));
-            if (result.error) { storageError = result.error; break; }
-          }
-
-          await loadCourses();
-          await loadResources();
-          if (storageError) {
-            alert("The course and its resource records were deleted, but some stored files could not be removed. They are now orphaned in the private bucket and need cleanup: " + storageError.message);
-          }
         } catch (error) {
           alert(error?.message || "The course could not be deleted. Please try again.");
           removeCourse.disabled = false;
           removeCourse.textContent = "Delete";
+          return;
+        }
+
+        // The database deletion succeeded. Handle Storage failures separately so we
+        // never tell the admin the course still exists when only file cleanup failed.
+        let storageError = null;
+        try {
+          for (let index = 0; index < filePaths.length; index += 1000) {
+            const result = await supabase.storage.from("course-resources").remove(filePaths.slice(index, index + 1000));
+            if (result.error) { storageError = result.error; break; }
+          }
+        } catch (error) {
+          storageError = error;
+        }
+
+        try {
+          await loadCourses();
+          await loadResources();
+        } catch (refreshError) {
+          console.error("Course was deleted, but the management lists could not refresh:", refreshError);
+        }
+
+        if (storageError) {
+          alert("The course and its resource records were deleted, but some stored files could not be removed. They are now orphaned in the private bucket and need cleanup: " + (storageError.message || String(storageError)));
         }
       });
       actions.append(editTitle, button, removeCourse);
@@ -163,23 +176,37 @@ if (session && session.profile.role !== "admin") {
         if (!confirm('Permanently delete "' + resource.title + '" and its uploaded file?')) return;
         remove.disabled = true;
         remove.textContent = "Deleting…";
+
         try {
-          // Remove the metadata first. A database failure must not leave a valid record
+          // Remove metadata first. A database failure must not leave a valid record
           // pointing to a file that has already been permanently deleted.
           const { data: deletedResource, error: deleteError } = await supabase
             .from("course_resources").delete().eq("id", resource.id).select("id").maybeSingle();
           if (deleteError) throw new Error("Resource was not deleted: " + deleteError.message);
           if (!deletedResource) throw new Error("No resource record was deleted. Refresh the page and try again.");
-
-          const { error: storageError } = await supabase.storage.from("course-resources").remove([resource.file_path]);
-          await loadResources();
-          if (storageError) {
-            alert("The resource record was deleted, but its stored file could not be removed. The file is now orphaned in the private bucket and needs cleanup: " + storageError.message);
-          }
         } catch (error) {
           alert(error?.message || "The resource could not be deleted. Please try again.");
           remove.disabled = false;
           remove.textContent = "Delete";
+          return;
+        }
+
+        let storageError = null;
+        try {
+          const result = await supabase.storage.from("course-resources").remove([resource.file_path]);
+          storageError = result.error;
+        } catch (error) {
+          storageError = error;
+        }
+
+        try {
+          await loadResources();
+        } catch (refreshError) {
+          console.error("Resource was deleted, but the management list could not refresh:", refreshError);
+        }
+
+        if (storageError) {
+          alert("The resource record was deleted, but its stored file could not be removed. The file is now orphaned in the private bucket and needs cleanup: " + (storageError.message || String(storageError)));
         }
       });
 
@@ -189,5 +216,4 @@ if (session && session.profile.role !== "admin") {
 
   await loadCourses();
   await loadResources();
-  await removeOrphanedUploads();
 }
