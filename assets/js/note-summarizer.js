@@ -32,7 +32,6 @@ if (location.hostname.endsWith("github.io")) {
       generateButton.disabled = true;
       notesList.replaceChildren();
       $("#note-count").textContent = "Loading…";
-      $("#summary-result").hidden = true;
       if (!courseSelect.value) {
         notesList.textContent = "Choose a course to see its notes.";
         $("#note-count").textContent = "Select a course first";
@@ -91,7 +90,6 @@ if (location.hostname.endsWith("github.io")) {
       generateButton.disabled = true;
       generateButton.textContent = "Summarizing…";
       setStatus("Reading your selected notes and preparing the summary. This may take a little while.");
-      $("#summary-result").hidden = true;
       try {
         const { data: { session: authSession } } = await supabase.auth.getSession();
         if (!authSession?.access_token) throw new Error("Your session has expired. Sign in again.");
