@@ -367,7 +367,7 @@ export default async function handler(req, res) {
       const suppliedOcrText = body.ocrTextByResource && typeof body.ocrTextByResource === "object"
         ? body.ocrTextByResource[resource.id] : null;
       const extracted = cleanText(
-        /\\.pdf$/i.test(resource.file_name || "") && typeof suppliedOcrText === "string" && suppliedOcrText.trim()
+        /\.pdf$/i.test(resource.file_name || "") && typeof suppliedOcrText === "string" && suppliedOcrText.trim()
           ? suppliedOcrText
           : await extractText(bytes, resource.file_name)
       );
