@@ -25,6 +25,7 @@ jobs:
         run: |
           node --check assets/js/admin.js
           node --check assets/js/admin-manage.js
+          node --check assets/js/student-navigation.js
       - name: Upload site
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
