@@ -488,6 +488,11 @@ export default async function handler(req,res) {
           prefer:"return=minimal"
         });
       } catch (historyError) {
+        const existingAttempt = await adminRequest(`quiz_attempts?select=score,total,percentage,review&quiz_session_id=eq.${sessionId}&user_id=eq.${user.id}&limit=1`).catch(()=>[]);
+        if (existingAttempt.length) {
+          const saved = existingAttempt[0];
+          return respond(res,200,{score:saved.score,total:saved.total,percentage:saved.percentage,review:saved.review});
+        }
         await adminRequest(`quiz_sessions?id=eq.${sessionId}&user_id=eq.${user.id}`,{
           method:"PATCH",body:{submitted_at:null},prefer:"return=minimal"
         }).catch(()=>{});
