@@ -177,8 +177,8 @@ export default async function handler(req, res) {
         const url = await getSignedUrl(client, new GetObjectCommand({
           Bucket: bucket, Key: video.video_path,
           ResponseContentType: video.mime_type, ResponseContentDisposition: "inline"
-        }), { expiresIn: 600 });
-        return respond(res, 200, { url, expiresIn: 600 });
+        }), { expiresIn: 3600 });
+        return respond(res, 200, { url, expiresIn: 3600 });
       }
       if (typeof video.video_path !== "string" || !video.video_path.startsWith(video.course_id + "/") || video.video_path.includes("..")) {
         fail("This video has an invalid storage path.", 409);
@@ -186,7 +186,7 @@ export default async function handler(req, res) {
       const legacy = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/course-videos/${video.video_path.split("/").map(encodeURIComponent).join("/")}`, {
         method: "POST",
         headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${context.token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ expiresIn: 600 })
+        body: JSON.stringify({ expiresIn: 3600 })
       });
       if (!legacy.ok) fail("The existing video file could not be opened.", 502);
       const signed = await legacy.json();
@@ -195,7 +195,7 @@ export default async function handler(req, res) {
       const url = (signedPath.startsWith("https://") || signedPath.startsWith("http://")) ? signedPath
         : signedPath.startsWith("/storage/v1/") ? SUPABASE_URL + signedPath
           : SUPABASE_URL + "/storage/v1" + (signedPath.startsWith("/") ? signedPath : "/" + signedPath);
-      return respond(res, 200, { url, expiresIn: 600 });
+      return respond(res, 200, { url, expiresIn: 3600 });
     }
 
     if (action === "delete-object") {
