@@ -144,7 +144,8 @@ if (location.hostname.endsWith("github.io")) {
         if (!result.summary) throw new Error("The AI did not return a summary. Please try again.");
         currentPhase = "creating the downloadable PDF";
         setSummaryProgress("Preparing your downloadable PDF…", true);
-        const { jsPDF } = await import("https://cdn.jsdelivr.net/npm/jspdf@3.0.1/dist/jspdf.es.min.js");
+        const jsPDF = window.jspdf?.jsPDF;
+        if (!jsPDF) throw new Error("The PDF library did not load. Refresh the page and try again.");
         const pdf = buildSummaryPdf(jsPDF, result);
         currentPhase = "saving the PDF to your summary history";
         pdfPath = user.id + "/" + resource.id + "/" + historyId + ".pdf";
