@@ -48,8 +48,11 @@ if (location.hostname.endsWith("github.io")) {
         return;
       }
       const supported = (data || []).filter(note => /\.(pdf|docx|pptx)$/i.test(note.file_name || ""));
-      const { data: history } = await supabase.from("note_summary_history").select("resource_id").eq("user_id", user.id);
-      const summarizedIds = new Set((history || []).map(item => item.resource_id));
+      const { data: history } = await supabase.from("note_summary_history").select("id,resource_id,status,created_at").eq("user_id", user.id);
+      const staleBefore = Date.now() - 10 * 60 * 1000;
+      const staleIds = (history || []).filter(item => item.status === "generating" && new Date(item.created_at).getTime() < staleBefore).map(item => item.id);
+      if (staleIds.length) await supabase.from("note_summary_history").delete().in("id", staleIds).eq("user_id", user.id);
+      const summarizedIds = new Set((history || []).filter(item => item.status === "ready" || !staleIds.includes(item.id)).map(item => item.resource_id));
       availableNotes = supported;
       $("#note-count").textContent = `${supported.length} available`;
       if (!supported.length) {
