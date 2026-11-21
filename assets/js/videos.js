@@ -9,6 +9,19 @@ if (session) {
   const courseFilter = document.querySelector("#video-course-filter");
   const target = document.querySelector("#video-list");
   const count = document.querySelector("#video-count");
+  async function getVideoPlaybackUrl(videoId) {
+    const { data: { session: authSession }, error } = await supabase.auth.getSession();
+    if (error || !authSession?.access_token) throw new Error("Your session expired. Sign in again.");
+    const response = await fetch("/api/course-videos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + authSession.access_token },
+      body: JSON.stringify({ action: "playback", videoId })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.url) throw new Error(result.error || "A secure video link could not be created.");
+    return result.url;
+  }
+
 
   const { data, error } = await supabase.from("course_videos")
     .select("id,course_id,title,description,topic,video_path,file_name,mime_type,file_size,created_at,courses(code,title)")
@@ -106,12 +119,7 @@ if (session) {
           playButton.textContent = "Preparing video…";
           try {
             if (!player.src) {
-              const { data: signed, error: signedError } = await supabase.storage
-                .from("course-videos").createSignedUrl(video.video_path, 3600);
-              if (signedError || !signed?.signedUrl) {
-                throw new Error(signedError?.message || "A secure video link could not be created.");
-              }
-              player.src = signed.signedUrl;
+              player.src = await getVideoPlaybackUrl(video.id);
               player.hidden = false;
             }
             playButton.textContent = "▶ Play again";
