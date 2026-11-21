@@ -1,18 +1,29 @@
 import { supabase, requireProfile, signOut } from "./supabase.js";
 
-// Capture browser CSP rejections so media URL safety failures can be distinguished from network errors.
+// Capture policy details for media rejections without exposing signed playback URL parameters.
 let latestMediaCspViolation = null;
 document.addEventListener("securitypolicyviolation", event => {
   const directive = event.effectiveDirective || event.violatedDirective || "";
   const blocked = String(event.blockedURI || "");
   if (directive.includes("media-src") || blocked.includes("r2.cloudflarestorage.com")) {
+    let blockedOrigin = null;
+    try {
+      blockedOrigin = new URL(blocked).origin;
+    } catch {
+      blockedOrigin = blocked === "inline" || blocked === "eval" ? blocked : null;
+    }
     latestMediaCspViolation = {
       effectiveDirective: event.effectiveDirective || null,
       violatedDirective: event.violatedDirective || null,
-      blockedURI: blocked,
+      blockedOrigin,
       disposition: event.disposition || null,
+      originalPolicy: event.originalPolicy || null,
+      documentURI: event.documentURI || null,
+      referrer: event.referrer || null,
       sourceFile: event.sourceFile || null,
-      lineNumber: event.lineNumber || null
+      lineNumber: event.lineNumber || null,
+      columnNumber: event.columnNumber || null,
+      statusCode: Number.isFinite(event.statusCode) ? event.statusCode : null
     };
   }
 });
