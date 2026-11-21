@@ -78,11 +78,16 @@ if (session && session.profile.role !== "admin") {
         removeCourse.textContent = "Deleting…";
 
         let filePaths = [];
+        let videoPaths = [];
         try {
           const { data: courseResources, error: lookupError } = await supabase
             .from("course_resources").select("file_path").eq("course_id", course.id);
           if (lookupError) throw new Error("Could not check the course resources: " + lookupError.message);
           filePaths = [...new Set((courseResources || []).map(item => item.file_path).filter(Boolean))];
+          const { data: courseVideos, error: videoLookupError } = await supabase
+            .from("course_videos").select("video_path").eq("course_id", course.id);
+          if (videoLookupError) throw new Error("Could not check the course videos: " + videoLookupError.message);
+          videoPaths = [...new Set((courseVideos || []).map(item => item.video_path).filter(Boolean))];
 
           // Delete the database row first. Its foreign keys cascade to resource metadata.
           // If this fails, leave every stored file untouched so existing records stay valid.
@@ -100,14 +105,19 @@ if (session && session.profile.role !== "admin") {
         // The database deletion succeeded. Handle Storage failures separately so we
         // never tell the admin the course still exists when only file cleanup failed.
         let storageError = null;
+        let videoStorageError = null;
         try {
           for (let index = 0; index < filePaths.length; index += 1000) {
             const result = await supabase.storage.from("course-resources").remove(filePaths.slice(index, index + 1000));
             if (result.error) { storageError = result.error; break; }
           }
-        } catch (error) {
-          storageError = error;
-        }
+        } catch (error) { storageError = error; }
+        try {
+          for (let index = 0; index < videoPaths.length; index += 1000) {
+            const result = await supabase.storage.from("course-videos").remove(videoPaths.slice(index, index + 1000));
+            if (result.error) { videoStorageError = result.error; break; }
+          }
+        } catch (error) { videoStorageError = error; }
 
         try {
           await loadCourses();
@@ -116,8 +126,12 @@ if (session && session.profile.role !== "admin") {
           console.error("Course was deleted, but the management lists could not refresh:", refreshError);
         }
 
-        if (storageError) {
-          alert("The course and its resource records were deleted, but some stored files could not be removed. They are now orphaned in the private bucket and need cleanup: " + (storageError.message || String(storageError)));
+        if (storageError || videoStorageError) {
+          const details = [
+            storageError ? "Course-resource files: " + (storageError.message || String(storageError)) : null,
+            videoStorageError ? "Course-video files: " + (videoStorageError.message || String(videoStorageError)) : null
+          ].filter(Boolean).join(" · ");
+          alert("The course and its linked records were deleted, but some private Storage files could not be removed and need cleanup. " + details);
         }
       });
       actions.append(editTitle, button, removeCourse);
@@ -228,6 +242,121 @@ if (session && session.profile.role !== "admin") {
   }
 
 
+  async function loadVideos() {
+    const target = document.querySelector("#videos");
+    if (!target) return;
+    target.replaceChildren();
+    const { data, error } = await supabase.from("course_videos")
+      .select("id,course_id,title,description,topic,video_path,file_name,mime_type,file_size,is_active,created_at,courses(code,title)")
+      .order("created_at", { ascending: false });
+    if (error) { target.textContent = "Could not load videos: " + error.message; return; }
+    if (!data?.length) { target.textContent = "No course videos have been uploaded yet."; return; }
+
+    data.forEach(video => {
+      const card = document.createElement("article");
+      card.className = "resource-card admin-resource-card";
+      const heading = document.createElement("div");
+      heading.className = "resource-card-heading";
+      const courseLabel = document.createElement("p");
+      courseLabel.className = "course-code";
+      courseLabel.textContent = video.courses?.code
+        ? video.courses.code + " · " + (video.courses.title || "")
+        : "Course video";
+      const title = document.createElement("h3");
+      title.textContent = video.title;
+      heading.append(courseLabel, title);
+      card.append(heading);
+
+      if (video.topic) {
+        const topic = document.createElement("p");
+        topic.className = "video-card-topic";
+        topic.textContent = video.topic;
+        card.append(topic);
+      }
+      if (video.description) {
+        const description = document.createElement("p");
+        description.className = "muted resource-description";
+        description.textContent = video.description;
+        card.append(description);
+      }
+      const meta = document.createElement("p");
+      meta.className = "resource-meta";
+      meta.textContent = video.file_name + " · " + (video.file_size / 1048576).toFixed(1) + " MB";
+      card.append(meta);
+      const status = document.createElement("p");
+      status.className = video.is_active ? "resource-status is-published" : "resource-status is-hidden";
+      status.textContent = video.is_active ? "Visible to eligible students" : "Hidden from students";
+      card.append(status);
+
+      const actions = document.createElement("div");
+      actions.className = "resource-actions";
+      const toggle = document.createElement("button");
+      toggle.className = "btn secondary";
+      toggle.textContent = video.is_active ? "Hide" : "Publish";
+      toggle.addEventListener("click", async () => {
+        toggle.disabled = true;
+        const { error: updateError } = await supabase.from("course_videos")
+          .update({ is_active: !video.is_active }).eq("id", video.id);
+        if (updateError) alert("Could not update video visibility: " + updateError.message);
+        await loadVideos();
+      });
+
+      const edit = document.createElement("button");
+      edit.className = "btn secondary";
+      edit.textContent = "Edit details";
+      edit.addEventListener("click", async () => {
+        const nextTitle = prompt("Video title:", video.title);
+        if (nextTitle === null) return;
+        if (!nextTitle.trim()) { alert("The video title cannot be empty."); return; }
+        const nextTopic = prompt("Topic (optional):", video.topic || "");
+        if (nextTopic === null) return;
+        const nextDescription = prompt("Description (optional):", video.description || "");
+        if (nextDescription === null) return;
+        edit.disabled = true;
+        const { error: editError } = await supabase.from("course_videos").update({
+          title: nextTitle.trim(),
+          topic: nextTopic.trim() || null,
+          description: nextDescription.trim() || null
+        }).eq("id", video.id);
+        if (editError) alert("Could not update video details: " + editError.message);
+        await loadVideos();
+      });
+
+      const remove = document.createElement("button");
+      remove.className = "btn danger";
+      remove.textContent = "Delete";
+      remove.addEventListener("click", async () => {
+        if (!confirm('Permanently delete "' + video.title + '" and its uploaded video file?')) return;
+        remove.disabled = true;
+        remove.textContent = "Deleting…";
+        try {
+          const { data: deleted, error: deleteError } = await supabase.from("course_videos")
+            .delete().eq("id", video.id).select("id").maybeSingle();
+          if (deleteError) throw new Error("Video record was not deleted: " + deleteError.message);
+          if (!deleted) throw new Error("No video record was deleted. Refresh the page and try again.");
+        } catch (error) {
+          alert(error?.message || "The video could not be deleted.");
+          remove.disabled = false;
+          remove.textContent = "Delete";
+          return;
+        }
+        let cleanupError = null;
+        try {
+          const cleanup = await supabase.storage.from("course-videos").remove([video.video_path]);
+          cleanupError = cleanup.error;
+        } catch (error) { cleanupError = error; }
+        await loadVideos();
+        if (cleanupError) alert("The video record was deleted, but its private Storage file could not be removed and is now orphaned: " + (cleanupError.message || String(cleanupError)));
+      });
+
+      actions.append(toggle, edit, remove);
+      card.append(actions);
+      target.append(card);
+    });
+  }
+
+
   await loadCourses();
   await loadResources();
+  await loadVideos();
 }
