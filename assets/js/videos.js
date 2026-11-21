@@ -84,7 +84,7 @@ if (session) {
         player.hidden = true;
         player.setAttribute("aria-label", video.title);
         let playbackDiagnostics = null;
-        player.addEventListener("error", () => {
+        player.addEventListener("error", async () => {
           const code = player.error?.code;
           const reasons = {
             1: "Playback was aborted.",
@@ -104,6 +104,43 @@ if (session) {
               "; stored size " + (Number(playbackDiagnostics.contentLength || 0) / 1048576).toFixed(1) + " MB."
             : "";
           error.textContent = detail + (code ? " (Media error " + code + ")." : "") + storageDetail;
+
+          // Admin-only one-time integrity inspection of the existing R2 object.
+          if (session.profile?.role === "admin" && video.video_path.startsWith("r2/") &&
+              !player.dataset.integrityInspectionStarted) {
+            player.dataset.integrityInspectionStarted = "true";
+            try {
+              const { data: { session: authSession } } = await supabase.auth.getSession();
+              if (!authSession?.access_token) throw new Error("Admin session unavailable.");
+              const response = await fetch("/api/course-videos", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: "Bearer " + authSession.access_token
+                },
+                body: JSON.stringify({ action: "inspect-object", videoId: video.id })
+              });
+              const inspection = await response.json().catch(() => ({}));
+              if (!response.ok || !inspection.inspected) {
+                throw new Error(inspection.error || "R2 inspection failed.");
+              }
+              const report = [
+                "R2 integrity inspection:",
+                "Actual size: " + inspection.actualSize + " bytes",
+                "Database size matches: " + inspection.sizeMatchesDatabase,
+                "R2 HEAD size matches: " + inspection.headSizeMatches,
+                "MP4 container signature: " + inspection.isMp4Container,
+                "Stored Content-Type: " + (inspection.storedContentType || "missing"),
+                "SHA-256: " + inspection.sha256
+              ].join("\\n");
+              error.textContent += "\\n" + report;
+              console.info("[UNI-VERSE R2 integrity inspection]", inspection);
+            } catch (inspectionError) {
+              error.textContent += "\\nR2 integrity inspection failed: " +
+                (inspectionError.message || "Unknown error.");
+              console.error("[UNI-VERSE R2 integrity inspection]", inspectionError);
+            }
+          }
         });
 
         const body = document.createElement("div");
