@@ -1,7 +1,7 @@
 import {
   S3Client, CreateMultipartUploadCommand, UploadPartCommand, ListPartsCommand,
   CompleteMultipartUploadCommand, AbortMultipartUploadCommand, GetObjectCommand,
-  DeleteObjectsCommand
+  DeleteObjectCommand, DeleteObjectsCommand
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "node:crypto";
@@ -182,6 +182,15 @@ export default async function handler(req, res) {
         ResponseContentType: video.mime_type, ResponseContentDisposition: "inline"
       }), { expiresIn: 600 });
       return respond(res, 200, { url, expiresIn: 600 });
+    }
+
+    if (action === "delete-object") {
+      requireAdmin(context.profile);
+      const courseId = String(body.courseId || "");
+      const key = String(body.key || "");
+      if (!validKey(key, courseId)) fail("The video file path is invalid.", 400);
+      await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+      return respond(res, 200, { deleted: 1 });
     }
 
     if (action === "delete-objects") {
