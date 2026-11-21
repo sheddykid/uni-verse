@@ -154,22 +154,56 @@ const validatedSummary = z.object({
 function normalizeSummary(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return value;
   const summary = { ...value };
-  const sentences = String(summary.overview || "").split(/(?<=[.!?])\s+/).map(text => text.trim()).filter(text => text.length > 20);
-  const existingPoints = Array.isArray(summary.keyPoints) ? summary.keyPoints.filter(item => typeof item === "string" && item.trim()) : [];
-  summary.keyPoints = existingPoints.length ? existingPoints : sentences.slice(0, 8);
+  const asText = (...items) => {
+    for (const item of items) {
+      if (typeof item === "string" && item.trim()) return cleanText(item).slice(0, 1200);
+      if (Array.isArray(item)) {
+        const joined = item.filter(part => typeof part === "string" && part.trim()).join("; ");
+        if (joined) return cleanText(joined).slice(0, 1200);
+      }
+    }
+    return "";
+  };
+  summary.title = asText(summary.title, summary.topic, summary.name) || "Study Summary";
+  summary.overview = asText(summary.overview, summary.summary, summary.description, summary.introduction);
+  const sentences = summary.overview.split(/(?<=[.!?])\s+/).map(text => text.trim()).filter(text => text.length > 20);
+  const existingPoints = Array.isArray(summary.keyPoints)
+    ? summary.keyPoints.map(item => asText(item)).filter(Boolean) : [];
+  summary.keyPoints = (existingPoints.length ? existingPoints : sentences).slice(0, 12);
   if (!summary.keyPoints.length && summary.overview) summary.keyPoints = [summary.overview];
-  if (!Array.isArray(summary.sections) || !summary.sections.length) {
-    summary.sections = summary.overview ? [{
+  const rawSections = Array.isArray(summary.sections) ? summary.sections : Array.isArray(summary.topics) ? summary.topics : [];
+  summary.sections = rawSections.slice(0, 12).map((section, index) => {
+    if (typeof section === "string") {
+      return { heading: "Topic " + (index + 1), summary: section, details: [] };
+    }
+    const item = section && typeof section === "object" ? section : {};
+    const heading = asText(item.heading, item.title, item.topic, item.name) || "Key topic " + (index + 1);
+    const sectionSummary = asText(item.summary, item.explanation, item.description, item.content, item.text)
+      || summary.keyPoints[index] || summary.overview;
+    const rawDetails = item.details || item.keyPoints || item.points || item.bulletPoints || [];
+    const details = (Array.isArray(rawDetails) ? rawDetails : [rawDetails])
+      .map(detail => asText(detail)).filter(Boolean).slice(0, 8);
+    return { heading, summary: sectionSummary || "Review the related key points in this note.", details };
+  }).filter(section => section.heading && section.summary);
+  if (!summary.sections.length && summary.overview) {
+    summary.sections = [{
       heading: summary.title || "Summary",
       summary: summary.overview,
       details: summary.keyPoints.slice(0, 8)
-    }] : [];
+    }];
   }
-  if (!Array.isArray(summary.keyTerms)) summary.keyTerms = [];
-  if (!Array.isArray(summary.formulas)) summary.formulas = [];
+  summary.keyTerms = Array.isArray(summary.keyTerms) ? summary.keyTerms.map(item => ({
+    term: asText(item?.term, item?.name), definition: asText(item?.definition, item?.meaning, item?.description)
+  })).filter(item => item.term && item.definition).slice(0, 20) : [];
+  summary.formulas = Array.isArray(summary.formulas) ? summary.formulas.map(item => ({
+    name: asText(item?.name, item?.title) || "Formula",
+    expression: asText(item?.expression, item?.formula),
+    explanation: asText(item?.explanation, item?.description)
+  })).filter(item => item.expression).slice(0, 15) : [];
   const checklist = Array.isArray(summary.revisionChecklist)
-    ? summary.revisionChecklist.filter(item => typeof item === "string" && item.trim()) : [];
-  summary.revisionChecklist = checklist.length ? checklist : summary.keyPoints.slice(0, 8).map(point => `Review and be able to explain: ${point}`);
+    ? summary.revisionChecklist.map(item => asText(item)).filter(Boolean) : [];
+  summary.revisionChecklist = (checklist.length ? checklist : summary.keyPoints.slice(0, 8)
+    .map(point => "Review and be able to explain: " + point)).slice(0, 12);
   return summary;
 }
 
@@ -401,7 +435,7 @@ ${noteText}`;
     const generated = await generateSummary(prompt, log);
     const parsed = validatedSummary.safeParse(normalizeSummary(generated.result));
     if (!parsed.success) {
-      log("summary_validation_failed", { issues: parsed.error.issues.slice(0, 4).map(issue => issue.path.join(".")) });
+      log("summary_validation_failed", { provider: generated.provider, issues: parsed.error.issues.slice(0, 8).map(issue => ({ path: issue.path.join("."), code: issue.code })) });
       return respond(res, 502, { error: "The AI returned a summary in an invalid format. Please try again." });
     }
     log("summary_generated", { provider: generated.provider, courseId, noteCount: resources.length, inputCharacters: noteText.length });
