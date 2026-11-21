@@ -7,7 +7,8 @@ const links = [
   ["./quizzes.html", "✓", "Quizzes"],
   ["./quiz-history.html", "◷", "Quiz history"],
   ["./flashcards.html", "▣", "Flashcards"],
-  ["./note-summarizer.html", "≡", "Note summaries"],
+  ["./note-summarizer.html", "≡", "AI note summarizer"],
+  ["./summary-history.html", "▣", "Summary history"],
   ["./videos.html", "▶", "Video tutorials"]
 ];
 
