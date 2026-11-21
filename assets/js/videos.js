@@ -1,5 +1,22 @@
 import { supabase, requireProfile, signOut } from "./supabase.js";
 
+// Capture browser CSP rejections so media URL safety failures can be distinguished from network errors.
+let latestMediaCspViolation = null;
+document.addEventListener("securitypolicyviolation", event => {
+  const directive = event.effectiveDirective || event.violatedDirective || "";
+  const blocked = String(event.blockedURI || "");
+  if (directive.includes("media-src") || blocked.includes("r2.cloudflarestorage.com")) {
+    latestMediaCspViolation = {
+      effectiveDirective: event.effectiveDirective || null,
+      violatedDirective: event.violatedDirective || null,
+      blockedURI: blocked,
+      disposition: event.disposition || null,
+      sourceFile: event.sourceFile || null,
+      lineNumber: event.lineNumber || null
+    };
+  }
+});
+
 document.querySelector("#logout").addEventListener("click", signOut);
 const session = await requireProfile();
 
@@ -147,7 +164,8 @@ if (session) {
             readyState: player.readyState,
             currentSrcHost,
             playbackUrlHost,
-            h264AacSupport: player.canPlayType('video/mp4; codecs="avc1.4D401E, mp4a.40.2"')
+            h264AacSupport: player.canPlayType('video/mp4; codecs="avc1.4D401E, mp4a.40.2"'),
+            mediaCspViolation: latestMediaCspViolation
           };
         }
         ["loadedmetadata", "loadeddata", "stalled", "abort", "waiting", "canplay"].forEach(eventName => {
