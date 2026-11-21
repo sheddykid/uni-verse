@@ -5,7 +5,6 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "node:crypto";
-import { randomUUID } from "node:crypto";
 
 const SUPABASE_URL = "https://xcybjuwearndoljqkzmy.supabase.co";
 const SUPABASE_KEY = "sb_publishable_8egrnqtwHtrfzvtPcldiQw_y1Wqhh9w";
@@ -174,13 +173,28 @@ export default async function handler(req, res) {
       if (!video || (!video.is_active && context.profile.role !== "admin")) {
         fail("This video is unavailable or you do not have access.", 403);
       }
-      if (!validKey(video.video_path, video.course_id)) {
-        fail("This video is still stored in the previous video bucket.", 409);
+      if (validKey(video.video_path, video.course_id)) {
+        const url = await getSignedUrl(client, new GetObjectCommand({
+          Bucket: bucket, Key: video.video_path,
+          ResponseContentType: video.mime_type, ResponseContentDisposition: "inline"
+        }), { expiresIn: 600 });
+        return respond(res, 200, { url, expiresIn: 600 });
       }
-      const url = await getSignedUrl(client, new GetObjectCommand({
-        Bucket: bucket, Key: video.video_path,
-        ResponseContentType: video.mime_type, ResponseContentDisposition: "inline"
-      }), { expiresIn: 600 });
+      if (typeof video.video_path !== "string" || !video.video_path.startsWith(video.course_id + "/") || video.video_path.includes("..")) {
+        fail("This video has an invalid storage path.", 409);
+      }
+      const legacy = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/course-videos/${video.video_path.split("/").map(encodeURIComponent).join("/")}`, {
+        method: "POST",
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${context.token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ expiresIn: 600 })
+      });
+      if (!legacy.ok) fail("The existing video file could not be opened.", 502);
+      const signed = await legacy.json();
+      const signedPath = signed.signedURL || signed.signedUrl;
+      if (!signedPath) fail("The existing video file did not return a playback link.", 502);
+      const url = /^https?:\\/\\//i.test(signedPath) ? signedPath
+        : signedPath.startsWith("/storage/v1/") ? SUPABASE_URL + signedPath
+          : SUPABASE_URL + "/storage/v1" + (signedPath.startsWith("/") ? signedPath : "/" + signedPath);
       return respond(res, 200, { url, expiresIn: 600 });
     }
 
@@ -193,19 +207,49 @@ export default async function handler(req, res) {
       return respond(res, 200, { deleted: 1 });
     }
 
+    if (action === "delete-object") {
+      requireAdmin(context.profile);
+      const courseId = String(body.courseId || "");
+      const key = String(body.key || "");
+      if (!validUuid(courseId)) fail("The course identifier is invalid.", 400);
+      if (validKey(key, courseId)) {
+        await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+        return respond(res, 200, { deleted: true });
+      }
+      if (!key.startsWith(courseId + "/") || key.includes("..")) fail("The video file path is invalid.", 400);
+      const removed = await fetch(`${SUPABASE_URL}/storage/v1/object/course-videos`, {
+        method: "DELETE",
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${context.token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ prefixes: [key] })
+      });
+      if (!removed.ok) fail("The previous video file could not be removed from Supabase Storage.", 502);
+      return respond(res, 200, { deleted: true });
+    }
+
     if (action === "delete-objects") {
       requireAdmin(context.profile);
       const courseId = String(body.courseId || "");
       const keys = Array.isArray(body.keys) ? [...new Set(body.keys.map(String))] : [];
-      if (!validUuid(courseId) || keys.length > 1000 || keys.some(key => !validKey(key, courseId))) {
-        fail("One or more video file paths are invalid.", 400);
+      if (!validUuid(courseId) || keys.length > 1000 || keys.some(key =>
+        !(validKey(key, courseId) || (key.startsWith(courseId + "/") && !key.includes("..")))
+      )) fail("One or more video file paths are invalid.", 400);
+      const r2Keys = keys.filter(key => validKey(key, courseId));
+      const legacyKeys = keys.filter(key => !validKey(key, courseId));
+      if (r2Keys.length) {
+        const result = await client.send(new DeleteObjectsCommand({
+          Bucket: bucket, Delete: { Objects: r2Keys.map(Key => ({ Key })), Quiet: false }
+        }));
+        if (result.Errors?.length) fail("Some video files could not be removed from R2.", 502);
       }
-      if (!keys.length) return respond(res, 200, { deleted: 0 });
-      const result = await client.send(new DeleteObjectsCommand({
-        Bucket: bucket, Delete: { Objects: keys.map(Key => ({ Key })), Quiet: false }
-      }));
-      if (result.Errors?.length) fail("Some video files could not be removed from R2.", 502);
-      return respond(res, 200, { deleted: result.Deleted?.length || 0 });
+      if (legacyKeys.length) {
+        const removed = await fetch(`${SUPABASE_URL}/storage/v1/object/course-videos`, {
+          method: "DELETE",
+          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${context.token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ prefixes: legacyKeys })
+        });
+        if (!removed.ok) fail("Some older video files could not be removed from Supabase Storage.", 502);
+      }
+      return respond(res, 200, { deleted: keys.length });
     }
 
     return respond(res, 400, { error: "Unknown video storage action." });
