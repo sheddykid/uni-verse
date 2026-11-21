@@ -295,10 +295,33 @@ if (session && session.profile.role === "admin" && document.querySelector("#vide
     finally { button.disabled = false; }
   });
 
-  function uploadVideoTus(file, path, contentType, accessToken, courseId) {
-    return import("https://esm.sh/tus-js-client@4.3.1").then(({ Upload }) => new Promise(async (resolve, reject) => {
+  let tusClientPromise;
+  function loadBrowserTusClient() {
+    if (window.tus?.Upload) return Promise.resolve(window.tus);
+    if (!tusClientPromise) {
+      tusClientPromise = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js";
+        script.async = true;
+        script.onload = () => {
+          if (window.tus?.Upload) resolve(window.tus);
+          else reject(new Error("The browser-compatible resumable upload library loaded without its Upload constructor."));
+        };
+        script.onerror = () => {
+          tusClientPromise = null;
+          reject(new Error("Could not load the browser-compatible resumable upload library. Check your connection and retry."));
+        };
+        document.head.append(script);
+      });
+    }
+    return tusClientPromise;
+  }
+
+  async function uploadVideoTus(file, path, contentType, accessToken, courseId) {
+    const tus = await loadBrowserTusClient();
+    return new Promise(async (resolve, reject) => {
       let effectivePath = path;
-      const upload = new Upload(file, {
+      const upload = new tus.Upload(file, {
         endpoint: "https://xcybjuwearndoljqkzmy.storage.supabase.co/storage/v1/upload/resumable",
         headers: {
           authorization: "Bearer " + accessToken,
@@ -332,7 +355,7 @@ if (session && session.profile.role === "admin" && document.querySelector("#vide
         }
         upload.start();
       } catch (error) { reject(error); }
-    }));
+    });
   }
 
   videoForm.addEventListener("submit", async event => {
