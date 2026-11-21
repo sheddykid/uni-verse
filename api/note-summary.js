@@ -5,7 +5,6 @@ import AdmZip from "adm-zip";
 
 const SUPABASE_URL = "https://xcybjuwearndoljqkzmy.supabase.co";
 const SUPABASE_KEY = "sb_publishable_8egrnqtwHtrfzvtPcldiQw_y1Wqhh9w";
-const MAX_FILES = 2;
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 25 * 1024 * 1024;
 const MAX_TOTAL_TEXT = 100000;
@@ -304,7 +303,7 @@ export default async function handler(req, res) {
     const resourceIds = Array.isArray(body.resourceIds) ? [...new Set(body.resourceIds.map(String))] : [];
     if (!/^[0-9a-f-]{36}$/i.test(courseId) || !resourceIds.length || resourceIds.length !== 1 ||
         resourceIds.some(id => !/^[0-9a-f-]{36}$/i.test(id))) {
-      return respond(res, 400, { error: "Choose an active course and up to two note files." });
+      return respond(res, 400, { error: "Choose one active course note." });
     }
 
     const profiles = await supabaseRequest(`profiles?select=id,role,department_id&id=eq.${encodeURIComponent(user.id)}&limit=1`, token);
