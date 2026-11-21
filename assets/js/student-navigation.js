@@ -5,6 +5,7 @@ const links = [
   ["./notes.html", "▤", "Course notes"],
   ["./past-questions.html", "✎", "Past questions"],
   ["./quizzes.html", "✓", "Quizzes"],
+  ["./quiz-history.html", "◷", "Quiz history"],
   ["./flashcards.html", "▣", "Flashcards"],
   ["./note-summarizer.html", "≡", "Note summaries"],
   ["./videos.html", "▶", "Video tutorials"]
