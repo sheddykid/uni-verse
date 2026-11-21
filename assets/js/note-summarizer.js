@@ -91,7 +91,8 @@ if (location.hostname.endsWith("github.io")) {
       if (!resourceIds.length) return;
       generateButton.disabled = true;
       generateButton.textContent = "Summarizing…";
-      setStatus("Reading your selected notes and preparing the summary. This may take a little while.");
+      setSummaryProgress("Preparing your selected notes…", true);
+      setStatus("Your summary is being prepared. This can take a little while.");
       try {
         const { data: { session: authSession } } = await supabase.auth.getSession();
         if (!authSession?.access_token) throw new Error("Your session has expired. Sign in again.");
@@ -101,17 +102,18 @@ if (location.hostname.endsWith("github.io")) {
         if (pdfNotes.length) {
           const { extractResourceText } = await import("./question-ocr.js");
           for (const note of pdfNotes) {
-            setStatus(`Preparing ${note.title} for summarization. Scanned pages will be read with OCR.`);
+            setSummaryProgress("Preparing " + note.title + " for OCR…", true);
             const { data: blob, error: downloadError } = await supabase.storage.from("course-resources").download(note.file_path);
             if (downloadError || !blob) throw new Error(downloadError?.message || `Could not download ${note.title}.`);
             const file = new File([blob], note.file_name, { type: note.mime_type || blob.type });
             ocrTextByResource[note.id] = await extractResourceText(file, (stage, progress) => {
               const percent = Math.round(Math.max(0, Math.min(1, progress)) * 100);
-              setStatus(percent ? `Reading ${note.title}: ${stage} (${percent}%)` : `Reading ${note.title}: ${stage}…`);
+              setSummaryProgress("Reading " + note.title + ": " + stage, false, percent);
             }, { maxPdfPages: 150, maxOcrPages: 30, maxCharacters: 100000 });
           }
         }
-        setStatus("Sending the extracted course material to the summarizer…");
+        setSummaryProgress("Generating your study summary…", true);
+        setStatus("The AI is preparing your study summary…");
         const response = await fetch("/api/note-summary", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${authSession.access_token}` },
@@ -129,6 +131,7 @@ if (location.hostname.endsWith("github.io")) {
         if (!response.ok) throw new Error(result.error || `Summary request failed (HTTP ${response.status}).`);
         if (!result.summary) throw new Error("The AI did not return a summary. Please try again.");
         sessionStorage.setItem("universeActiveSummary", JSON.stringify(result));
+        setSummaryProgress("Summary ready. Opening it now…", false, 100);
         setStatus("Your study summary is ready. Opening your summary page…", true);
         location.href = "./summary-session.html";
       } catch (error) {
@@ -136,7 +139,20 @@ if (location.hostname.endsWith("github.io")) {
       } finally {
         generateButton.disabled = notesList.querySelectorAll('input[type="checkbox"]:checked').length === 0;
         generateButton.textContent = "Generate summary";
+        $("#summary-generation-progress").hidden = true;
       }
+    }
+
+
+    function setSummaryProgress(message, indeterminate = true, percent = 0) {
+      const container = $("#summary-generation-progress"), track = $("#summary-generation-track");
+      container.hidden = false;
+      $("#summary-generation-stage").textContent = message;
+      track.classList.toggle("is-indeterminate", indeterminate);
+      track.setAttribute("aria-valuetext", indeterminate ? message : percent + "% complete");
+      if (!indeterminate) track.setAttribute("aria-valuenow", String(percent));
+      else track.removeAttribute("aria-valuenow");
+      $("#summary-generation-fill").style.width = indeterminate ? "38%" : percent + "%";
     }
 
     function setStatus(message, success = false) {
