@@ -302,8 +302,7 @@ export default async function handler(req, res) {
     const body = req.body || {};
     const courseId = String(body.courseId || "");
     const resourceIds = Array.isArray(body.resourceIds) ? [...new Set(body.resourceIds.map(String))] : [];
-    const detail = body.detail === "detailed" ? "detailed" : "concise";
-    if (!/^[0-9a-f-]{36}$/i.test(courseId) || !resourceIds.length || resourceIds.length > MAX_FILES ||
+    if (!/^[0-9a-f-]{36}$/i.test(courseId) || !resourceIds.length || resourceIds.length !== 1 ||
         resourceIds.some(id => !/^[0-9a-f-]{36}$/i.test(id))) {
       return respond(res, 400, { error: "Choose an active course and up to two note files." });
     }
@@ -333,6 +332,8 @@ export default async function handler(req, res) {
       return respond(res, 403, { error: "One or more selected files are not active notes for this course." });
     }
     resources.sort((a, b) => a.id.localeCompare(b.id));
+    const reservations = await supabaseRequest("note_summary_history?select=id&user_id=eq." + encodeURIComponent(user.id) + "&resource_id=eq." + encodeURIComponent(resources[0].id) + "&status=eq.generating&limit=1", token);
+    if (!reservations.length) return respond(res, 409, { error: "Reserve this note before generating its summary." });
 
     const totalBytes = resources.reduce((sum, item) => sum + Number(item.file_size || 0), 0);
     if (totalBytes > MAX_TOTAL_BYTES) return respond(res, 413, { error: "The selected notes exceed the 25 MB total processing limit." });
@@ -382,9 +383,7 @@ export default async function handler(req, res) {
     const noteText = fullText.length > MAX_AI_TEXT
       ? fullText.slice(0, Math.floor(MAX_AI_TEXT * 0.55)) + "\n\n[Some middle content was omitted to fit the AI processing limit.]\n\n" + fullText.slice(-Math.floor(MAX_AI_TEXT * 0.45))
       : fullText;
-    const lengthInstruction = detail === "detailed"
-      ? "Create a detailed but readable study summary. Include the main sections, explain important relationships and processes, and preserve useful technical details."
-      : "Create a concise revision summary. Prioritize the most important ideas and keep each section focused.";
+    const lengthInstruction = "Create one clear, standard study summary for exam revision. Include the main sections, important relationships and processes, and useful technical details without unnecessary repetition.";
     const prompt = `You are UNI-VERSE's course-note summarizer for university students.
 Summarize the supplied notes for ${course.code} — ${course.title}.
 ${lengthInstruction}
@@ -412,7 +411,6 @@ ${noteText}`;
       course: { id: course.id, code: course.code, title: course.title },
       sources: resources.map(resource => resource.title),
       provider: generated.provider,
-      detail,
       noteCharacters: totalText,
       sampled: fullText.length > MAX_AI_TEXT
     });
