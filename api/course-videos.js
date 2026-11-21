@@ -249,7 +249,7 @@ export default async function handler(req, res) {
       }));
       const rangeBytes = rangeCheck.Body ? await rangeCheck.Body.transformToByteArray() : new Uint8Array();
       const rangeVerified = rangeCheck.$metadata?.httpStatusCode === 206 &&
-        rangeBytes.length === 2 && /^bytes 0-1\\//.test(rangeCheck.ContentRange || "");
+        rangeBytes.length === 2 && /^bytes 0-1\//.test(rangeCheck.ContentRange || "");
       const signedUrl = await getSignedUrl(client, new GetObjectCommand({
         Bucket: bucket, Key: video.video_path,
         ResponseContentType: video.mime_type, ResponseContentDisposition: "inline"
