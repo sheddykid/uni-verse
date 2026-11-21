@@ -27,7 +27,7 @@
 - **Course creation:** Administrators can add a course code, title and description, and assign the course to one or more departments.
 - **Resource uploads:** Administrators can upload notes, past questions and course videos to a selected course.
 - **Supported files:** Notes accept PDF, DOCX and PPTX. Past questions accept PDF, DOCX, PPTX, JPG, PNG and WEBP.
-- **Upload validation:** The interface checks file type and enforces a 50 MB maximum file size.
+- **Upload validation:** Notes and past-question files are limited to 50 MB. Video uploads accept MP4, WEBM and MOV up to 5 GiB and use resumable multipart transfers.
 - **Course management:** Administrators can edit course titles, activate or deactivate courses, and delete courses with their associated resource records and stored files.
 - **Resource management:** Administrators can edit resource titles and descriptions, publish or hide resources, and delete resources and videos.
 - **Course-list refresh:** The upload form has a dedicated refresh control to reload the course dropdown without refreshing the whole page.
@@ -64,9 +64,10 @@ The video tutorial library supports admin uploads, course-based access, search, 
 - **Backend services:** [Supabase](https://supabase.com/).
 - **Authentication:** Supabase Auth for registration, email confirmation, sessions and password recovery.
 - **Database:** Supabase Postgres for user profiles, departments, courses, course-to-department assignments, resource metadata and course video metadata.
-- **File storage:** Private Supabase Storage buckets named `course-resources`, `course-videos` and `summary-pdfs`.
+- **File storage:** Supabase Storage keeps private course documents and summary PDFs. Private Cloudflare R2 stores video files; Supabase Postgres retains video metadata and access rules.
 - **Hosting:** Vercel and GitHub Pages.
-- **AI generation:** Google Gemini API called from the authenticated Vercel serverless function; document extraction supports PDF, DOCX and PPTX course notes.
+- **Video storage API:** Authenticated Vercel serverless API signs multipart R2 uploads and short-lived playback URLs using server-side S3 credentials.
+- **AI generation:** Google Gemini API called from authenticated Vercel serverless functions; document extraction supports PDF, DOCX and PPTX course notes.
 - **Supabase JavaScript client:** Loaded from `https://esm.sh/@supabase/supabase-js@2`.
 
 The project is a static frontend. It does not currently require a Node.js build step or a package manager to run.
@@ -223,7 +224,7 @@ For GitHub Pages deployment, ensure GitHub Pages is configured to use **GitHub A
 
 - UNI-VERSE includes authentication, department-based course access, course administration, downloadable learning resources and AI flashcard generation.
 - AI flashcards require the Vercel deployment because GitHub Pages does not run the `/api/flashcards` serverless function. The Gemini API key is stored as a Vercel environment variable and is never exposed to the browser.
-- Video tutorials and quizzes have dedicated landing pages, but their actual content and quiz-generation features remain planned additions.
+- Video tutorials support resumable Cloudflare R2 uploads, course-based access, search, playback and admin management. Quiz generation is implemented separately.
 - The frontend validates supported file extensions and file size, but backend Storage policies must also enforce appropriate access and upload restrictions.
 - Email delivery depends on the SMTP provider configured in Supabase Auth and the provider's sending limits.
 
@@ -408,9 +409,24 @@ No destructive database or Storage tests were run during this audit checkpoint. 
 
 
 
-## Video tutorials
+## Video tutorials and Cloudflare R2
 
-- Admins upload MP4, WEBM or MOV videos from the admin dashboard. Uploads use Supabase Storage resumable (TUS) transfers, with visible progress and a 50 MB per-video limit.
-- Video metadata is stored in `course_videos`; video files are stored in the private `course-videos` bucket.
-- Students can search videos by title, topic or course and filter by course. Playback uses short-lived signed URLs and Storage RLS, so students can only access active videos for courses assigned to their department.
-- Admins can edit metadata, hide/publish videos and delete videos. Deleting a course also removes its associated video files after the database confirms the course deletion.
+- Video metadata remains in the Supabase `course_videos` table. New video objects are stored in the private Cloudflare R2 bucket `uni-verse-videos`.
+- Admin uploads use multipart transfers with 32 MiB parts, three concurrent workers, retry handling, upload progress and browser-local resume metadata. The per-video upload limit is 5 GiB.
+- The Vercel API authenticates each request with the user's Supabase access token, verifies the administrator role for uploads/deletion, and uses R2 credentials only on the server.
+- Students receive a 10-minute signed playback URL only after the API confirms the video row through the caller's Supabase RLS permissions. The R2 bucket stays private.
+- Existing videos still stored in the old private Supabase `course-videos` bucket remain playable; admin deletion and course deletion handle both legacy Supabase paths and new R2 paths.
+- Admins can edit metadata, hide/publish videos and delete videos. Course deletion removes linked video objects only after the database confirms the course deletion.
+
+### Required Vercel environment variables
+
+Set these for Production, Preview and Development. Values must be the credentials/endpoint from the R2 bucket's scoped S3 API token; do not put them in frontend code or GitHub.
+
+| Variable | Purpose |
+|---|---|
+| `R2_ACCESS_KEY_ID` | R2 S3 access key ID |
+| `R2_SECRET_ACCESS_KEY` | R2 S3 secret access key |
+| `R2_ENDPOINT` | The bucket's jurisdiction-specific S3 endpoint |
+| `R2_BUCKET_NAME` | `uni-verse-videos` |
+
+The R2 bucket CORS policy must allow the production Vercel origin to use `PUT`, `GET` and `HEAD`, allow the upload headers, and expose `ETag`. Keep public bucket access disabled. The AWS SDK connects with region `auto`.
