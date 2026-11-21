@@ -175,13 +175,21 @@ export default async function handler(req, res) {
       }
       if (validKey(video.video_path, video.course_id)) {
         // Verify the stored object and byte-range support before handing playback to the browser.
-        const head = await client.send(new HeadObjectCommand({
-          Bucket: bucket, Key: video.video_path
-        }));
-        const probe = await client.send(new GetObjectCommand({
-          Bucket: bucket, Key: video.video_path, Range: "bytes=0-0"
-        }));
-        const probeBytes = probe.Body ? await probe.Body.transformToByteArray() : new Uint8Array();
+        let head;
+        let probe;
+        let probeBytes;
+        try {
+          head = await client.send(new HeadObjectCommand({
+            Bucket: bucket, Key: video.video_path
+          }));
+          probe = await client.send(new GetObjectCommand({
+            Bucket: bucket, Key: video.video_path, Range: "bytes=0-0"
+          }));
+          probeBytes = probe.Body ? await probe.Body.transformToByteArray() : new Uint8Array();
+        } catch (error) {
+          console.error("[course-videos] R2 playback probe failed:", error?.name || "Error", error?.message || "");
+          fail("R2 could not verify the stored video or serve a byte-range request. The uploaded object or its storage permissions need investigation.", 502);
+        }
         const rangeContentRange = probe.ContentRange || null;
         const rangeSupported = probe.$metadata?.httpStatusCode === 206 &&
           probeBytes.length === 1 && /^bytes 0-0\//.test(rangeContentRange || "");
