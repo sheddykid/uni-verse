@@ -400,7 +400,9 @@ if (session && session.profile.role === "admin" && document.querySelector("#vide
     }
 
     try {
-      await Promise.all([worker(), worker(), worker()]);
+      const outcomes = await Promise.allSettled([worker(), worker(), worker()]);
+      const failedWorker = outcomes.find(result => result.status === "rejected");
+      if (failedWorker) throw failedWorker.reason;
       progressStatus.textContent = "Finalizing video upload…";
       const parts = [...completed.entries()].map(([partNumber, etag]) => ({ partNumber, etag }));
       await videoApi("complete", { courseId, key: upload.key, uploadId: upload.uploadId, parts });
@@ -447,8 +449,6 @@ if (session && session.profile.role === "admin" && document.querySelector("#vide
     progressBar.style.width = "0%";
     progressStatus.textContent = "Preparing secure R2 multipart upload…";
 
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const videoPath = courseId + "/" + crypto.randomUUID() + "-" + safeName;
     let uploadCompleted = false;
     let storedVideoPath = "";
     try {
