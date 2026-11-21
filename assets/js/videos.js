@@ -50,7 +50,23 @@ if (session) {
       courseFilter.append(option);
     });
 
+    let activeVideoPlayer = null;
+    let activeHideButton = null;
+
+    function closeActiveVideo() {
+      if (activeVideoPlayer) {
+        activeVideoPlayer.pause();
+        activeVideoPlayer.removeAttribute("src");
+        activeVideoPlayer.load();
+        activeVideoPlayer.hidden = true;
+      }
+      if (activeHideButton) activeHideButton.hidden = true;
+      activeVideoPlayer = null;
+      activeHideButton = null;
+    }
+
     function renderVideos() {
+      closeActiveVideo();
       const query = searchInput.value.trim().toLowerCase();
       const courseId = courseFilter.value;
       const visible = videos.filter(video => {
@@ -183,11 +199,21 @@ if (session) {
 
         const actions = document.createElement("div");
         actions.className = "video-card-actions";
+        const hideButton = document.createElement("button");
+        hideButton.type = "button";
+        hideButton.className = "btn secondary";
+        hideButton.textContent = "Hide video";
+        hideButton.hidden = true;
+        hideButton.addEventListener("click", () => {
+          if (activeVideoPlayer === player) closeActiveVideo();
+        });
+
         const playButton = document.createElement("button");
         playButton.type = "button";
         playButton.className = "btn primary";
         playButton.textContent = "▶ Watch video";
         playButton.addEventListener("click", async () => {
+          if (activeVideoPlayer && activeVideoPlayer !== player) closeActiveVideo();
           playButton.disabled = true;
           playButton.textContent = "Preparing video…";
           try {
@@ -202,6 +228,9 @@ if (session) {
             }
             player.src = playback.url;
             player.hidden = false;
+            activeVideoPlayer = player;
+            activeHideButton = hideButton;
+            hideButton.hidden = false;
             playButton.textContent = "▶ Play again";
             try {
               await player.play();
@@ -222,7 +251,7 @@ if (session) {
             playButton.disabled = false;
           }
         });
-        actions.append(playButton);
+        actions.append(playButton, hideButton);
         body.append(actions);
         card.append(player, body);
         target.append(card);
