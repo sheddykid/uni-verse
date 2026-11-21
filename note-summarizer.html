@@ -14,6 +14,10 @@
 <div id="notes-list" class="notes-picker"><p class="muted">Choose a course to see its notes.</p></div>
 <label class="summary-detail-label" for="summary-detail">Summary depth<select id="summary-detail"><option value="concise">Concise revision summary</option><option value="detailed">Detailed study summary</option></select></label>
 <div class="summary-actions"><button id="generate" class="btn primary" type="button" disabled>Generate summary</button><p id="status" class="message" role="status" aria-live="polite"></p></div>
+<div id="summary-generation-progress" class="generation-progress" hidden>
+  <div class="generation-progress-copy"><span id="summary-generation-stage">Preparing your summary…</span></div>
+  <div id="summary-generation-track" class="generation-progress-track" role="progressbar" aria-label="Summary generation progress" aria-valuemin="0" aria-valuemax="100" aria-valuetext="In progress"><span id="summary-generation-fill"></span></div>
+</div>
 </section>
 
 </main>
