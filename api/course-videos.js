@@ -1,7 +1,7 @@
 import {
   S3Client, CreateMultipartUploadCommand, UploadPartCommand, ListPartsCommand,
   CompleteMultipartUploadCommand, AbortMultipartUploadCommand, GetObjectCommand,
-  DeleteObjectCommand, DeleteObjectsCommand
+  DeleteObjectCommand, DeleteObjectsCommand, HeadObjectCommand
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "node:crypto";
@@ -174,11 +174,35 @@ export default async function handler(req, res) {
         fail("This video is unavailable or you do not have access.", 403);
       }
       if (validKey(video.video_path, video.course_id)) {
+        // Verify the stored object and byte-range support before handing playback to the browser.
+        const head = await client.send(new HeadObjectCommand({
+          Bucket: bucket, Key: video.video_path
+        }));
+        const probe = await client.send(new GetObjectCommand({
+          Bucket: bucket, Key: video.video_path, Range: "bytes=0-0"
+        }));
+        const probeBytes = probe.Body ? await probe.Body.transformToByteArray() : new Uint8Array();
+        const rangeContentRange = probe.ContentRange || null;
+        const rangeSupported = probe.$metadata?.httpStatusCode === 206 &&
+          probeBytes.length === 1 && /^bytes 0-0\//.test(rangeContentRange || "");
+        if (!rangeSupported) {
+          fail("The R2 video object failed its HTTP byte-range check. The stored upload may be incomplete or incorrectly assembled.", 502);
+        }
         const url = await getSignedUrl(client, new GetObjectCommand({
           Bucket: bucket, Key: video.video_path,
           ResponseContentType: video.mime_type, ResponseContentDisposition: "inline"
         }), { expiresIn: 3600 });
-        return respond(res, 200, { url, expiresIn: 3600 });
+        return respond(res, 200, {
+          url, expiresIn: 3600,
+          diagnostics: {
+            objectExists: true,
+            contentLength: head.ContentLength ?? null,
+            contentType: head.ContentType ?? null,
+            etag: head.ETag ?? null,
+            rangeSupported,
+            rangeContentRange
+          }
+        });
       }
       if (typeof video.video_path !== "string" || !video.video_path.startsWith(video.course_id + "/") || video.video_path.includes("..")) {
         fail("This video has an invalid storage path.", 409);
