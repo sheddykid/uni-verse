@@ -265,9 +265,8 @@ if (session && session.profile.role === "admin" && document.querySelector("#vide
   const progressStatus = document.querySelector("#video-upload-status");
   const progressPercent = document.querySelector("#video-upload-percent");
   const progressBar = document.querySelector("#video-upload-bar");
-  const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
+  const MAX_VIDEO_SIZE = 5 * 1024 * 1024 * 1024;
   const VIDEO_TYPES = { mp4: "video/mp4", webm: "video/webm", mov: "video/quicktime" };
-  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_8egrnqtwHtrfzvtPcldiQw_y1Wqhh9w";
 
   async function loadVideoCourses() {
     const previous = videoCourse.value;
@@ -295,73 +294,124 @@ if (session && session.profile.role === "admin" && document.querySelector("#vide
     finally { button.disabled = false; }
   });
 
-  let tusClientPromise;
-  function loadBrowserTusClient() {
-    if (window.tus?.Upload) return Promise.resolve(window.tus);
-    if (!tusClientPromise) {
-      tusClientPromise = new Promise((resolve, reject) => {
-        const script = document.createElement("script");
-        script.src = "https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js";
-        script.async = true;
-        script.onload = () => {
-          if (window.tus?.Upload) resolve(window.tus);
-          else reject(new Error("The browser-compatible resumable upload library loaded without its Upload constructor."));
-        };
-        script.onerror = () => {
-          tusClientPromise = null;
-          reject(new Error("Could not load the browser-compatible resumable upload library. Check your connection and retry."));
-        };
-        document.head.append(script);
-      });
-    }
-    return tusClientPromise;
+  async function videoApi(action, payload = {}) {
+    const { data: { session: authSession }, error } = await supabase.auth.getSession();
+    if (error || !authSession?.access_token) throw new Error("Your session expired. Sign in again.");
+    const response = await fetch("/api/course-videos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + authSession.access_token },
+      body: JSON.stringify({ action, ...payload })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || "Cloud video storage request failed.");
+    return result;
   }
 
-  async function uploadVideoTus(file, path, contentType, accessToken, courseId) {
-    const tus = await loadBrowserTusClient();
-    return new Promise((resolve, reject) => {
-      let effectivePath = path;
-      let upload;
-      try {
-        upload = new tus.Upload(file, {
-          endpoint: "https://xcybjuwearndoljqkzmy.storage.supabase.co/storage/v1/upload/resumable",
-          headers: {
-            authorization: "Bearer " + accessToken,
-            apikey: SUPABASE_PUBLISHABLE_KEY
-          },
-          metadata: { bucketName: "course-videos", objectName: path, contentType, cacheControl: "3600" },
-          chunkSize: 6 * 1024 * 1024,
-          retryDelays: [0, 3000, 5000, 10000, 20000],
-          uploadDataDuringCreation: true,
-          removeFingerprintOnSuccess: true,
-          onError(error) { reject(error); },
-          onProgress(bytesUploaded, bytesTotal) {
-            const percent = bytesTotal ? Math.min(100, Math.round(bytesUploaded / bytesTotal * 100)) : 0;
-            progressPercent.textContent = percent + "%";
-            progressBar.style.width = percent + "%";
-            progressStatus.textContent = "Uploading video · " + (bytesUploaded / 1048576).toFixed(1) + " / " + (bytesTotal / 1048576).toFixed(1) + " MB";
-          },
-          onSuccess() {
-            progressPercent.textContent = "100%";
-            progressBar.style.width = "100%";
-            progressStatus.textContent = "Upload complete. Saving video details…";
-            resolve(effectivePath);
-          }
-        });
-      } catch (error) {
-        reject(error);
-        return;
-      }
+  function videoUploadFingerprint(file, courseId) {
+    return [courseId, file.name, file.size, file.lastModified].join("|");
+  }
 
-      upload.findPreviousUploads().then(previous => {
-        const matching = previous.find(item => item.metadata?.objectName?.startsWith(courseId + "/"));
-        if (matching) {
-          upload.resumeFromPreviousUpload(matching);
-          effectivePath = matching.metadata.objectName;
-        }
-        upload.start();
-      }).catch(reject);
+  function uploadVideoPart(url, blob, onProgress) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("PUT", url);
+      xhr.upload.onprogress = event => { if (event.lengthComputable) onProgress(event.loaded); };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const etag = xhr.getResponseHeader("ETag");
+          if (!etag) reject(new Error("R2 did not return an ETag. Check the bucket CORS ExposeHeaders setting."));
+          else resolve(etag);
+        } else reject(new Error("Video part upload failed (HTTP " + xhr.status + ")."));
+      };
+      xhr.onerror = () => reject(new Error("Network error while uploading a video part."));
+      xhr.onabort = () => reject(new Error("Video part upload was interrupted."));
+      xhr.send(blob);
     });
+  }
+
+  async function uploadVideoR2(file, courseId, contentType) {
+    const fingerprint = videoUploadFingerprint(file, courseId);
+    const storageKey = "uniVerseR2Multipart:" + fingerprint;
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(storageKey) || "null"); } catch {}
+    let upload = saved && saved.key && saved.uploadId ? saved : null;
+
+    if (upload) {
+      try {
+        const listed = await videoApi("list-parts", { courseId, key: upload.key, uploadId: upload.uploadId });
+        upload.parts = Object.fromEntries((listed.parts || []).map(part => [part.partNumber, part.etag]));
+      } catch {
+        upload = null;
+        localStorage.removeItem(storageKey);
+      }
+    }
+    if (!upload) {
+      const created = await videoApi("initiate", { courseId, fileName: file.name, contentType, size: file.size });
+      upload = { key: created.key, uploadId: created.uploadId, partSize: created.partSize, parts: {} };
+      localStorage.setItem(storageKey, JSON.stringify(upload));
+    }
+
+    const partSize = Number(upload.partSize) || 32 * 1024 * 1024;
+    const partCount = Math.ceil(file.size / partSize);
+    const completed = new Map(Object.entries(upload.parts || {}).map(([number, etag]) => [Number(number), etag]));
+    const uploadedBytes = new Map();
+    for (const number of completed.keys()) uploadedBytes.set(number, Math.min(partSize, file.size - (number - 1) * partSize));
+    let nextPart = 1;
+    let failure = null;
+
+    const updateProgress = () => {
+      const bytes = [...uploadedBytes.values()].reduce((sum, value) => sum + value, 0);
+      const percent = Math.min(100, Math.round(bytes / file.size * 100));
+      progressPercent.textContent = percent + "%";
+      progressBar.style.width = percent + "%";
+      progressStatus.textContent = "Uploading video · " + (bytes / 1048576).toFixed(1) +
+        " / " + (file.size / 1048576).toFixed(1) + " MB";
+    };
+
+    async function worker() {
+      while (!failure) {
+        const partNumber = nextPart++;
+        if (partNumber > partCount) return;
+        if (completed.has(partNumber)) continue;
+        const start = (partNumber - 1) * partSize;
+        const blob = file.slice(start, Math.min(file.size, start + partSize));
+        let lastError;
+        for (let attempt = 0; attempt < 4; attempt++) {
+          try {
+            const signed = await videoApi("sign-part", { courseId, key: upload.key, uploadId: upload.uploadId, partNumber });
+            const etag = await uploadVideoPart(signed.url, blob, loaded => {
+              uploadedBytes.set(partNumber, Math.min(blob.size, loaded));
+              updateProgress();
+            });
+            completed.set(partNumber, etag);
+            uploadedBytes.set(partNumber, blob.size);
+            upload.parts = Object.fromEntries(completed.entries());
+            localStorage.setItem(storageKey, JSON.stringify(upload));
+            updateProgress();
+            lastError = null;
+            break;
+          } catch (error) {
+            lastError = error;
+            if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+          }
+        }
+        if (lastError) { failure = lastError; throw lastError; }
+      }
+    }
+
+    try {
+      await Promise.all([worker(), worker(), worker()]);
+      progressStatus.textContent = "Finalizing video upload…";
+      const parts = [...completed.entries()].map(([partNumber, etag]) => ({ partNumber, etag }));
+      await videoApi("complete", { courseId, key: upload.key, uploadId: upload.uploadId, parts });
+      localStorage.removeItem(storageKey);
+      progressPercent.textContent = "100%";
+      progressBar.style.width = "100%";
+      return upload.key;
+    } catch (error) {
+      localStorage.setItem(storageKey, JSON.stringify(upload));
+      throw new Error((error?.message || "The video upload failed.") + " Reselect the same file to resume completed parts.");
+    }
   }
 
   videoForm.addEventListener("submit", async event => {
@@ -379,7 +429,7 @@ if (session && session.profile.role === "admin" && document.querySelector("#vide
       return;
     }
     if (file.size <= 0 || file.size > MAX_VIDEO_SIZE) {
-      showMessage(videoMessage, "Videos must be larger than 0 bytes and no more than 50 MB.");
+      showMessage(videoMessage, "Videos must be larger than 0 bytes and no more than 5 GiB.");
       return;
     }
     const title = document.querySelector("#video-title").value.trim();
@@ -395,16 +445,14 @@ if (session && session.profile.role === "admin" && document.querySelector("#vide
     progressPanel.hidden = false;
     progressPercent.textContent = "0%";
     progressBar.style.width = "0%";
-    progressStatus.textContent = "Preparing resumable upload…";
+    progressStatus.textContent = "Preparing secure R2 multipart upload…";
 
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const videoPath = courseId + "/" + crypto.randomUUID() + "-" + safeName;
     let uploadCompleted = false;
+    let storedVideoPath = "";
     try {
-      const { data: { session: authSession }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !authSession?.access_token) throw new Error("Your session expired. Sign in again and retry.");
-
-      const storedVideoPath = await uploadVideoTus(file, videoPath, mimeType, authSession.access_token, courseId);
+      storedVideoPath = await uploadVideoR2(file, courseId, mimeType);
       uploadCompleted = true;
 
       const { error: insertError } = await supabase.from("course_videos").insert({
@@ -420,8 +468,7 @@ if (session && session.profile.role === "admin" && document.querySelector("#vide
       if (insertError) {
         let cleanupError = null;
         try {
-          const cleanup = await supabase.storage.from("course-videos").remove([storedVideoPath]);
-          cleanupError = cleanup.error;
+          await videoApi("delete-object", { courseId, key: storedVideoPath });
         } catch (error) { cleanupError = error; }
         throw new Error("The video uploaded, but its details could not be saved: " + insertError.message +
           (cleanupError ? " Storage cleanup also failed; orphaned path: " + storedVideoPath + ". " + cleanupError.message : ""));
@@ -435,7 +482,7 @@ if (session && session.profile.role === "admin" && document.querySelector("#vide
     } catch (error) {
       console.error("Video upload failed:", error);
       showMessage(videoMessage, error?.message || "The video could not be uploaded. Check your connection and try again.");
-      progressStatus.textContent = uploadCompleted ? "Upload finished, but publishing failed." : "Upload did not complete. Retry the same file to resume if the upload is still available.";
+      progressStatus.textContent = uploadCompleted ? "Upload finished, but publishing failed." : "Upload interrupted. Reselect the same file to resume its completed parts.";
     } finally {
       videoButton.disabled = false;
       videoButton.textContent = "Upload video";
