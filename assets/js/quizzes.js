@@ -34,11 +34,9 @@ if (location.hostname.endsWith("github.io")) {
       if (!courseSelect.value) { notesList.textContent = "Choose a course to see its materials."; $("#note-count").textContent = "Select a course first"; return; }
       const { data, error } = await supabase.from("course_resources")
         .select("id,title,file_name,file_size,mime_type,resource_type,assessment_type,created_at").eq("course_id",courseSelect.value)
-        .in("resource_type",["note","past_question"]).eq("is_active",true).order("created_at",{ascending:false});
+        .eq("resource_type","note").eq("is_active",true).order("created_at",{ascending:false});
       if (error) { notesList.textContent = "Could not load course materials."; $("#note-count").textContent = "Unavailable"; return; }
-      notes = (data || []).filter(item => item.resource_type === "note"
-        ? /\.(pdf|docx|pptx)$/i.test(item.file_name || "")
-        : /\.(pdf|docx|pptx|jpg|jpeg|png|webp)$/i.test(item.file_name || ""));
+      notes = (data || []).filter(item => /\.(pdf|docx|pptx)$/i.test(item.file_name || ""));
       $("#note-count").textContent = `${notes.length} available`;
       if (!notes.length) { notesList.textContent = "No supported course materials are available for this course yet."; return; }
       notes.forEach(note => {
@@ -46,8 +44,7 @@ if (location.hostname.endsWith("github.io")) {
         const checkbox = document.createElement("input"); checkbox.type = "checkbox"; checkbox.value = note.id; checkbox.addEventListener("change", updateSelection);
         const details = document.createElement("span"), title = document.createElement("strong"), meta = document.createElement("small");
         title.textContent = note.title;
-        const sourceType = note.resource_type === "note" ? "Course note" : note.assessment_type === "test" ? "Test questions" : "Examination questions";
-        meta.textContent = `${sourceType} · ${note.file_name.split(".").pop().toUpperCase()} · ${formatSize(note.file_size)}`;
+        meta.textContent = `Course note · ${note.file_name.split(".").pop().toUpperCase()} · ${formatSize(note.file_size)}`;
         details.append(title,meta); label.append(checkbox,details); notesList.append(label);
       });
       updateSelection();
@@ -58,8 +55,7 @@ if (location.hostname.endsWith("github.io")) {
       else setStatus("");
       const count = notesList.querySelectorAll('input[type="checkbox"]:checked').length;
       generateButton.disabled = count === 0;
-      const selectedType = selected[0] ? notes.find(item => item.id === selected[0].value)?.resource_type : null;
-      generateButton.textContent = count ? `Generate from ${selectedType === "past_question" ? "past questions" : "course notes"}` : "Generate quiz";
+      generateButton.textContent = count ? "Generate from course notes" : "Generate quiz";
     }
     async function apiRequest(payload) {
       const { data: { session: authSession } } = await supabase.auth.getSession();
@@ -78,16 +74,13 @@ if (location.hostname.endsWith("github.io")) {
       quizMode = $("#quiz-mode").value;
       const count = Number($("#question-count").value);
       generateButton.disabled = true; generateButton.textContent = "Generating…";
-      const selectedResource = notes.find(item => item.id === activeResourceIds[0]);
-      setStatus(selectedResource?.resource_type === "past_question"
-        ? "Loading reviewed questions from the course question bank…"
-        : "Reading the selected notes and preparing your questions. This may take a little while.");
+      setStatus("Reading the selected course notes and preparing your questions. This may take a little while.");
       $("#quiz-section").hidden = true;
       try {
         const result = await apiRequest({mode:quizMode,courseId:courseSelect.value,resourceIds:activeResourceIds,count});
         questions = result.questions || []; course = result.course; quizSessionId = result.quizSessionId || null;
         $("#submit-mcq").disabled = false;
-        if (!questions.length) throw new Error("No questions are available for this material yet. If it is a past-question file, ask an administrator to extract and review its questions first.");
+        if (!questions.length) throw new Error("No questions could be generated from this note. Try another note or a shorter file.");
         $("#quiz-title").textContent = `${course.code} — ${course.title}`;
         $("#quiz-sources").textContent = `Generated from: ${(result.sources||[]).join(", ")}`;
         $("#mcq-panel").hidden = quizMode !== "mcq"; $("#theory-panel").hidden = quizMode !== "theory";
