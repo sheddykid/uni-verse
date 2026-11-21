@@ -8,11 +8,11 @@
 <p class="eyebrow">AI STUDY TOOLS</p><h1>AI note summarizer</h1><p class="muted summary-intro">Turn your uploaded course notes into a structured study summary. The AI uses only the notes you select; past questions are not included.</p>
 <section id="github-pages-notice" class="flashcard-panel" hidden><h2>AI summaries run on Vercel</h2><p class="muted">The GitHub Pages mirror cannot run the secure AI backend. Open the Vercel deployment and sign in there to summarize notes.</p><a class="btn primary" href="https://uni-verse-sheddykid.vercel.app/index.html">Open UNI-VERSE on Vercel</a></section>
 <section class="flashcard-panel summary-builder">
-<h2>Build a study summary</h2><p class="muted">Choose a course and select up to two note files. Scanned PDF pages are read with OCR; DOCX and PPTX currently use selectable text only. Students can generate up to five summaries per Lagos day, with a 30-second cooldown.</p>
+<h2>Build a study summary</h2><p class="muted">Choose a course and select one note file. Each note can be summarized only once per student. Scanned PDF pages are read with OCR; DOCX and PPTX currently use selectable text only. Students can generate up to five summaries per Lagos day, with a 30-second cooldown.</p>
 <label for="course-select">Course</label><select id="course-select"><option value="">Loading your courses…</option></select>
 <div class="note-picker-head"><strong>Available course notes</strong><span id="note-count" class="muted">Select a course first</span></div>
 <div id="notes-list" class="notes-picker"><p class="muted">Choose a course to see its notes.</p></div>
-<label class="summary-detail-label" for="summary-detail">Summary depth<select id="summary-detail"><option value="concise">Concise revision summary</option><option value="detailed">Detailed study summary</option></select></label>
+
 <div class="summary-actions"><button id="generate" class="btn primary" type="button" disabled>Generate summary</button><p id="status" class="message" role="status" aria-live="polite"></p></div>
 <div id="summary-generation-progress" class="generation-progress" hidden>
   <div class="generation-progress-copy"><span id="summary-generation-stage">Preparing your summary…</span></div>
