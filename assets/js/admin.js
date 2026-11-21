@@ -254,3 +254,159 @@ if (session && session.profile.role !== "admin") {
 
   await loadCourses();
 }
+
+if (session && session.profile.role === "admin" && document.querySelector("#video-form")) {
+  const videoForm = document.querySelector("#video-form");
+  const videoCourse = document.querySelector("#video-course");
+  const videoFile = document.querySelector("#video-file");
+  const videoButton = document.querySelector("#video-upload-button");
+  const videoMessage = document.querySelector("#video-message");
+  const progressPanel = document.querySelector("#video-upload-progress");
+  const progressStatus = document.querySelector("#video-upload-status");
+  const progressPercent = document.querySelector("#video-upload-percent");
+  const progressBar = document.querySelector("#video-upload-bar");
+  const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
+  const VIDEO_TYPES = { mp4: "video/mp4", webm: "video/webm", mov: "video/quicktime" };
+  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_8egrnqtwHtrfzvtPcldiQw_y1Wqhh9w";
+
+  async function loadVideoCourses() {
+    const previous = videoCourse.value;
+    const { data, error } = await supabase.from("courses")
+      .select("id,code,title,is_active").eq("is_active", true).order("code");
+    if (error) {
+      videoCourse.innerHTML = '<option value="">Could not load courses</option>';
+      showMessage(videoMessage, "Could not load courses: " + error.message);
+      return;
+    }
+    videoCourse.innerHTML = '<option value="">Select course</option>';
+    (data || []).forEach(course => {
+      const option = document.createElement("option");
+      option.value = course.id;
+      option.textContent = course.code + " — " + course.title;
+      videoCourse.append(option);
+    });
+    if ((data || []).some(course => course.id === previous)) videoCourse.value = previous;
+  }
+
+  document.querySelector("#refresh-video-courses").addEventListener("click", async event => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try { await loadVideoCourses(); }
+    finally { button.disabled = false; }
+  });
+
+  function uploadVideoTus(file, path, contentType, accessToken) {
+    return import("https://esm.sh/tus-js-client@4.3.1").then(({ Upload }) => new Promise(async (resolve, reject) => {
+      const upload = new Upload(file, {
+        endpoint: "https://xcybjuwearndoljqkzmy.storage.supabase.co/storage/v1/upload/resumable",
+        headers: {
+          authorization: "Bearer " + accessToken,
+          apikey: SUPABASE_PUBLISHABLE_KEY
+        },
+        metadata: { bucketName: "course-videos", objectName: path, contentType, cacheControl: "3600" },
+        chunkSize: 6 * 1024 * 1024,
+        retryDelays: [0, 3000, 5000, 10000, 20000],
+        uploadDataDuringCreation: true,
+        removeFingerprintOnSuccess: true,
+        onError(error) { reject(error); },
+        onProgress(bytesUploaded, bytesTotal) {
+          const percent = bytesTotal ? Math.min(100, Math.round(bytesUploaded / bytesTotal * 100)) : 0;
+          progressPercent.textContent = percent + "%";
+          progressBar.style.width = percent + "%";
+          progressStatus.textContent = "Uploading video · " + (bytesUploaded / 1048576).toFixed(1) + " / " + (bytesTotal / 1048576).toFixed(1) + " MB";
+        },
+        onSuccess() {
+          progressPercent.textContent = "100%";
+          progressBar.style.width = "100%";
+          progressStatus.textContent = "Upload complete. Saving video details…";
+          resolve();
+        }
+      });
+      try {
+        const previous = await upload.findPreviousUploads();
+        if (previous.length) upload.resumeFromPreviousUpload(previous[0]);
+        upload.start();
+      } catch (error) { reject(error); }
+    }));
+  }
+
+  videoForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    const file = videoFile.files[0];
+    const courseId = videoCourse.value;
+    const extension = file?.name.split(".").pop().toLowerCase();
+    const mimeType = VIDEO_TYPES[extension];
+    if (!courseId || !file) {
+      showMessage(videoMessage, "Select a course and a video file.");
+      return;
+    }
+    if (!mimeType || (file.type && file.type !== mimeType)) {
+      showMessage(videoMessage, "Choose an MP4, WEBM or MOV video.");
+      return;
+    }
+    if (file.size <= 0 || file.size > MAX_VIDEO_SIZE) {
+      showMessage(videoMessage, "Videos must be larger than 0 bytes and no more than 50 MB.");
+      return;
+    }
+    const title = document.querySelector("#video-title").value.trim();
+    if (!title) {
+      showMessage(videoMessage, "Enter a video title.");
+      return;
+    }
+
+    videoButton.disabled = true;
+    videoButton.textContent = "Uploading…";
+    videoMessage.textContent = "";
+    videoMessage.classList.remove("success");
+    progressPanel.hidden = false;
+    progressPercent.textContent = "0%";
+    progressBar.style.width = "0%";
+    progressStatus.textContent = "Preparing resumable upload…";
+
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const videoPath = courseId + "/" + crypto.randomUUID() + "-" + safeName;
+    let uploadCompleted = false;
+    try {
+      const { data: { session: authSession }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !authSession?.access_token) throw new Error("Your session expired. Sign in again and retry.");
+
+      await uploadVideoTus(file, videoPath, mimeType, authSession.access_token);
+      uploadCompleted = true;
+
+      const { error: insertError } = await supabase.from("course_videos").insert({
+        course_id: courseId,
+        title,
+        description: document.querySelector("#video-description").value.trim() || null,
+        topic: document.querySelector("#video-topic").value.trim() || null,
+        video_path: videoPath,
+        file_name: file.name,
+        mime_type: mimeType,
+        file_size: file.size
+      });
+      if (insertError) {
+        let cleanupError = null;
+        try {
+          const cleanup = await supabase.storage.from("course-videos").remove([videoPath]);
+          cleanupError = cleanup.error;
+        } catch (error) { cleanupError = error; }
+        throw new Error("The video uploaded, but its details could not be saved: " + insertError.message +
+          (cleanupError ? " Storage cleanup also failed; orphaned path: " + videoPath + ". " + cleanupError.message : ""));
+      }
+
+      showMessage(videoMessage, "Video uploaded and published successfully.", true);
+      videoForm.reset();
+      progressStatus.textContent = "Video published.";
+      progressPercent.textContent = "100%";
+      progressBar.style.width = "100%";
+    } catch (error) {
+      console.error("Video upload failed:", error);
+      showMessage(videoMessage, error?.message || "The video could not be uploaded. Check your connection and try again.");
+      progressStatus.textContent = uploadCompleted ? "Upload finished, but publishing failed." : "Upload did not complete. Retry the same file to resume if the upload is still available.";
+    } finally {
+      videoButton.disabled = false;
+      videoButton.textContent = "Upload video";
+    }
+  });
+
+  await loadVideoCourses();
+}
