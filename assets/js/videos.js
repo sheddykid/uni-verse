@@ -14,7 +14,7 @@ if (session) {
       const { data, error } = await supabase.storage.from("course-videos")
         .createSignedUrl(video.video_path, 3600);
       if (error || !data?.signedUrl) throw new Error(error?.message || "A secure video link could not be created.");
-      return data.signedUrl;
+      return { url: data.signedUrl, diagnostics: null };
     }
     const { data: { session: authSession }, error } = await supabase.auth.getSession();
     if (error || !authSession?.access_token) throw new Error("Your session expired. Sign in again.");
@@ -25,7 +25,7 @@ if (session) {
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.url) throw new Error(result.error || "A secure video link could not be created.");
-    return result.url;
+    return { url: result.url, diagnostics: result.diagnostics || null };
   }
 
 
@@ -83,6 +83,23 @@ if (session) {
         player.preload = "none";
         player.hidden = true;
         player.setAttribute("aria-label", video.title);
+        player.addEventListener("error", () => {
+          const code = player.error?.code;
+          const reasons = {
+            1: "Playback was aborted.",
+            2: "A network error interrupted video playback.",
+            3: "The browser could not decode the video data.",
+            4: "The video format or source is not supported."
+          };
+          const detail = reasons[code] || "The browser could not load this video.";
+          let error = body.querySelector(".video-play-error");
+          if (!error) {
+            error = document.createElement("p");
+            error.className = "message video-play-error";
+            body.append(error);
+          }
+          error.textContent = detail + (code ? " (Media error " + code + ")." : "");
+        });
 
         const body = document.createElement("div");
         body.className = "video-card-body";
@@ -124,10 +141,23 @@ if (session) {
           playButton.disabled = true;
           playButton.textContent = "Preparing video…";
           try {
-            player.src = await getVideoPlaybackUrl(video);
+            const playback = await getVideoPlaybackUrl(video);
+            if (playback.diagnostics) {
+              console.info("[UNI-VERSE video diagnostics]", {
+                title: video.title,
+                expectedSize: video.file_size,
+                ...playback.diagnostics
+              });
+            }
+            player.src = playback.url;
             player.hidden = false;
             playButton.textContent = "▶ Play again";
-            await player.play().catch(() => {});
+            try {
+              await player.play();
+            } catch (error) {
+              // Autoplay can be rejected independently of media loading; keep native controls available.
+              console.warn("[UNI-VERSE video play request]", error?.name || error?.message || error);
+            }
           } catch (playError) {
             playButton.textContent = "Try again";
             const error = document.createElement("p");
