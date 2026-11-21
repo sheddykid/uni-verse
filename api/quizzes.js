@@ -25,7 +25,7 @@ async function supabaseRequest(path, token) {
 
 async function adminRequest(path, { method = "GET", body, prefer } = {}) {
   if (!SUPABASE_SERVICE_ROLE_KEY) {
-    const error = new Error("The quiz question bank is not configured. Contact the administrator.");
+    const error = new Error("Quiz storage is not configured. Contact the administrator.");
     error.statusCode = 503; throw error;
   }
   const headers = {
@@ -41,7 +41,7 @@ async function adminRequest(path, { method = "GET", body, prefer } = {}) {
   if (!response.ok) {
     const detail = (await response.text()).slice(0, 300);
     console.error("[quizzes] admin database error", response.status, detail);
-    const error = new Error("The quiz question bank could not be accessed. Please try again.");
+    const error = new Error("Quiz storage could not be accessed. Please try again.");
     error.statusCode = 502; throw error;
   }
   if (response.status === 204) return [];
@@ -185,9 +185,9 @@ async function authorize(req) {
   const ids = resourceIds.join(",");
   const resources = await supabaseRequest(`course_resources?${new URLSearchParams({
     select:"id,course_id,title,file_name,file_path,file_size,resource_type,assessment_type,is_active",
-    course_id:`eq.${courseId}`, resource_type:"in.(note,past_question)", is_active:"eq.true", id:`in.(${ids})`
+    course_id:`eq.${courseId}`, resource_type:"eq.note", is_active:"eq.true", id:`in.(${ids})`
   }).toString()}`, token);
-  if (resources.length !== resourceIds.length || resources.some(r => r.course_id !== courseId || !["note","past_question"].includes(r.resource_type))) {
+  if (resources.length !== resourceIds.length || resources.some(r => r.course_id !== courseId || r.resource_type !== "note")) {
     return { error: [403, "One or more selected files are not active course materials for this course."] };
   }
   return { token, user, course: courses[0], resources, body };
@@ -471,61 +471,6 @@ export default async function handler(req,res) {
     if (mode !== "mcq" && mode !== "theory") return respond(res,400,{error:"Choose multiple-choice or theory practice."});
     const count = Math.max(mode === "mcq" ? 5 : 3,Math.min(mode === "mcq" ? 20 : 10,Number.parseInt(body.count,10) || (mode === "mcq" ? 10 : 5)));
     const resource = resources[0];
-
-    if (resource.resource_type === "past_question") {
-      const bankPath = `quiz_question_bank?select=id,question,options,correct_index,explanation,marking_guide,model_answer,usage_count&resource_id=eq.${resource.id}&status=eq.active&question_type=eq.${mode}&order=usage_count.asc,created_at.asc&limit=${count}`;
-      const bank = await adminRequest(bankPath);
-      if (bank.length < 3) {
-        return respond(res, 422, {
-          error: `There are not enough approved ${mode === "mcq" ? "multiple-choice" : "theory"} questions for this material yet. An administrator must extract and review at least three questions first.`
-        });
-      }
-      const chosen = bank.slice(0, count);
-      for (const item of chosen) {
-        await adminRequest(`quiz_question_bank?id=eq.${item.id}`, {
-          method: "PATCH",
-          body: { usage_count: Number(item.usage_count || 0) + 1 },
-          prefer: "return=minimal"
-        });
-      }
-      const sourceHash = createHash("sha256").update(chosen.map(item => item.id).join("|")).digest("hex");
-      if (mode === "mcq") {
-        const snapshot = chosen.map(item => ({
-          question: item.question,
-          options: item.options,
-          correctIndex: item.correct_index,
-          explanation: item.explanation || "Review the source material for the explanation."
-        }));
-        const created = await adminRequest("quiz_sessions", {
-          method: "POST",
-          body: { user_id: user.id, course_id: course.id, resource_id: resource.id, source_hash: sourceHash, mode: "mcq", question_snapshot: snapshot },
-          prefer: "return=representation"
-        });
-        const quizSession = created[0];
-        if (!quizSession?.id) throw new Error("Could not start a secure quiz session. Please try again.");
-        log("past_question_quiz_generated", { mode, count: snapshot.length, resourceId: resource.id });
-        return respond(res, 200, {
-          course: { id: course.id, code: course.code, title: course.title },
-          sources: [resource.title],
-          mode,
-          reusedCount: snapshot.length,
-          quizSessionId: quizSession.id,
-          questions: snapshot.map(item => ({ question: item.question, options: item.options }))
-        });
-      }
-      const theoryQuestions = chosen.map(item => ({
-        question: item.question,
-        markingGuide: item.marking_guide,
-        modelAnswer: item.model_answer || ""
-      }));
-      log("past_question_quiz_generated", { mode, count: theoryQuestions.length, resourceId: resource.id });
-      return respond(res, 200, {
-        course: { id: course.id, code: course.code, title: course.title },
-        sources: [resource.title],
-        mode,
-        questions: theoryQuestions
-      });
-    }
 
     const notes = await readNotes(context,log);
     const sourceHash = createHash("sha256").update(notes).digest("hex");
