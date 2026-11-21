@@ -442,6 +442,16 @@ export default async function handler(req,res) {
       const raw = await callAI(prompt,gradeSchema,log);
       const result = z.object({score:z.number().int().min(0).max(10),feedback:z.string().min(1),strengths:z.array(z.string()),improvements:z.array(z.string()),modelAnswer:z.string().min(1)}).safeParse(raw);
       if (!result.success) throw new Error("The AI returned an invalid theory assessment.");
+      await adminRequest("quiz_attempts",{
+        method:"POST",
+        body:{
+          user_id:user.id,course_id:course.id,resource_id:resources[0].id,
+          course_code:course.code,course_title:course.title,source_title:resources[0].title,
+          mode:"theory",score:result.data.score,total:10,percentage:result.data.score*10,
+          review:[{question,answer,assessment:result.data}]
+        },
+        prefer:"return=minimal"
+      });
       return respond(res,200,{assessment:result.data});
     }
     if (mode === "mcq_submit") {
@@ -466,7 +476,24 @@ export default async function handler(req,res) {
         method:"PATCH",body:{submitted_at:new Date().toISOString()},prefer:"return=representation"
       });
       if (!locked.length) return respond(res,409,{error:"This quiz has already been submitted. Generate a new quiz to try again."});
-      return respond(res,200,{score,total:snapshot.length,percentage:Math.round(score/snapshot.length*100),review});
+      const percentage = Math.round(score / snapshot.length * 100);
+      try {
+        await adminRequest("quiz_attempts",{
+          method:"POST",
+          body:{
+            quiz_session_id:sessionId,user_id:user.id,course_id:course.id,resource_id:resources[0].id,
+            course_code:course.code,course_title:course.title,source_title:resources[0].title,
+            mode:"mcq",score,total:snapshot.length,percentage,review
+          },
+          prefer:"return=minimal"
+        });
+      } catch (historyError) {
+        await adminRequest(`quiz_sessions?id=eq.${sessionId}&user_id=eq.${user.id}`,{
+          method:"PATCH",body:{submitted_at:null},prefer:"return=minimal"
+        }).catch(()=>{});
+        throw historyError;
+      }
+      return respond(res,200,{score,total:snapshot.length,percentage,review});
     }
     if (mode !== "mcq" && mode !== "theory") return respond(res,400,{error:"Choose multiple-choice or theory practice."});
     const count = Math.max(mode === "mcq" ? 5 : 3,Math.min(mode === "mcq" ? 20 : 10,Number.parseInt(body.count,10) || (mode === "mcq" ? 10 : 5)));
