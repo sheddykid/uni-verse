@@ -8,7 +8,7 @@ const SUPABASE_KEY = "sb_publishable_8egrnqtwHtrfzvtPcldiQw_y1Wqhh9w";
 const MAX_FILE_BYTES = 12 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 25 * 1024 * 1024;
 const MAX_TOTAL_TEXT = 100000;
-const MAX_CHUNK_CHARS = 14000;
+const MAX_CHUNK_CHARS = 9000;
 const MAX_PDF_PAGES = 150;
 
 export const config = { maxDuration: 60 };
@@ -274,7 +274,7 @@ async function callGroq(prompt, log) {
           { role: "user", content: prompt }
         ],
         reasoning_effort: "low",
-        max_completion_tokens: 1600,
+        max_completion_tokens: 1200,
         response_format: { type: "json_object" }
       })
     });
@@ -303,17 +303,23 @@ async function callGroq(prompt, log) {
 }
 
 async function generateSummary(prompt, log) {
-  try {
-    const result = await callGemini(prompt, log);
-    return { result, provider: "Gemini" };
-  } catch (error) {
-    if (!error.retryable) throw error;
-    if (!process.env.GROQ_API_KEY) throw error;
-    log("groq_fallback_started", { reason: error.statusCode || "provider_error" });
-    const result = await callGroq(prompt, log);
-    log("groq_fallback_succeeded", { model: process.env.GROQ_MODEL || "openai/gpt-oss-20b" });
-    return { result, provider: "Groq" };
+  let primaryError;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const result = await callGemini(prompt, log);
+      return { result, provider: "Gemini" };
+    } catch (error) {
+      primaryError = error;
+      if (!error.retryable || attempt === 1) break;
+      log("gemini_retry", { statusCode: error.statusCode || 503, attempt: attempt + 1 });
+      await new Promise(resolve => setTimeout(resolve, 900));
+    }
   }
+  if (!primaryError?.retryable || !process.env.GROQ_API_KEY) throw primaryError;
+  log("groq_fallback_started", { reason: primaryError.statusCode || "provider_error" });
+  const result = await callGroq(prompt, log);
+  log("groq_fallback_succeeded", { model: process.env.GROQ_MODEL || "openai/gpt-oss-20b" });
+  return { result, provider: "Groq" };
 }
 
 function splitIntoChunks(value, maxChars = MAX_CHUNK_CHARS) {
