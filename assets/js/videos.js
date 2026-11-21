@@ -124,10 +124,8 @@ if (session) {
           playButton.disabled = true;
           playButton.textContent = "Preparing video…";
           try {
-            if (!player.src) {
-              player.src = await getVideoPlaybackUrl(video);
-              player.hidden = false;
-            }
+            player.src = await getVideoPlaybackUrl(video);
+            player.hidden = false;
             playButton.textContent = "▶ Play again";
             await player.play().catch(() => {});
           } catch (playError) {
