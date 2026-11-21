@@ -398,13 +398,7 @@ export default async function handler(req, res) {
       if (!download.ok) return respond(res, 403, { error: `Could not access the selected note “${resource.title}”.` });
       const bytes = Buffer.from(await download.arrayBuffer());
       if (bytes.length > MAX_FILE_BYTES) return respond(res, 413, { error: `“${resource.title}” exceeds the 12 MB per-file limit.` });
-      const suppliedOcrText = body.ocrTextByResource && typeof body.ocrTextByResource === "object"
-        ? body.ocrTextByResource[resource.id] : null;
-      const extracted = cleanText(
-        /\.pdf$/i.test(resource.file_name || "") && typeof suppliedOcrText === "string" && suppliedOcrText.trim()
-          ? suppliedOcrText
-          : await extractText(bytes, resource.file_name)
-      );
+      const extracted = cleanText(await extractText(bytes, resource.file_name));
       const clipped = extracted.slice(0, MAX_TOTAL_TEXT - totalText);
       totalText += clipped.length;
       if (clipped) sourceParts.push(`DOCUMENT: ${resource.title}\n${clipped}`);
