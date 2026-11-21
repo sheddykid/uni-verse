@@ -5,6 +5,7 @@ const pageType = location.pathname.endsWith("past-questions.html") ? "past_quest
 const results = $("#resource-results");
 const courseFilter = $("#course-filter");
 const assessmentFilter = $("#assessment-filter");
+const searchInput = $("#resource-search");
 
 $("#logout").addEventListener("click", signOut);
 const session = await requireProfile();
@@ -69,71 +70,98 @@ async function loadPage() {
 function renderResources() {
   const selectedCourse = courseFilter.value;
   const selectedAssessment = assessmentFilter?.value || "all";
-  const visible = resources.filter(resource =>
-    (!selectedCourse || resource.course_id === selectedCourse) &&
-    (pageType !== "past_question" || selectedAssessment === "all" || resource.assessment_type === selectedAssessment)
-  );
+  const search = (searchInput?.value || "").trim().toLowerCase();
+  const courseMap = new Map(courses.map(course => [course.id, course]));
+  const visible = resources.filter(resource => {
+    const course = courseMap.get(resource.course_id);
+    const matchesSearch = !search || [
+      course?.code, course?.title, resource.title, resource.description
+    ].some(value => String(value || "").toLowerCase().includes(search));
+    return (!selectedCourse || resource.course_id === selectedCourse) &&
+      (pageType !== "past_question" || selectedAssessment === "all" || resource.assessment_type === selectedAssessment) &&
+      matchesSearch;
+  });
   results.replaceChildren();
-  $("#result-count").textContent = `${visible.length} ${visible.length === 1 ? "resource" : "resources"}`;
+  const grouped = new Map();
+  visible.forEach(resource => {
+    const course = courseMap.get(resource.course_id);
+    const key = String(course?.code || resource.course_id).trim().toUpperCase();
+    if (!grouped.has(key)) grouped.set(key, { course, resources: [] });
+    grouped.get(key).resources.push(resource);
+  });
+  const courseCount = grouped.size;
+  const noun = pageType === "note" ? "note" : "past-question file";
+  $("#result-count").textContent = visible.length + " " + noun + (visible.length === 1 ? "" : "s") + " across " + courseCount + " " + (courseCount === 1 ? "course" : "courses");
   if (!visible.length) {
     const empty = document.createElement("p");
     empty.className = "muted resource-empty-state";
-    empty.textContent = pageType === "note"
-      ? "No notes have been uploaded for this selection yet."
-      : "No past questions match this selection yet.";
+    empty.textContent = search
+      ? "No courses or resources match your search."
+      : pageType === "note" ? "No notes have been uploaded for this selection yet." : "No past questions match this selection yet.";
     results.append(empty);
     return;
   }
 
-  const courseMap = new Map(courses.map(course => [course.id, course]));
-  visible.forEach(resource => {
-    const course = courseMap.get(resource.course_id);
+  grouped.forEach(group => {
     const card = document.createElement("article");
-    card.className = "resource-card";
+    card.className = "resource-card course-resource-group";
     const heading = document.createElement("div");
     heading.className = "resource-card-heading";
     const courseLabel = document.createElement("p");
     courseLabel.className = "course-code";
-    courseLabel.textContent = course ? `${course.code} · ${course.title}` : "Course resource";
+    courseLabel.textContent = group.course ? group.course.code : "Course resources";
     const title = document.createElement("h3");
-    title.textContent = resource.title;
-    heading.append(courseLabel, title);
+    title.textContent = group.course ? group.course.title : "Course resources";
+    const count = document.createElement("p");
+    count.className = "resource-meta";
+    count.textContent = group.resources.length + " " + noun + (group.resources.length === 1 ? "" : "s");
+    heading.append(courseLabel, title, count);
     card.append(heading);
-    if (resource.description) {
-      const description = document.createElement("p");
-      description.className = "muted resource-description";
-      description.textContent = resource.description;
-      card.append(description);
-    }
-    const typeLabel = pageType === "note" ? "Course note"
-      : resource.assessment_type === "test" ? "Test"
-      : resource.assessment_type === "exam" ? "Examination" : "Past question";
-    const term = [typeLabel, resource.academic_year, resource.semester ? `Semester ${resource.semester}` : null, (resource.file_name || "").split(".").pop()?.toUpperCase()].filter(Boolean).join(" · ");
-    const meta = document.createElement("p");
-    meta.className = "resource-meta";
-    meta.textContent = term;
-    card.append(meta);
-    const actions = document.createElement("div");
-    actions.className = "resource-actions";
-    if (resource.mime_type?.startsWith("image/")) {
-      const previewButton = document.createElement("button");
-      previewButton.className = "btn secondary";
-      previewButton.type = "button";
-      previewButton.textContent = "Preview image";
-      previewButton.addEventListener("click", () => togglePreview(resource, card, previewButton));
-      actions.append(previewButton);
-    }
-    const downloadButton = document.createElement("button");
-    downloadButton.className = "btn primary";
-    downloadButton.type = "button";
-    downloadButton.textContent = "Download";
-    downloadButton.addEventListener("click", () => downloadResource(resource, downloadButton));
-    actions.append(downloadButton);
-    card.append(actions);
+
+    group.resources.forEach(resource => {
+      const row = document.createElement("div");
+      row.className = "resource-item";
+      const info = document.createElement("div");
+      info.className = "course-row-info";
+      const resourceTitle = document.createElement("strong");
+      resourceTitle.textContent = resource.title;
+      info.append(resourceTitle);
+      if (resource.description) {
+        const description = document.createElement("p");
+        description.className = "resource-meta";
+        description.textContent = resource.description;
+        info.append(description);
+      }
+      const typeLabel = pageType === "note" ? "Course note"
+        : resource.assessment_type === "test" ? "Test"
+        : resource.assessment_type === "exam" ? "Examination" : "Past question";
+      const term = [typeLabel, resource.academic_year, resource.semester ? "Semester " + resource.semester : null, (resource.file_name || "").split(".").pop()?.toUpperCase()].filter(Boolean).join(" · ");
+      const meta = document.createElement("p");
+      meta.className = "resource-meta";
+      meta.textContent = term;
+      info.append(meta);
+      const actions = document.createElement("div");
+      actions.className = "resource-actions";
+      if (resource.mime_type?.startsWith("image/")) {
+        const previewButton = document.createElement("button");
+        previewButton.className = "btn secondary";
+        previewButton.type = "button";
+        previewButton.textContent = "Preview image";
+        previewButton.addEventListener("click", () => togglePreview(resource, row, previewButton));
+        actions.append(previewButton);
+      }
+      const downloadButton = document.createElement("button");
+      downloadButton.className = "btn primary";
+      downloadButton.type = "button";
+      downloadButton.textContent = "Download";
+      downloadButton.addEventListener("click", () => downloadResource(resource, downloadButton));
+      actions.append(downloadButton);
+      row.append(info, actions);
+      card.append(row);
+    });
     results.append(card);
   });
 }
-
 async function togglePreview(resource, card, button) {
   let preview = card.querySelector("img.resource-image-preview");
   if (preview) {
@@ -179,5 +207,6 @@ async function downloadResource(resource, button) {
 }
 
 courseFilter.addEventListener("change", renderResources);
+searchInput?.addEventListener("input", renderResources);
 assessmentFilter?.addEventListener("change", renderResources);
 await loadPage();
