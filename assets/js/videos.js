@@ -26,12 +26,16 @@ if (session) {
         contentRange: response.headers.get("content-range"),
         acceptRanges: response.headers.get("accept-ranges"),
         bytesReceived: bytes.byteLength,
+        urlHost: new URL(url).host,
         rangeRequest: "bytes=0-1"
       };
     } catch (error) {
       return {
         ok: false,
         error: error?.message || String(error),
+        errorName: error?.name || "UnknownError",
+        urlHost: (() => { try { return new URL(url).host; } catch { return null; } })(),
+        urlProtocol: (() => { try { return new URL(url).protocol; } catch { return null; } })(),
         likelyCorsOrNetworkFailure: true,
         rangeRequest: "bytes=0-1"
       };
@@ -130,6 +134,27 @@ if (session) {
         player.setAttribute("aria-label", video.title);
         let playbackDiagnostics = null;
         let browserAccessDiagnostics = null;
+        let playbackUrlHost = null;
+        function getBrowserMediaDiagnostics() {
+          let currentSrcHost = null;
+          try {
+            if (player.currentSrc) currentSrcHost = new URL(player.currentSrc).host;
+          } catch {}
+          return {
+            mediaErrorCode: player.error?.code ?? null,
+            mediaErrorMessage: player.error?.message || null,
+            networkState: player.networkState,
+            readyState: player.readyState,
+            currentSrcHost,
+            playbackUrlHost,
+            h264AacSupport: player.canPlayType('video/mp4; codecs="avc1.4D401E, mp4a.40.2"')
+          };
+        }
+        ["loadedmetadata", "loadeddata", "stalled", "abort", "waiting", "canplay"].forEach(eventName => {
+          player.addEventListener(eventName, () => {
+            console.info("[UNI-VERSE video element event]", eventName, getBrowserMediaDiagnostics());
+          });
+        });
         player.addEventListener("error", async () => {
           const code = player.error?.code;
           const reasons = {
@@ -152,7 +177,8 @@ if (session) {
           const browserDetail = browserAccessDiagnostics
             ? "\\nBrowser R2 access test: " + JSON.stringify(browserAccessDiagnostics)
             : "\\nBrowser R2 access test: not completed";
-          error.textContent = detail + (code ? " (Media error " + code + ")." : "") + storageDetail + browserDetail;
+          const mediaDetail = "\\nBrowser media diagnostics: " + JSON.stringify(getBrowserMediaDiagnostics());
+          error.textContent = detail + (code ? " (Media error " + code + ")." : "") + storageDetail + browserDetail + mediaDetail;
 
           // Admin-only one-time integrity inspection of the existing R2 object.
           if (session.profile?.role === "admin" && video.video_path.startsWith("r2/") &&
@@ -252,6 +278,7 @@ if (session) {
           try {
             const playback = await getVideoPlaybackUrl(video);
             playbackDiagnostics = playback.diagnostics;
+            try { playbackUrlHost = new URL(playback.url).host; } catch { playbackUrlHost = null; }
             if (playback.diagnostics) {
               console.info("[UNI-VERSE video diagnostics]", {
                 title: video.title,
