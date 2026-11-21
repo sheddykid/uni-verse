@@ -237,13 +237,34 @@ if (session && session.profile.role !== "admin") {
 
 
   async function questionBankRequest(method = "GET", body) {
-    const { data: { session: authSession } } = await supabase.auth.getSession();
-    if (!authSession?.access_token) throw new Error("Your session has expired. Sign in again.");
-    const response = await fetch("/api/question-bank", {
+    const sendRequest = accessToken => fetch("/api/question-bank", {
       method,
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${authSession.access_token}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
       ...(body ? { body: JSON.stringify(body) } : {})
     });
+
+    let { data: { session: authSession } } = await supabase.auth.getSession();
+    if (!authSession?.access_token) {
+      const refreshed = await supabase.auth.refreshSession();
+      authSession = refreshed.data?.session || null;
+    }
+    if (!authSession?.access_token) {
+      throw new Error("Your admin session could not be renewed. Sign in again.");
+    }
+
+    let response = await sendRequest(authSession.access_token);
+    if (response.status === 401) {
+      // OCR can take time. If the access token expires while processing, refresh
+      // it once and retry the same request instead of forcing an unnecessary login.
+      const refreshed = await supabase.auth.refreshSession();
+      const refreshedSession = refreshed.data?.session;
+      if (refreshedSession?.access_token) {
+        response = await sendRequest(refreshedSession.access_token);
+      } else {
+        throw new Error("Your admin session could not be renewed. Sign in again.");
+      }
+    }
+
     const raw = await response.text();
     let result;
     try { result = raw ? JSON.parse(raw) : {}; }
