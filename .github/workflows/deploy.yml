@@ -25,6 +25,7 @@ jobs:
         run: |
           node --check assets/js/admin.js
           node --check assets/js/admin-manage.js
+          node --check assets/js/videos.js
           node --check assets/js/student-navigation.js
           node --check assets/js/quizzes.js
           node --check assets/js/note-summarizer.js
