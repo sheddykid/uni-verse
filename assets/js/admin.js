@@ -98,8 +98,10 @@ if (session && session.profile.role !== "admin") {
   });
   updateFileAccept();
 
-  document.querySelector("#course-form").addEventListener("submit", async event => {
+  const courseForm = document.querySelector("#course-form");
+  courseForm.addEventListener("submit", async event => {
     event.preventDefault();
+    const form = courseForm;
     const message = document.querySelector("#message");
     const button = event.currentTarget.querySelector("button");
     button.disabled = true;
@@ -155,7 +157,7 @@ if (session && session.profile.role !== "admin") {
       }
 
       showMessage(message, "Course added to " + selectedDepartmentIds.length + " department(s).", true);
-      event.currentTarget.reset();
+      form.reset();
       await loadCourses();
     } catch (error) {
       showMessage(message, error?.message || "The course could not be saved. Check your connection and try again.");
