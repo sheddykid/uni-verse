@@ -1,4 +1,4 @@
-import { requireProfile, signOut } from "./supabase.js";
+import { supabase, requireProfile, signOut } from "./supabase.js";
 
 const $ = selector => document.querySelector(selector);
 $("#logout").addEventListener("click", signOut);
@@ -79,7 +79,24 @@ if (session) {
         $("#copy-summary").textContent = "Copy unavailable";
       }
     });
-    $("#print-summary").addEventListener("click", () => window.print());
+    $("#download-summary-pdf").addEventListener("click", async () => {
+      const button = $("#download-summary-pdf");
+      if (!result.historyPdfPath) { button.textContent = "PDF unavailable"; return; }
+      button.disabled = true;
+      button.textContent = "Preparing…";
+      const { data, error } = await supabase.storage.from("summary-pdfs")
+        .createSignedUrl(result.historyPdfPath, 60, { download: (summary.title || "study-summary") + ".pdf" });
+      if (error || !data?.signedUrl) {
+        button.textContent = "Download unavailable";
+      } else {
+        const link = document.createElement("a");
+        link.href = data.signedUrl;
+        link.download = (summary.title || "study-summary") + ".pdf";
+        document.body.append(link); link.click(); link.remove();
+        button.textContent = "Download PDF";
+      }
+      button.disabled = false;
+    });
   }
 }
 
