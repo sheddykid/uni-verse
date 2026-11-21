@@ -297,6 +297,7 @@ if (session && session.profile.role === "admin" && document.querySelector("#vide
 
   function uploadVideoTus(file, path, contentType, accessToken) {
     return import("https://esm.sh/tus-js-client@4.3.1").then(({ Upload }) => new Promise(async (resolve, reject) => {
+      let effectivePath = path;
       const upload = new Upload(file, {
         endpoint: "https://xcybjuwearndoljqkzmy.storage.supabase.co/storage/v1/upload/resumable",
         headers: {
@@ -319,12 +320,15 @@ if (session && session.profile.role === "admin" && document.querySelector("#vide
           progressPercent.textContent = "100%";
           progressBar.style.width = "100%";
           progressStatus.textContent = "Upload complete. Saving video details…";
-          resolve();
+          resolve(effectivePath);
         }
       });
       try {
         const previous = await upload.findPreviousUploads();
-        if (previous.length) upload.resumeFromPreviousUpload(previous[0]);
+        if (previous.length) {
+          upload.resumeFromPreviousUpload(previous[0]);
+          effectivePath = previous[0].metadata?.objectName || path;
+        }
         upload.start();
       } catch (error) { reject(error); }
     }));
@@ -370,7 +374,7 @@ if (session && session.profile.role === "admin" && document.querySelector("#vide
       const { data: { session: authSession }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !authSession?.access_token) throw new Error("Your session expired. Sign in again and retry.");
 
-      await uploadVideoTus(file, videoPath, mimeType, authSession.access_token);
+      const storedVideoPath = await uploadVideoTus(file, videoPath, mimeType, authSession.access_token);
       uploadCompleted = true;
 
       const { error: insertError } = await supabase.from("course_videos").insert({
@@ -378,7 +382,7 @@ if (session && session.profile.role === "admin" && document.querySelector("#vide
         title,
         description: document.querySelector("#video-description").value.trim() || null,
         topic: document.querySelector("#video-topic").value.trim() || null,
-        video_path: videoPath,
+        video_path: storedVideoPath,
         file_name: file.name,
         mime_type: mimeType,
         file_size: file.size
@@ -386,11 +390,11 @@ if (session && session.profile.role === "admin" && document.querySelector("#vide
       if (insertError) {
         let cleanupError = null;
         try {
-          const cleanup = await supabase.storage.from("course-videos").remove([videoPath]);
+          const cleanup = await supabase.storage.from("course-videos").remove([storedVideoPath]);
           cleanupError = cleanup.error;
         } catch (error) { cleanupError = error; }
         throw new Error("The video uploaded, but its details could not be saved: " + insertError.message +
-          (cleanupError ? " Storage cleanup also failed; orphaned path: " + videoPath + ". " + cleanupError.message : ""));
+          (cleanupError ? " Storage cleanup also failed; orphaned path: " + storedVideoPath + ". " + cleanupError.message : ""));
       }
 
       showMessage(videoMessage, "Video uploaded and published successfully.", true);
