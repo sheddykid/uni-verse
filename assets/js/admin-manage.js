@@ -8,6 +8,19 @@ if (session && session.profile.role !== "admin") {
 } else if (session) {
   document.querySelector("#user-label").textContent = session.profile.full_name || session.user.email;
 
+  async function r2VideoRequest(action, payload = {}) {
+    const { data: { session: authSession }, error } = await supabase.auth.getSession();
+    if (error || !authSession?.access_token) throw new Error("Your session expired. Sign in again.");
+    const response = await fetch("/api/course-videos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + authSession.access_token },
+      body: JSON.stringify({ action, ...payload })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || "Cloud video storage cleanup failed.");
+    return result;
+  }
+
   async function loadCourses() {
     const target = document.querySelector("#courses");
     target.replaceChildren();
@@ -113,10 +126,7 @@ if (session && session.profile.role !== "admin") {
           }
         } catch (error) { storageError = error; }
         try {
-          for (let index = 0; index < videoPaths.length; index += 1000) {
-            const result = await supabase.storage.from("course-videos").remove(videoPaths.slice(index, index + 1000));
-            if (result.error) { videoStorageError = result.error; break; }
-          }
+          await r2VideoRequest("delete-objects", { courseId: course.id, keys: videoPaths });
         } catch (error) { videoStorageError = error; }
 
         try {
@@ -343,8 +353,7 @@ if (session && session.profile.role !== "admin") {
         }
         let cleanupError = null;
         try {
-          const cleanup = await supabase.storage.from("course-videos").remove([video.video_path]);
-          cleanupError = cleanup.error;
+          await r2VideoRequest("delete-object", { courseId: video.course_id, key: video.video_path });
         } catch (error) { cleanupError = error; }
         await loadVideos();
         if (cleanupError) alert("The video record was deleted, but its private Storage file could not be removed and is now orphaned: " + (cleanupError.message || String(cleanupError)));
