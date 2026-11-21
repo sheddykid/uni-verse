@@ -117,24 +117,13 @@ if (location.hostname.endsWith("github.io")) {
         const { data: { session: authSession } } = await supabase.auth.getSession();
         if (!authSession?.access_token) throw new Error("Your session has expired. Sign in again.");
         currentPhase = "reading the selected note";
-        const ocrTextByResource = {};
-        if (String(resource.file_name || "").toLowerCase().endsWith(".pdf")) {
-          const { extractResourceText } = await import("./question-ocr.js");
-          setSummaryProgress("Preparing " + resource.title + " for OCR…", true);
-          const { data: blob, error: downloadError } = await supabase.storage.from("course-resources").download(resource.file_path);
-          if (downloadError || !blob) throw new Error(downloadError?.message || ("Could not download " + resource.title + "."));
-          const file = new File([blob], resource.file_name, { type: resource.mime_type || blob.type });
-          ocrTextByResource[resource.id] = await extractResourceText(file, (stage, progress) => {
-            const percent = Math.round(Math.max(0, Math.min(1, progress)) * 100);
-            setSummaryProgress("Reading " + resource.title + ": " + stage, false, percent);
-          }, { maxPdfPages: 150, maxOcrPages: 30, maxCharacters: 100000 });
-        }
+        setSummaryProgress("Extracting selectable text from your note…", true);
         currentPhase = "generating the AI summary";
         setSummaryProgress("Generating your study summary…", true);
         const response = await fetch("/api/note-summary", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: "Bearer " + authSession.access_token },
-          body: JSON.stringify({ courseId: course.id, resourceIds, ocrTextByResource })
+          body: JSON.stringify({ courseId: course.id, resourceIds })
         });
         const raw = await response.text();
         let result;
