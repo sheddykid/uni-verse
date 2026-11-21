@@ -31,6 +31,7 @@ jobs:
           node --check assets/js/note-summarizer.js
           node --check assets/js/resources.js
           node --check assets/js/question-ocr.js
+          node --check api/course-videos.js
           node --check api/quizzes.js
           node --check api/note-summary.js
       - name: Upload site
