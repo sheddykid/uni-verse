@@ -295,7 +295,7 @@ if (session && session.profile.role === "admin" && document.querySelector("#vide
     finally { button.disabled = false; }
   });
 
-  function uploadVideoTus(file, path, contentType, accessToken) {
+  function uploadVideoTus(file, path, contentType, accessToken, courseId) {
     return import("https://esm.sh/tus-js-client@4.3.1").then(({ Upload }) => new Promise(async (resolve, reject) => {
       let effectivePath = path;
       const upload = new Upload(file, {
@@ -325,9 +325,10 @@ if (session && session.profile.role === "admin" && document.querySelector("#vide
       });
       try {
         const previous = await upload.findPreviousUploads();
-        if (previous.length) {
-          upload.resumeFromPreviousUpload(previous[0]);
-          effectivePath = previous[0].metadata?.objectName || path;
+        const matching = previous.find(item => item.metadata?.objectName?.startsWith(courseId + "/"));
+        if (matching) {
+          upload.resumeFromPreviousUpload(matching);
+          effectivePath = matching.metadata.objectName;
         }
         upload.start();
       } catch (error) { reject(error); }
@@ -374,7 +375,7 @@ if (session && session.profile.role === "admin" && document.querySelector("#vide
       const { data: { session: authSession }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !authSession?.access_token) throw new Error("Your session expired. Sign in again and retry.");
 
-      const storedVideoPath = await uploadVideoTus(file, videoPath, mimeType, authSession.access_token);
+      const storedVideoPath = await uploadVideoTus(file, videoPath, mimeType, authSession.access_token, courseId);
       uploadCompleted = true;
 
       const { error: insertError } = await supabase.from("course_videos").insert({
