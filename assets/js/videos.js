@@ -130,6 +130,14 @@ if (session) {
                 "Database size matches: " + inspection.sizeMatchesDatabase,
                 "R2 HEAD size matches: " + inspection.headSizeMatches,
                 "MP4 container signature: " + inspection.isMp4Container,
+                "MP4 boxes: " + (inspection.topLevelBoxes || []).map(box => box.type + "@" + box.offset).join(", "),
+                "Movie metadata (moov) found: " + inspection.moovFound,
+                "Tracks: " + JSON.stringify(inspection.tracks || []),
+                "Signed URL HTTP status: " + inspection.signedUrlStatus,
+                "Signed URL Content-Type: " + inspection.signedUrlContentType,
+                "Signed URL Content-Range: " + inspection.signedUrlContentRange,
+                "Signed URL range bytes returned: " + inspection.signedUrlRangeBytes,
+                "R2 range verified: " + inspection.r2RangeVerified,
                 "Stored Content-Type: " + (inspection.storedContentType || "missing"),
                 "SHA-256: " + inspection.sha256
               ].join("\\n");
