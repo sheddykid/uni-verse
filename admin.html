@@ -14,5 +14,16 @@
 <label>Choose file<input id="resource-file" type="file" accept=".pdf,.docx,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation" required></label>
 <button class="btn primary" id="upload-button" type="submit">Upload resource</button><p id="resource-message" class="message" role="status"></p>
 </form></section>
+
+<section class="section"><h2>Upload video tutorials</h2><p class="muted">Upload course-specific MP4, WEBM or MOV videos. Maximum file size: 50 MB per video. Larger videos should be compressed before upload.</p>
+<form id="video-form" class="admin-form">
+<label>Course<div class="course-select-row"><select id="video-course" required><option value="">Loading courses…</option></select><button class="btn secondary" id="refresh-video-courses" type="button">↻ Refresh</button></div></label>
+<label>Video title<input id="video-title" required maxlength="160" placeholder="e.g. Introduction to Measurements"></label>
+<label>Topic (optional)<input id="video-topic" maxlength="120" placeholder="e.g. Measurement errors"></label>
+<label>Description (optional)<textarea id="video-description" rows="3" maxlength="2000" placeholder="What students will learn in this video"></textarea></label>
+<label>Choose video<input id="video-file" type="file" accept=".mp4,.webm,.mov,video/mp4,video/webm,video/quicktime" required></label>
+<div id="video-upload-progress" class="video-upload-progress" hidden><div class="video-upload-progress-head"><span id="video-upload-status">Preparing upload…</span><strong id="video-upload-percent">0%</strong></div><div class="generation-progress-track"><span id="video-upload-bar"></span></div></div>
+<button class="btn primary" id="video-upload-button" type="submit">Upload video</button><p id="video-message" class="message" role="status" aria-live="polite"></p>
+</form></section>
 </main><nav class="bottom-nav admin-bottom-nav" aria-label="Administrator pages"><a href="./admin.html" aria-label="Admin dashboard"><span aria-hidden="true">⌂</span><small>Dashboard</small></a><a href="./admin-manage.html" aria-label="Manage courses and resources"><span aria-hidden="true">▤</span><small>Manage</small></a><a href="./student.html" aria-label="Student view"><span aria-hidden="true">◉</span><small>Student view</small></a></nav>
 <script type="module" src="./assets/js/admin.js"></script></body></html>
