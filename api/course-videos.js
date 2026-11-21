@@ -182,19 +182,80 @@ export default async function handler(req, res) {
         Bucket: bucket, Key: video.video_path
       }));
       const hash = createHash("sha256");
+      const chunks = [];
       let actualSize = 0;
-      const prefix = [];
       for await (const chunk of object.Body) {
         const bytes = Buffer.from(chunk);
         actualSize += bytes.length;
         hash.update(bytes);
-        if (prefix.length < 64) {
-          const needed = 64 - prefix.length;
-          prefix.push(...bytes.subarray(0, needed));
+        if (actualSize > 128 * 1024 * 1024) {
+          fail("This file is too large for detailed MP4 inspection (limit 128 MiB).", 413);
+        }
+        chunks.push(bytes);
+      }
+      const fileBytes = Buffer.concat(chunks);
+      const readBox = (buffer, offset, limit = buffer.length) => {
+        if (offset + 8 > limit) return null;
+        let size = buffer.readUInt32BE(offset);
+        const type = buffer.toString("ascii", offset + 4, offset + 8);
+        let headerSize = 8;
+        if (size === 1) {
+          if (offset + 16 > limit) return null;
+          const large = buffer.readBigUInt64BE(offset + 8);
+          if (large > BigInt(Number.MAX_SAFE_INTEGER)) return null;
+          size = Number(large);
+          headerSize = 16;
+        } else if (size === 0) size = limit - offset;
+        if (size < headerSize || offset + size > limit) return null;
+        return { type, size, headerSize, start: offset, dataStart: offset + headerSize, end: offset + size };
+      };
+      const children = (buffer, from, to) => {
+        const boxes = [];
+        for (let offset = from; offset < to;) {
+          const box = readBox(buffer, offset, to);
+          if (!box) break;
+          boxes.push(box);
+          offset = box.end;
+        }
+        return boxes;
+      };
+      const topLevelBoxes = children(fileBytes, 0, fileBytes.length)
+        .map(box => ({ type: box.type, size: box.size, offset: box.start }));
+      const moov = children(fileBytes, 0, fileBytes.length).find(box => box.type === "moov");
+      const tracks = [];
+      if (moov) {
+        for (const trak of children(fileBytes, moov.dataStart, moov.end).filter(box => box.type === "trak")) {
+          const track = { handler: null, sampleEntries: [] };
+          const scan = (parent) => {
+            for (const box of children(fileBytes, parent.dataStart, parent.end)) {
+              if (box.type === "hdlr" && box.size >= box.headerSize + 12) {
+                track.handler = fileBytes.toString("ascii", box.dataStart + 8, box.dataStart + 12);
+              }
+              if (box.type === "stsd" && box.size >= box.headerSize + 8) {
+                track.sampleEntries = children(fileBytes, box.dataStart + 8, box.end)
+                  .slice(0, 8).map(entry => entry.type);
+              }
+              if (["mdia", "minf", "stbl"].includes(box.type)) scan(box);
+            }
+          };
+          scan(trak);
+          tracks.push(track);
         }
       }
-      const header = Buffer.from(prefix);
+      const header = fileBytes.subarray(0, 64);
       const isMp4Container = header.length >= 8 && header.toString("ascii", 4, 8) === "ftyp";
+      const rangeCheck = await client.send(new GetObjectCommand({
+        Bucket: bucket, Key: video.video_path, Range: "bytes=0-1"
+      }));
+      const rangeBytes = rangeCheck.Body ? await rangeCheck.Body.transformToByteArray() : new Uint8Array();
+      const rangeVerified = rangeCheck.$metadata?.httpStatusCode === 206 &&
+        rangeBytes.length === 2 && /^bytes 0-1\\//.test(rangeCheck.ContentRange || "");
+      const signedUrl = await getSignedUrl(client, new GetObjectCommand({
+        Bucket: bucket, Key: video.video_path,
+        ResponseContentType: video.mime_type, ResponseContentDisposition: "inline"
+      }), { expiresIn: 300 });
+      const signedResponse = await fetch(signedUrl, { headers: { Range: "bytes=0-1" } });
+      const signedRangeBytes = signedResponse.ok ? new Uint8Array(await signedResponse.arrayBuffer()) : new Uint8Array();
       return respond(res, 200, {
         inspected: true,
         title: video.title,
@@ -206,6 +267,17 @@ export default async function handler(req, res) {
         databaseMimeType: video.mime_type || null,
         storedContentType: head.ContentType || null,
         isMp4Container,
+        topLevelBoxes,
+        moovFound: Boolean(moov),
+        moovOffset: moov?.start ?? null,
+        tracks,
+        r2RangeVerified: rangeVerified,
+        signedUrlStatus: signedResponse.status,
+        signedUrlContentType: signedResponse.headers.get("content-type"),
+        signedUrlContentLength: signedResponse.headers.get("content-length"),
+        signedUrlAcceptRanges: signedResponse.headers.get("accept-ranges"),
+        signedUrlContentRange: signedResponse.headers.get("content-range"),
+        signedUrlRangeBytes: signedRangeBytes.length,
         firstBytesHex: header.subarray(0, 32).toString("hex"),
         sha256: hash.digest("hex"),
         etag: head.ETag || null
