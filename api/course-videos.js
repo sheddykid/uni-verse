@@ -4,7 +4,7 @@ import {
   DeleteObjectCommand, DeleteObjectsCommand, HeadObjectCommand
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 
 const SUPABASE_URL = "https://xcybjuwearndoljqkzmy.supabase.co";
 const SUPABASE_KEY = "sb_publishable_8egrnqtwHtrfzvtPcldiQw_y1Wqhh9w";
@@ -160,6 +160,56 @@ export default async function handler(req, res) {
         Bucket: bucket, Key: key, UploadId: uploadId, MultipartUpload: { Parts: parts }
       }));
       return respond(res, 200, { key });
+    }
+
+    if (action === "inspect-object") {
+      requireAdmin(context.profile);
+      const videoId = String(body.videoId || "");
+      if (!validUuid(videoId)) fail("Choose a valid video.", 400);
+      const videos = await supabaseGet(
+        `course_videos?select=id,course_id,title,video_path,file_size,mime_type&id=eq.${encodeURIComponent(videoId)}&limit=1`,
+        context.token
+      );
+      const video = videos[0];
+      if (!video || !validKey(video.video_path, video.course_id)) {
+        fail("This video does not reference a valid R2 object.", 404);
+      }
+
+      const head = await client.send(new HeadObjectCommand({
+        Bucket: bucket, Key: video.video_path
+      }));
+      const object = await client.send(new GetObjectCommand({
+        Bucket: bucket, Key: video.video_path
+      }));
+      const hash = createHash("sha256");
+      let actualSize = 0;
+      const prefix = [];
+      for await (const chunk of object.Body) {
+        const bytes = Buffer.from(chunk);
+        actualSize += bytes.length;
+        hash.update(bytes);
+        if (prefix.length < 64) {
+          const needed = 64 - prefix.length;
+          prefix.push(...bytes.subarray(0, needed));
+        }
+      }
+      const header = Buffer.from(prefix);
+      const isMp4Container = header.length >= 8 && header.toString("ascii", 4, 8) === "ftyp";
+      return respond(res, 200, {
+        inspected: true,
+        title: video.title,
+        expectedSize: Number(video.file_size),
+        actualSize,
+        sizeMatchesDatabase: actualSize === Number(video.file_size),
+        headContentLength: head.ContentLength ?? null,
+        headSizeMatches: Number(head.ContentLength) === actualSize,
+        databaseMimeType: video.mime_type || null,
+        storedContentType: head.ContentType || null,
+        isMp4Container,
+        firstBytesHex: header.subarray(0, 32).toString("hex"),
+        sha256: hash.digest("hex"),
+        etag: head.ETag || null
+      });
     }
 
     if (action === "playback") {
