@@ -6,8 +6,11 @@ async function createOcrWorker(onProgress) {
   return createWorker("eng", 1, {
     workerPath: `https://cdn.jsdelivr.net/npm/tesseract.js@${TESSERACT_VERSION}/dist/worker.min.js`,
     corePath: `https://cdn.jsdelivr.net/npm/tesseract.js-core@${TESSERACT_VERSION}`,
-    langPath: "https://tessdata.projectnaptha.com/4.0.0",
+    langPath: "https://tessdata.projectnaptha.com/4.0.0_fast",
+    cachePath: "universe-ocr-v2",
+    cacheMethod: "write",
     workerBlobURL: true,
+    errorHandler: error => console.error("[UNI-VERSE OCR worker]", error),
     logger: message => {
       if (message.status) onProgress?.(message.status, Number(message.progress) || 0);
     }
