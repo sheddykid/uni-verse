@@ -48,11 +48,11 @@ The video tutorial library supports admin uploads, course-based access, search, 
 | `student.html` | Student feature hub |
 | `notes.html` | Course notes browser and downloads |
 | `past-questions.html` | Past questions browser with test/exam filters |
-| `quizzes.html` | Dedicated quizzes page (planned functionality) |
+| `quizzes.html` | AI quiz generation and practice |
 | `flashcards.html` | AI flashcard generator and interactive study deck (Vercel deployment) |
-| `videos.html` | Dedicated video tutorials page (planned functionality) |
+| `videos.html` | Course video search and playback |
 | `admin.html` | Create courses and upload resources |
-| `admin-manage.html` | Manage existing courses and uploaded resources |
+| `admin-manage.html` | Manage courses, uploaded resources and videos |
 | `reset-password.html` | Request a password-reset email |
 | `update-password.html` | Set a new password from a valid recovery link |
 
@@ -63,8 +63,8 @@ The video tutorial library supports admin uploads, course-based access, search, 
 - **Frontend:** HTML5, CSS3 and browser-native JavaScript ES modules.
 - **Backend services:** [Supabase](https://supabase.com/).
 - **Authentication:** Supabase Auth for registration, email confirmation, sessions and password recovery.
-- **Database:** Supabase Postgres for user profiles, departments, courses, course-to-department assignments and resource metadata.
-- **File storage:** Supabase Storage bucket named `course-resources`.
+- **Database:** Supabase Postgres for user profiles, departments, courses, course-to-department assignments, resource metadata and course video metadata.
+- **File storage:** Private Supabase Storage buckets named `course-resources`, `course-videos` and `summary-pdfs`.
 - **Hosting:** Vercel and GitHub Pages.
 - **AI generation:** Google Gemini API called from the authenticated Vercel serverless function; document extraction supports PDF, DOCX and PPTX course notes.
 - **Supabase JavaScript client:** Loaded from `https://esm.sh/@supabase/supabase-js@2`.
@@ -178,7 +178,7 @@ UNI-VERSE currently connects to this Supabase project:
 
 To configure Supabase for a deployment:
 
-1. Ensure the database contains the application tables used by the frontend: `profiles`, `departments`, `courses`, `course_departments` and `course_resources`.
+1. Ensure the database contains the application tables used by the frontend: `profiles`, `departments`, `courses`, `course_departments`, `course_resources` and `course_videos`.
 2. Configure Supabase Authentication email confirmation and password-recovery settings.
 3. Add the relevant production and local application URLs to the Supabase Auth URL configuration:
    - `https://uni-verse-sheddykid.vercel.app`
