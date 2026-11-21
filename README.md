@@ -361,3 +361,48 @@ The student Contact Admin shortcut has been refined and the user has confirmed t
 - [ ] Verify the latest GitHub Pages workflow after the latest commit.
 
 Implementation files: `assets/js/student-navigation.js`, `assets/css/styles.css`, and `supabase/functions/contact-admin/index.ts`.
+
+
+## 16. Admin management reliability audit — deployment verification (2026-11-21)
+
+### Source and production deployment
+
+- GitHub `main` was checked directly. Its head at the verification checkpoint was [`11969a6d94cffc30c5780b1b51c07c6ff71e2625`](https://github.com/sheddykid/uni-verse/commit/11969a6d94cffc30c5780b1b51c07c6ff71e2625) — **Add quiz history page controller** (2026-11-21 09:46:39 UTC).
+- Vercel production deployment [`dpl_DUmvhijcwQgzaP1XsaeVu78G1fqL`](https://vercel.com/sheddykid/uni-verse/DUmvhijcwQgzaP1XsaeVu78G1fqL) reached **READY** from that exact `main` commit. Production alias: [https://uni-verse-sheddykid.vercel.app](https://uni-verse-sheddykid.vercel.app).
+- The Vercel build completed and deployed successfully; no rate-limit error was reported for this latest deployment. The connected Vercel API did not expose a numeric remaining deployment-quota counter, so quota availability is confirmed operationally by the successful build, not by a remaining-count figure.
+- Vercel emitted a non-blocking Node-version warning: `package.json` selects Node `22.x`, overriding the project's `26.x` setting. The build still completed successfully.
+- Several intermediate commits were canceled while newer commits were arriving; the latest `main` commit above is the one that reached READY.
+
+### GitHub Actions
+
+- Workflow: **Deploy UNI-VERSE to GitHub Pages**, run [`44891177841`](https://github.com/sheddykid/uni-verse/actions/runs/44891177841) (run 272), triggered by push to `main`.
+- Overall result: **completed / success**.
+- The `deploy` job and the **Check admin script syntax** step both succeeded. That step ran `node --check` on `assets/js/admin.js` and `assets/js/admin-manage.js` as well as the other listed application scripts and API files.
+
+### Admin route/source correspondence
+
+The four source files are present at the deployed commit. The two HTML pages reference their matching module scripts:
+
+| File at commit `11969a6d94cf` | Git blob SHA |
+|---|---|
+| `admin.html` | `f799e43bb50eeacef781687f9b622e891c38ce07` |
+| `admin-manage.html` | `865ed846e5574c7813eaa0835ea7f690f2fcfc12` |
+| `assets/js/admin.js` | `ce4065b44662cb00db23b86f96994ea706e85bd2` |
+| `assets/js/admin-manage.js` | `9cf84854b3a44c220547de0cd87cd1b085ff1566` |
+
+The latest `admin-manage.js` no longer contains the stale `removeOrphanedUploads()` call. Its course deletion flow deletes the database row first, handles Storage cleanup separately, and reports cleanup failures without claiming the course still exists.
+
+**HTTP/browser verification remains incomplete.** The available external fetch path could not reach the Vercel host, and no authenticated admin browser session was available. Therefore, do not mark the following production HTTP responses as confirmed: [`/admin.html`](https://uni-verse-sheddykid.vercel.app/admin.html), [`/admin-manage.html`](https://uni-verse-sheddykid.vercel.app/admin-manage.html), [`/assets/js/admin.js`](https://uni-verse-sheddykid.vercel.app/assets/js/admin.js), and [`/assets/js/admin-manage.js`](https://uni-verse-sheddykid.vercel.app/assets/js/admin-manage.js). The Vercel deployment metadata and build log confirm the exact source commit, but they do not substitute for direct HTTP status checks.
+
+### Remaining manual verification
+
+- [ ] Open all four production URLs above and confirm each returns HTTP 200; confirm the HTML pages load their corresponding JavaScript modules without 404s.
+- [ ] Sign in with an admin account. Open `admin.html`; confirm the admin identity, active department checkboxes, and course/resource form load without console or network errors.
+- [ ] Open `admin-manage.html`; confirm course rows, department assignments, resource cards, and action controls load. Confirm there is no runtime reference to the removed cleanup helper.
+- [ ] Sign in with a student account and visit both admin URLs directly; confirm the role guard redirects to the student area.
+- [ ] Exercise non-destructive admin actions on test records: edit a course title, activate/deactivate a test course, and refresh the lists.
+- [ ] In a disposable staging/test dataset only, test resource deletion and course deletion with linked resources. Verify database metadata is removed before Storage cleanup, cascaded rows are handled, and the expected Storage objects are removed.
+- [ ] In that same isolated test environment, simulate Storage/network failures during deletion and failures during course-creation/upload rollback. Confirm the UI reports partial failures accurately and check for orphaned Storage objects or metadata pointing to missing files.
+
+No destructive database or Storage tests were run during this audit checkpoint. Do not run the deletion/failure-injection cases against production records.
+
