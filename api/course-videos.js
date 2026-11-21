@@ -192,19 +192,10 @@ export default async function handler(req, res) {
       const signed = await legacy.json();
       const signedPath = signed.signedURL || signed.signedUrl;
       if (!signedPath) fail("The existing video file did not return a playback link.", 502);
-      const url = /^https?:\\/\\//i.test(signedPath) ? signedPath
+      const url = (signedPath.startsWith("https://") || signedPath.startsWith("http://")) ? signedPath
         : signedPath.startsWith("/storage/v1/") ? SUPABASE_URL + signedPath
           : SUPABASE_URL + "/storage/v1" + (signedPath.startsWith("/") ? signedPath : "/" + signedPath);
       return respond(res, 200, { url, expiresIn: 600 });
-    }
-
-    if (action === "delete-object") {
-      requireAdmin(context.profile);
-      const courseId = String(body.courseId || "");
-      const key = String(body.key || "");
-      if (!validKey(key, courseId)) fail("The video file path is invalid.", 400);
-      await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
-      return respond(res, 200, { deleted: 1 });
     }
 
     if (action === "delete-object") {
