@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101827"><title>UNI-VERSE | Quiz History</title><link rel="stylesheet" href="./assets/css/styles.css"></head>
+<body>
+<header class="topbar"><a class="brand" href="./student.html"><span class="brand-mark small">U</span> UNI-VERSE</a><div><span id="user-label" class="muted"></span> <button id="logout" class="btn ghost">Sign out</button></div></header>
+<main class="dashboard quiz-dashboard">
+<a class="back-link" href="./quizzes.html">← Back to quizzes</a><p class="eyebrow">YOUR PERFORMANCE</p><h1>Quiz history</h1><p class="muted">Review your completed multiple-choice quizzes and theory assessments.</p>
+<section class="section quiz-history-section">
+  <div class="resource-results-head"><div><h2>Previous attempts</h2><p class="muted">Your 50 most recent attempts.</p></div><button id="refresh-quiz-history" class="btn secondary" type="button">Refresh</button></div>
+  <p id="quiz-history-status" class="message" role="status" aria-live="polite"></p>
+  <div id="quiz-history" class="quiz-history-list"><p class="muted">Loading your previous attempts…</p></div>
+</section>
+</main>
+<script type="module" src="./assets/js/student-navigation.js"></script>
+<script type="module" src="./assets/js/quiz-history.js"></script></body></html>
