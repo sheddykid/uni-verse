@@ -319,42 +319,48 @@ if (session && session.profile.role === "admin" && document.querySelector("#vide
 
   async function uploadVideoTus(file, path, contentType, accessToken, courseId) {
     const tus = await loadBrowserTusClient();
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       let effectivePath = path;
-      const upload = new tus.Upload(file, {
-        endpoint: "https://xcybjuwearndoljqkzmy.storage.supabase.co/storage/v1/upload/resumable",
-        headers: {
-          authorization: "Bearer " + accessToken,
-          apikey: SUPABASE_PUBLISHABLE_KEY
-        },
-        metadata: { bucketName: "course-videos", objectName: path, contentType, cacheControl: "3600" },
-        chunkSize: 6 * 1024 * 1024,
-        retryDelays: [0, 3000, 5000, 10000, 20000],
-        uploadDataDuringCreation: true,
-        removeFingerprintOnSuccess: true,
-        onError(error) { reject(error); },
-        onProgress(bytesUploaded, bytesTotal) {
-          const percent = bytesTotal ? Math.min(100, Math.round(bytesUploaded / bytesTotal * 100)) : 0;
-          progressPercent.textContent = percent + "%";
-          progressBar.style.width = percent + "%";
-          progressStatus.textContent = "Uploading video · " + (bytesUploaded / 1048576).toFixed(1) + " / " + (bytesTotal / 1048576).toFixed(1) + " MB";
-        },
-        onSuccess() {
-          progressPercent.textContent = "100%";
-          progressBar.style.width = "100%";
-          progressStatus.textContent = "Upload complete. Saving video details…";
-          resolve(effectivePath);
-        }
-      });
+      let upload;
       try {
-        const previous = await upload.findPreviousUploads();
+        upload = new tus.Upload(file, {
+          endpoint: "https://xcybjuwearndoljqkzmy.storage.supabase.co/storage/v1/upload/resumable",
+          headers: {
+            authorization: "Bearer " + accessToken,
+            apikey: SUPABASE_PUBLISHABLE_KEY
+          },
+          metadata: { bucketName: "course-videos", objectName: path, contentType, cacheControl: "3600" },
+          chunkSize: 6 * 1024 * 1024,
+          retryDelays: [0, 3000, 5000, 10000, 20000],
+          uploadDataDuringCreation: true,
+          removeFingerprintOnSuccess: true,
+          onError(error) { reject(error); },
+          onProgress(bytesUploaded, bytesTotal) {
+            const percent = bytesTotal ? Math.min(100, Math.round(bytesUploaded / bytesTotal * 100)) : 0;
+            progressPercent.textContent = percent + "%";
+            progressBar.style.width = percent + "%";
+            progressStatus.textContent = "Uploading video · " + (bytesUploaded / 1048576).toFixed(1) + " / " + (bytesTotal / 1048576).toFixed(1) + " MB";
+          },
+          onSuccess() {
+            progressPercent.textContent = "100%";
+            progressBar.style.width = "100%";
+            progressStatus.textContent = "Upload complete. Saving video details…";
+            resolve(effectivePath);
+          }
+        });
+      } catch (error) {
+        reject(error);
+        return;
+      }
+
+      upload.findPreviousUploads().then(previous => {
         const matching = previous.find(item => item.metadata?.objectName?.startsWith(courseId + "/"));
         if (matching) {
           upload.resumeFromPreviousUpload(matching);
           effectivePath = matching.metadata.objectName;
         }
         upload.start();
-      } catch (error) { reject(error); }
+      }).catch(reject);
     });
   }
 
