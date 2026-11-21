@@ -137,3 +137,39 @@ body.student-drawer-open{overflow:hidden}
 .question-review-options input{font-weight:500}
 .question-review-card .resource-actions{margin-top:8px}
 @media(max-width:600px){.question-review-options{grid-template-columns:1fr}.question-review-card .resource-actions{flex-direction:column}.question-review-card .resource-actions .btn{width:100%}}
+
+
+/* Student generation progress */
+.generation-progress{width:100%;margin-top:16px;padding:14px 16px;border:1px solid #e7eaf1;border-radius:12px;background:#fbfcff}
+.generation-progress[hidden]{display:none}
+.generation-progress-copy{font-size:.82rem;font-weight:650;color:#46516a;margin-bottom:10px}
+.generation-progress-track{height:9px;border-radius:99px;overflow:hidden;background:#e8ebf3}
+.generation-progress-track span{display:block;height:100%;border-radius:inherit;background:#596be5;transition:width .25s ease}
+.generation-progress-track.is-indeterminate span{width:38%;animation:generation-sweep 1.25s ease-in-out infinite}
+@keyframes generation-sweep{0%{transform:translateX(-110%)}100%{transform:translateX(280%)}}
+@media(prefers-reduced-motion:reduce){.generation-progress-track.is-indeterminate span{animation:none;width:70%;transform:none}}
+/* Course-grouped student resource lists */
+.course-resource-group{display:flex;flex-direction:column;align-items:stretch;gap:0}
+.course-resource-group .resource-card-heading{padding-bottom:8px}
+.course-resource-group .resource-card-heading h3{margin-top:4px}
+.course-resource-group .resource-item{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;padding:14px 0;margin:0;border-top:1px solid #edf0f5}
+.course-resource-group .resource-item>div:first-child{min-width:0;flex:1}
+.course-resource-group .resource-item strong{font-size:.88rem;line-height:1.45;overflow-wrap:anywhere}
+.course-resource-group .resource-item .resource-meta{margin:5px 0 0}
+.course-resource-group .resource-item .resource-actions{flex-shrink:0}
+.course-resource-group .resource-item .btn{white-space:nowrap}
+.resource-filter-panel input[type=search]{width:100%;min-height:44px}
+@media(max-width:600px){.course-resource-group .resource-item{align-items:stretch;flex-direction:column}.course-resource-group .resource-item .resource-actions{width:100%}.course-resource-group .resource-item .resource-actions .btn{flex:1}}
+/* Quiz attempt history */
+.quiz-history-section{margin-top:38px}
+.quiz-history-list{display:grid;gap:12px;margin-top:14px}
+.quiz-history-card{padding:17px 18px;background:#fff;border:1px solid #e7eaf1;border-radius:13px}
+.quiz-history-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.quiz-history-head strong{line-height:1.5;overflow-wrap:anywhere}
+.quiz-history-score{flex-shrink:0;font-weight:800;color:#4053cb;font-variant-numeric:tabular-nums}
+.quiz-history-details{margin-top:12px;border-top:1px solid #edf0f5;padding-top:10px}
+.quiz-history-details summary{cursor:pointer;color:#4e5fd2;font-size:.84rem;font-weight:750}
+.quiz-history-review{padding:12px 0;border-bottom:1px solid #edf0f5}
+.quiz-history-review:last-child{border-bottom:0}
+.quiz-history-review p{font-size:.85rem;line-height:1.6;margin:7px 0}
+@media(max-width:520px){.quiz-history-head{flex-direction:column;gap:6px}.quiz-history-score{font-size:.9rem}}
