@@ -20,9 +20,7 @@ if (location.hostname.endsWith("github.io")) {
     if (courseError) setStatus("Could not load your courses. Refresh and try again.");
     courseSelect.addEventListener("change", loadNotes);
     generateButton.addEventListener("click", generateQuiz);
-    $("#refresh-quiz-history").addEventListener("click", loadQuizHistory);
-    await loadQuizHistory();
-    $("#quiz-mode").addEventListener("change", () => {
+$("#quiz-mode").addEventListener("change", () => {
       const isTheory = $("#quiz-mode").value === "theory";
       const max = isTheory ? 10 : 20;
       $("#question-count").querySelectorAll("option").forEach(option => { option.disabled = Number(option.value) > max; });
@@ -142,8 +140,7 @@ if (location.hostname.endsWith("github.io")) {
           review.append(title,chosen,right,explanation); results.append(review);
         });
         results.hidden = false; submitButton.textContent = "Submitted";
-        await loadQuizHistory();
-        results.scrollIntoView({behavior:"smooth",block:"start"});
+results.scrollIntoView({behavior:"smooth",block:"start"});
       } catch(error) {
         setStatus(error.message || "Could not mark this quiz.");
         submitButton.disabled = false; submitButton.textContent = "Submit answers";
@@ -169,8 +166,7 @@ if (location.hostname.endsWith("github.io")) {
       try {
         const result = await apiRequest({mode:"grade",courseId:course.id,resourceIds:activeResourceIds,question:item.question,markingGuide:item.markingGuide,answer:area.value});
         renderTheoryFeedback(feedback,result.assessment);
-        await loadQuizHistory();
-      } catch(error) { feedback.textContent = error.message || "Could not assess this answer."; feedback.hidden = false; }
+} catch(error) { feedback.textContent = error.message || "Could not assess this answer."; feedback.hidden = false; }
       finally { button.disabled = false; button.textContent = "Assess again"; }
     }
     function renderTheoryFeedback(root,data) {
@@ -188,60 +184,6 @@ if (location.hostname.endsWith("github.io")) {
       const title = document.createElement("h4"); title.textContent = titleText;
       const list = document.createElement("ul"); items.forEach(value=>{const li=document.createElement("li");li.textContent=value;list.append(li);});
       root.append(title,list);
-    }
-    async function loadQuizHistory() {
-      const root = $("#quiz-history"), status = $("#quiz-history-status");
-      if (!root) return;
-      root.replaceChildren();
-      status.textContent = "Loading your previous attempts…";
-      const { data, error } = await supabase.from("quiz_attempts")
-        .select("id,course_code,course_title,source_title,mode,score,total,percentage,review,completed_at")
-        .order("completed_at", { ascending: false }).limit(50);
-      if (error) {
-        status.textContent = "Could not load quiz history. Refresh and try again.";
-        return;
-      }
-      status.textContent = data.length ? data.length + " recent attempt" + (data.length === 1 ? "" : "s") : "";
-      if (!data.length) {
-        const empty = document.createElement("p"); empty.className = "muted";
-        empty.textContent = "No completed quiz attempts yet. Your scores will appear here after you submit a quiz or theory answer.";
-        root.append(empty); return;
-      }
-      data.forEach(attempt => {
-        const card = document.createElement("article"); card.className = "quiz-history-card";
-        const head = document.createElement("div"); head.className = "quiz-history-head";
-        const courseName = document.createElement("strong");
-        courseName.textContent = attempt.course_code + " — " + attempt.course_title;
-        const score = document.createElement("span"); score.className = "quiz-history-score";
-        score.textContent = attempt.score + "/" + (attempt.mode === "mcq" ? attempt.total : 10) + " · " + attempt.percentage + "%";
-        head.append(courseName, score);
-        const meta = document.createElement("p"); meta.className = "resource-meta";
-        meta.textContent = (attempt.mode === "mcq" ? "Multiple-choice quiz" : "Theory assessment") + " · " + attempt.source_title + " · " + new Date(attempt.completed_at).toLocaleString();
-        card.append(head, meta);
-        const details = document.createElement("details"); details.className = "quiz-history-details";
-        const summary = document.createElement("summary"); summary.textContent = "Review this attempt";
-        details.append(summary);
-        (attempt.review || []).forEach((item,index) => {
-          const review = document.createElement("div"); review.className = "quiz-history-review";
-          const question = document.createElement("strong"); question.textContent = (index+1) + ". " + (item.question || "Theory response");
-          review.append(question);
-          if (attempt.mode === "mcq" && Array.isArray(item.options)) {
-            const chosen = document.createElement("p");
-            chosen.textContent = "Your answer: " + (item.options[item.selectedIndex] || "—");
-            const correct = document.createElement("p");
-            correct.textContent = "Correct answer: " + (item.options[item.correctIndex] || "—");
-            const explanation = document.createElement("p"); explanation.className = "muted"; explanation.textContent = item.explanation || "";
-            review.append(chosen,correct,explanation);
-          } else if (item.assessment) {
-            const answer = document.createElement("p"); answer.textContent = "Your answer: " + (item.answer || "");
-            const feedback = document.createElement("p"); feedback.textContent = item.assessment.feedback || "";
-            const model = document.createElement("p"); model.textContent = "Suggested answer: " + (item.assessment.modelAnswer || "");
-            review.append(answer,feedback,model);
-          }
-          details.append(review);
-        });
-        card.append(details); root.append(card);
-      });
     }
     function setQuizProgress(message, indeterminate = true, percent = 0) {
       const container = $("#quiz-generation-progress"), track = $("#quiz-generation-track");
