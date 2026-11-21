@@ -28,6 +28,15 @@
           "value": "max-age=31536000; includeSubDomains"
         }
       ]
+    },
+    {
+      "source": "/videos.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0, must-revalidate"
+        }
+      ]
     }
   ]
 }
