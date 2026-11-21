@@ -1,7 +1,15 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101827"><title>UNI-VERSE | Video Tutorials</title><link rel="stylesheet" href="./assets/css/styles.css"></head>
-<body><header class="topbar"><a class="brand" href="./student.html"><span class="brand-mark small">U</span> UNI-VERSE</a><div><span id="user-label" class="muted"></span> <button id="logout" class="btn ghost">Sign out</button></div></header>
-<main class="dashboard feature-coming-page"><a class="back-link" href="./student.html">← Back to learning hub</a><p class="eyebrow">VISUAL LEARNING</p><h1>Video tutorials</h1><p class="muted">Learn course topics through focused video lessons.</p><section class="coming-panel"><span class="coming-icon" aria-hidden="true">▶</span><h2>Video tutorials are coming soon</h2><p class="muted">This space will host course-specific lessons and tutorial videos when the video library is ready.</p></section></main>
-
+<body>
+<header class="topbar"><a class="brand" href="./student.html"><span class="brand-mark small">U</span> UNI-VERSE</a><div><span id="user-label" class="muted"></span> <button id="logout" class="btn ghost">Sign out</button></div></header>
+<main class="dashboard video-dashboard">
+<a class="back-link" href="./student.html">← Back to learning hub</a><p class="eyebrow">VISUAL LEARNING</p><h1>Video tutorials</h1><p class="muted">Watch course-specific lessons and tutorials uploaded by UNI-VERSE administrators.</p>
+<section class="video-filter-panel">
+<label>Search videos<input id="video-search" type="search" placeholder="Search by title, topic or course…"></label>
+<label>Filter by course<select id="video-course-filter"><option value="">All available courses</option></select></label>
+</section>
+<p id="video-count" class="muted video-count" aria-live="polite">Loading videos…</p>
+<section id="video-list" class="video-grid" aria-live="polite"><p class="muted">Loading video tutorials…</p></section>
+</main>
 <script type="module" src="./assets/js/student-navigation.js"></script>
-<script type="module" src="./assets/js/placeholder.js"></script></body></html>
+<script type="module" src="./assets/js/videos.js"></script></body></html>
