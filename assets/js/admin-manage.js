@@ -21,6 +21,18 @@ if (session && session.profile.role !== "admin") {
     return result;
   }
 
+  async function cleanupVideoFiles(courseId, paths) {
+    const r2Paths = paths.filter(path => path.startsWith("r2/"));
+    const legacyPaths = paths.filter(path => !path.startsWith("r2/"));
+    for (let index = 0; index < r2Paths.length; index += 1000) {
+      await r2VideoRequest("delete-objects", { courseId, keys: r2Paths.slice(index, index + 1000) });
+    }
+    for (let index = 0; index < legacyPaths.length; index += 1000) {
+      const result = await supabase.storage.from("course-videos").remove(legacyPaths.slice(index, index + 1000));
+      if (result.error) throw result.error;
+    }
+  }
+
   async function loadCourses() {
     const target = document.querySelector("#courses");
     target.replaceChildren();
@@ -126,7 +138,7 @@ if (session && session.profile.role !== "admin") {
           }
         } catch (error) { storageError = error; }
         try {
-          await r2VideoRequest("delete-objects", { courseId: course.id, keys: videoPaths });
+          await cleanupVideoFiles(course.id, videoPaths);
         } catch (error) { videoStorageError = error; }
 
         try {
@@ -353,7 +365,7 @@ if (session && session.profile.role !== "admin") {
         }
         let cleanupError = null;
         try {
-          await r2VideoRequest("delete-object", { courseId: video.course_id, key: video.video_path });
+          await cleanupVideoFiles(video.course_id, [video.video_path]);
         } catch (error) { cleanupError = error; }
         await loadVideos();
         if (cleanupError) alert("The video record was deleted, but its private Storage file could not be removed and is now orphaned: " + (cleanupError.message || String(cleanupError)));
