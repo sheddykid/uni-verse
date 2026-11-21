@@ -223,22 +223,84 @@ export default async function handler(req, res) {
         .map(box => ({ type: box.type, size: box.size, offset: box.start }));
       const moov = children(fileBytes, 0, fileBytes.length).find(box => box.type === "moov");
       const tracks = [];
+      const profileNames = {
+        66: "Baseline", 77: "Main", 88: "Extended", 100: "High",
+        110: "High 10", 122: "High 4:2:2", 244: "High 4:4:4"
+      };
       if (moov) {
         for (const trak of children(fileBytes, moov.dataStart, moov.end).filter(box => box.type === "trak")) {
           const track = { handler: null, sampleEntries: [] };
+          let mediaTimescale = null;
+          let sttsSampleCount = 0;
+          let sttsDuration = 0;
           const scan = (parent) => {
             for (const box of children(fileBytes, parent.dataStart, parent.end)) {
               if (box.type === "hdlr" && box.size >= box.headerSize + 12) {
                 track.handler = fileBytes.toString("ascii", box.dataStart + 8, box.dataStart + 12);
               }
+              if (box.type === "mdhd" && box.size >= box.headerSize + 20) {
+                const version = fileBytes[box.dataStart];
+                const offset = version === 1 ? box.dataStart + 20 : box.dataStart + 12;
+                if (offset + 4 <= box.end) mediaTimescale = fileBytes.readUInt32BE(offset);
+              }
+              if (box.type === "stts" && box.size >= box.headerSize + 8) {
+                const entryCount = fileBytes.readUInt32BE(box.dataStart + 4);
+                let offset = box.dataStart + 8;
+                for (let i = 0; i < entryCount && offset + 8 <= box.end; i++, offset += 8) {
+                  const count = fileBytes.readUInt32BE(offset);
+                  const delta = fileBytes.readUInt32BE(offset + 4);
+                  sttsSampleCount += count;
+                  sttsDuration += count * delta;
+                }
+              }
               if (box.type === "stsd" && box.size >= box.headerSize + 8) {
-                track.sampleEntries = children(fileBytes, box.dataStart + 8, box.end)
-                  .slice(0, 8).map(entry => entry.type);
+                const entries = children(fileBytes, box.dataStart + 8, box.end).slice(0, 8);
+                track.sampleEntries = entries.map(entry => entry.type);
+                if (track.handler === "vide") {
+                  const visual = entries.find(entry => ["avc1", "avc3", "hvc1", "hev1"].includes(entry.type));
+                  if (visual && visual.type.startsWith("avc") && visual.dataStart + 78 <= visual.end) {
+                    track.width = fileBytes.readUInt16BE(visual.dataStart + 24);
+                    track.height = fileBytes.readUInt16BE(visual.dataStart + 26);
+                    const nested = children(fileBytes, visual.dataStart + 78, visual.end);
+                    const avcC = nested.find(item => item.type === "avcC");
+                    if (avcC && avcC.dataStart + 4 <= avcC.end) {
+                      const profile = fileBytes[avcC.dataStart + 1];
+                      const compatibility = fileBytes[avcC.dataStart + 2];
+                      const level = fileBytes[avcC.dataStart + 3];
+                      track.h264 = {
+                        profileIdc: profile,
+                        profile: profileNames[profile] || "Unknown",
+                        profileCompatibility: compatibility,
+                        levelIdc: level,
+                        level: (level / 10).toFixed(1),
+                        codecString: "avc1." + [profile, compatibility, level]
+                          .map(value => value.toString(16).padStart(2, "0")).join("").toUpperCase()
+                      };
+                    }
+                  }
+                }
               }
               if (["mdia", "minf", "stbl"].includes(box.type)) scan(box);
             }
           };
           scan(trak);
+          if (track.handler === "vide" && mediaTimescale && sttsDuration) {
+            track.frameRate = Number((sttsSampleCount * mediaTimescale / sttsDuration).toFixed(3));
+            track.frameCount = sttsSampleCount;
+          }
+          if (track.handler === "soun") {
+            const mdia = children(fileBytes, trak.dataStart, trak.end).find(box => box.type === "mdia");
+            const minf = mdia && children(fileBytes, mdia.dataStart, mdia.end).find(box => box.type === "minf");
+            const stbl = minf && children(fileBytes, minf.dataStart, minf.end).find(box => box.type === "stbl");
+            const stsd = stbl && children(fileBytes, stbl.dataStart, stbl.end).find(box => box.type === "stsd");
+            const audioEntry = stsd && children(fileBytes, stsd.dataStart + 8, stsd.end)[0];
+            if (audioEntry && audioEntry.dataStart + 28 <= audioEntry.end) {
+              track.audio = {
+                channels: fileBytes.readUInt16BE(audioEntry.dataStart + 16),
+                sampleRate: fileBytes.readUInt32BE(audioEntry.dataStart + 24) >>> 16
+              };
+            }
+          }
           tracks.push(track);
         }
       }
