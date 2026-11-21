@@ -173,3 +173,11 @@ body.student-drawer-open{overflow:hidden}
 .quiz-history-review:last-child{border-bottom:0}
 .quiz-history-review p{font-size:.85rem;line-height:1.6;margin:7px 0}
 @media(max-width:520px){.quiz-history-head{flex-direction:column;gap:6px}.quiz-history-score{font-size:.9rem}}
+
+/* AI summary history */
+.summary-history-list{display:grid;gap:12px;margin-top:20px}
+.summary-history-card{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px;background:#fff;border:1px solid #e7eaf1;border-radius:13px}
+.summary-history-card h3{font-size:1rem;margin:4px 0}
+.summary-history-card p{margin:0;font-size:.84rem}
+.summary-history-card .btn{flex-shrink:0}
+@media(max-width:600px){.summary-history-card{align-items:stretch;flex-direction:column}.summary-history-card .btn{width:100%}}
