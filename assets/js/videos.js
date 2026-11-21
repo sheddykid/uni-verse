@@ -83,6 +83,7 @@ if (session) {
         player.preload = "none";
         player.hidden = true;
         player.setAttribute("aria-label", video.title);
+        let playbackDiagnostics = null;
         player.addEventListener("error", () => {
           const code = player.error?.code;
           const reasons = {
@@ -98,7 +99,11 @@ if (session) {
             error.className = "message video-play-error";
             body.append(error);
           }
-          error.textContent = detail + (code ? " (Media error " + code + ")." : "");
+          const storageDetail = playbackDiagnostics
+            ? " R2 check: " + (playbackDiagnostics.rangeSupported ? "byte-range OK" : "byte-range failed") +
+              "; stored size " + (Number(playbackDiagnostics.contentLength || 0) / 1048576).toFixed(1) + " MB."
+            : "";
+          error.textContent = detail + (code ? " (Media error " + code + ")." : "") + storageDetail;
         });
 
         const body = document.createElement("div");
@@ -142,6 +147,7 @@ if (session) {
           playButton.textContent = "Preparing video…";
           try {
             const playback = await getVideoPlaybackUrl(video);
+            playbackDiagnostics = playback.diagnostics;
             if (playback.diagnostics) {
               console.info("[UNI-VERSE video diagnostics]", {
                 title: video.title,
