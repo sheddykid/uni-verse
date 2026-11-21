@@ -9,6 +9,35 @@ if (session) {
   const courseFilter = document.querySelector("#video-course-filter");
   const target = document.querySelector("#video-list");
   const count = document.querySelector("#video-count");
+  async function inspectBrowserVideoAccess(url) {
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: { Range: "bytes=0-1" },
+        cache: "no-store"
+      });
+      const bytes = await response.arrayBuffer();
+      return {
+        ok: response.ok,
+        status: response.status,
+        responseType: response.type,
+        contentType: response.headers.get("content-type"),
+        contentLength: response.headers.get("content-length"),
+        contentRange: response.headers.get("content-range"),
+        acceptRanges: response.headers.get("accept-ranges"),
+        bytesReceived: bytes.byteLength,
+        rangeRequest: "bytes=0-1"
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error: error?.message || String(error),
+        likelyCorsOrNetworkFailure: true,
+        rangeRequest: "bytes=0-1"
+      };
+    }
+  }
+
   async function getVideoPlaybackUrl(video) {
     if (!video.video_path.startsWith("r2/")) {
       const { data, error } = await supabase.storage.from("course-videos")
@@ -100,6 +129,7 @@ if (session) {
         player.hidden = true;
         player.setAttribute("aria-label", video.title);
         let playbackDiagnostics = null;
+        let browserAccessDiagnostics = null;
         player.addEventListener("error", async () => {
           const code = player.error?.code;
           const reasons = {
@@ -119,7 +149,10 @@ if (session) {
             ? " R2 check: " + (playbackDiagnostics.rangeSupported ? "byte-range OK" : "byte-range failed") +
               "; stored size " + (Number(playbackDiagnostics.contentLength || 0) / 1048576).toFixed(1) + " MB."
             : "";
-          error.textContent = detail + (code ? " (Media error " + code + ")." : "") + storageDetail;
+          const browserDetail = browserAccessDiagnostics
+            ? "\\nBrowser R2 access test: " + JSON.stringify(browserAccessDiagnostics)
+            : "\\nBrowser R2 access test: not completed";
+          error.textContent = detail + (code ? " (Media error " + code + ")." : "") + storageDetail + browserDetail;
 
           // Admin-only one-time integrity inspection of the existing R2 object.
           if (session.profile?.role === "admin" && video.video_path.startsWith("r2/") &&
@@ -226,6 +259,13 @@ if (session) {
                 ...playback.diagnostics
               });
             }
+            // Verify that this browser can fetch the signed R2 URL with a byte-range request.
+            // This distinguishes browser CORS/network failures from server-side R2 checks.
+            browserAccessDiagnostics = await inspectBrowserVideoAccess(playback.url);
+            console.info("[UNI-VERSE browser R2 access test]", {
+              title: video.title,
+              ...browserAccessDiagnostics
+            });
             player.src = playback.url;
             player.hidden = false;
             activeVideoPlayer = player;
