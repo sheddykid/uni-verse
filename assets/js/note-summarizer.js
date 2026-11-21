@@ -102,7 +102,7 @@ if (location.hostname.endsWith("github.io")) {
       generateButton.textContent = "Summarizing…";
       setSummaryProgress("Reserving this note…", true);
       setStatus("Your summary is being prepared. This can take a little while.");
-      let historyId = null, pdfPath = null;
+      let historyId = null, pdfPath = null, currentPhase = "reserving this note";
       try {
         const { data: reservation, error: reservationError } = await supabase.from("note_summary_history").insert({
           user_id: user.id, resource_id: resource.id, course_id: course.id,
@@ -113,8 +113,10 @@ if (location.hostname.endsWith("github.io")) {
           throw reservationError;
         }
         historyId = reservation.id;
+        currentPhase = "checking your sign-in";
         const { data: { session: authSession } } = await supabase.auth.getSession();
         if (!authSession?.access_token) throw new Error("Your session has expired. Sign in again.");
+        currentPhase = "reading the selected note";
         const ocrTextByResource = {};
         if (String(resource.file_name || "").toLowerCase().endsWith(".pdf")) {
           const { extractResourceText } = await import("./question-ocr.js");
@@ -127,6 +129,7 @@ if (location.hostname.endsWith("github.io")) {
             setSummaryProgress("Reading " + resource.title + ": " + stage, false, percent);
           }, { maxPdfPages: 150, maxOcrPages: 30, maxCharacters: 100000 });
         }
+        currentPhase = "generating the AI summary";
         setSummaryProgress("Generating your study summary…", true);
         const response = await fetch("/api/note-summary", {
           method: "POST",
@@ -139,12 +142,15 @@ if (location.hostname.endsWith("github.io")) {
         catch { throw new Error("The summary server returned an invalid response (HTTP " + response.status + ")."); }
         if (!response.ok) throw new Error(result.error || ("Summary request failed (HTTP " + response.status + ")."));
         if (!result.summary) throw new Error("The AI did not return a summary. Please try again.");
+        currentPhase = "creating the downloadable PDF";
         setSummaryProgress("Preparing your downloadable PDF…", true);
         const { jsPDF } = await import("https://cdn.jsdelivr.net/npm/jspdf@3.0.1/dist/jspdf.es.min.js");
         const pdf = buildSummaryPdf(jsPDF, result);
+        currentPhase = "saving the PDF to your summary history";
         pdfPath = user.id + "/" + resource.id + "/" + historyId + ".pdf";
         const { error: uploadError } = await supabase.storage.from("summary-pdfs").upload(pdfPath, pdf.output("blob"), { contentType: "application/pdf", upsert: false });
         if (uploadError) throw uploadError;
+        currentPhase = "finalizing your summary history";
         const { error: updateError } = await supabase.from("note_summary_history").update({ pdf_path: pdfPath, status: "ready" }).eq("id", historyId).eq("user_id", user.id);
         if (updateError) throw updateError;
         result.historyPdfPath = pdfPath;
@@ -153,9 +159,10 @@ if (location.hostname.endsWith("github.io")) {
         setStatus("Your study summary PDF is ready.", true);
         location.href = "./summary-session.html";
       } catch (error) {
+        console.error("[UNI-VERSE summary]", currentPhase, error);
         if (pdfPath) await supabase.storage.from("summary-pdfs").remove([pdfPath]);
         if (historyId) await supabase.from("note_summary_history").delete().eq("id", historyId).eq("user_id", user.id);
-        setStatus(error.message || "Could not generate the summary.");
+        setStatus("Summary stopped while " + currentPhase + ": " + (error.message || "Unknown error") + ". You can retry this note.");
         await loadNotes();
       } finally {
         generateButton.disabled = notesList.querySelectorAll('input[type="checkbox"]:checked').length === 0;
