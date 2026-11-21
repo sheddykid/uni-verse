@@ -16,25 +16,25 @@
 - **Secure sign-in and sign-out:** Supabase Authentication manages student sessions.
 - **Department-based course listing:** Students see active courses assigned to their registered department.
 - **Feature hub:** The student dashboard links to dedicated pages for notes, past questions, quizzes, flashcards and video tutorials.
-- **Learning resources:** Notes and past questions have separate pages, with course filtering and test/exam filtering for past questions.
+- **Learning resources:** Notes, past questions and video tutorials have dedicated pages, with course filtering and test/exam filtering for past questions.
 - **Past-question details:** Resources can identify test or examination questions and optionally include the academic year and semester.
-- **Downloads:** Students can download course files. Image-based past questions can also be previewed in the dashboard.
+- **Downloads and video playback:** Students can download course files and stream course-specific videos. Image-based past questions can also be previewed in the dashboard.
 - **AI flashcards:** Students can select a course and up to five uploaded notes to generate interactive question-and-answer revision cards through the Gemini API from the authenticated Vercel serverless endpoint. Only active course notes are eligible; past questions are excluded.
 - **Password recovery:** Students can request a password-reset email and set a new password through the recovery link.
 
 ### Administrator features
 - **Restricted administrator sign-in:** The administrator login checks the account's role before allowing access to the admin dashboard.
 - **Course creation:** Administrators can add a course code, title and description, and assign the course to one or more departments.
-- **Resource uploads:** Administrators can upload notes and past questions to a selected course.
+- **Resource uploads:** Administrators can upload notes, past questions and course videos to a selected course.
 - **Supported files:** Notes accept PDF, DOCX and PPTX. Past questions accept PDF, DOCX, PPTX, JPG, PNG and WEBP.
 - **Upload validation:** The interface checks file type and enforces a 50 MB maximum file size.
 - **Course management:** Administrators can edit course titles, activate or deactivate courses, and delete courses with their associated resource records and stored files.
-- **Resource management:** Administrators can edit resource titles and descriptions, publish or hide resources, and delete resources.
+- **Resource management:** Administrators can edit resource titles and descriptions, publish or hide resources, and delete resources and videos.
 - **Course-list refresh:** The upload form has a dedicated refresh control to reload the course dropdown without refreshing the whole page.
 - **Student preview:** Administrators can open the student dashboard to view the student-facing experience.
 
 ### Planned learning tools
-Dedicated pages now exist for quizzes and video tutorials, but their learning functionality is not implemented yet. These pages are clearly marked as coming soon.
+The video tutorial library supports admin uploads, course-based access, search, playback and admin management. Quiz generation is implemented separately.
 
 ---
 
@@ -406,3 +406,11 @@ The latest `admin-manage.js` no longer contains the stale `removeOrphanedUploads
 
 No destructive database or Storage tests were run during this audit checkpoint. Do not run the deletion/failure-injection cases against production records.
 
+
+
+## Video tutorials
+
+- Admins upload MP4, WEBM or MOV videos from the admin dashboard. Uploads use Supabase Storage resumable (TUS) transfers, with visible progress and a 50 MB per-video limit.
+- Video metadata is stored in `course_videos`; video files are stored in the private `course-videos` bucket.
+- Students can search videos by title, topic or course and filter by course. Playback uses short-lived signed URLs and Storage RLS, so students can only access active videos for courses assigned to their department.
+- Admins can edit metadata, hide/publish videos and delete videos. Deleting a course also removes its associated video files after the database confirms the course deletion.
