@@ -164,12 +164,12 @@ function normalizeSummary(value) {
     }
     return "";
   };
-  summary.title = asText(summary.title, summary.topic, summary.name) || "Study Summary";
+  summary.title = (asText(summary.title, summary.topic, summary.name) || "Study Summary").slice(0, 180);
   summary.overview = asText(summary.overview, summary.summary, summary.description, summary.introduction);
   const sentences = summary.overview.split(/(?<=[.!?])\s+/).map(text => text.trim()).filter(text => text.length > 20);
   const existingPoints = Array.isArray(summary.keyPoints)
     ? summary.keyPoints.map(item => asText(item)).filter(Boolean) : [];
-  summary.keyPoints = (existingPoints.length ? existingPoints : sentences).slice(0, 12);
+  summary.keyPoints = (existingPoints.length ? existingPoints : sentences).map(point => point.slice(0, 600)).slice(0, 12);
   if (!summary.keyPoints.length && summary.overview) summary.keyPoints = [summary.overview];
   const rawSections = Array.isArray(summary.sections) ? summary.sections : Array.isArray(summary.topics) ? summary.topics : [];
   summary.sections = rawSections.slice(0, 12).map((section, index) => {
@@ -177,12 +177,12 @@ function normalizeSummary(value) {
       return { heading: "Topic " + (index + 1), summary: section, details: [] };
     }
     const item = section && typeof section === "object" ? section : {};
-    const heading = asText(item.heading, item.title, item.topic, item.name) || "Key topic " + (index + 1);
+    const heading = (asText(item.heading, item.title, item.topic, item.name) || "Key topic " + (index + 1)).slice(0, 160);
     const sectionSummary = asText(item.summary, item.explanation, item.description, item.content, item.text)
       || summary.keyPoints[index] || summary.overview;
     const rawDetails = item.details || item.keyPoints || item.points || item.bulletPoints || [];
     const details = (Array.isArray(rawDetails) ? rawDetails : [rawDetails])
-      .map(detail => asText(detail)).filter(Boolean).slice(0, 8);
+      .map(detail => asText(detail).slice(0, 600)).filter(Boolean).slice(0, 8);
     return { heading, summary: sectionSummary || "Review the related key points in this note.", details };
   }).filter(section => section.heading && section.summary);
   if (!summary.sections.length && summary.overview) {
@@ -193,17 +193,17 @@ function normalizeSummary(value) {
     }];
   }
   summary.keyTerms = Array.isArray(summary.keyTerms) ? summary.keyTerms.map(item => ({
-    term: asText(item?.term, item?.name), definition: asText(item?.definition, item?.meaning, item?.description)
+    term: asText(item?.term, item?.name).slice(0, 120), definition: asText(item?.definition, item?.meaning, item?.description).slice(0, 500)
   })).filter(item => item.term && item.definition).slice(0, 20) : [];
   summary.formulas = Array.isArray(summary.formulas) ? summary.formulas.map(item => ({
-    name: asText(item?.name, item?.title) || "Formula",
-    expression: asText(item?.expression, item?.formula),
-    explanation: asText(item?.explanation, item?.description)
+    name: (asText(item?.name, item?.title) || "Formula").slice(0, 120),
+    expression: asText(item?.expression, item?.formula).slice(0, 240),
+    explanation: asText(item?.explanation, item?.description).slice(0, 500)
   })).filter(item => item.expression).slice(0, 15) : [];
   const checklist = Array.isArray(summary.revisionChecklist)
     ? summary.revisionChecklist.map(item => asText(item)).filter(Boolean) : [];
   summary.revisionChecklist = (checklist.length ? checklist : summary.keyPoints.slice(0, 8)
-    .map(point => "Review and be able to explain: " + point)).slice(0, 12);
+    .map(point => "Review and be able to explain: " + point)).map(item => item.slice(0, 400)).slice(0, 12);
   return summary;
 }
 
