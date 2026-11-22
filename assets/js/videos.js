@@ -90,16 +90,26 @@ if (session) {
   }
 
 
-  const { data, error } = await supabase.from("course_videos")
-    .select("id,course_id,title,description,topic,video_path,file_name,mime_type,file_size,created_at,courses(code,title)")
-    .eq("is_active", true)
-    .order("created_at", { ascending: false });
+  const [uploadedResult, youtubeResult] = await Promise.all([
+    supabase.from("course_videos")
+      .select("id,course_id,title,description,topic,video_path,file_name,mime_type,file_size,created_at,courses(code,title)")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false }),
+    supabase.from("course_video_links")
+      .select("id,course_id,title,description,topic,youtube_url,created_at,courses(code,title)")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+  ]);
 
-  if (error) {
-    target.textContent = "Video tutorials could not be loaded. " + error.message;
+  if (uploadedResult.error || youtubeResult.error) {
+    const loadError = uploadedResult.error || youtubeResult.error;
+    target.textContent = "Video tutorials could not be loaded. " + loadError.message;
     count.textContent = "Video library unavailable";
   } else {
-    const videos = data || [];
+    const videos = [
+      ...(uploadedResult.data || []).map(video => ({ ...video, source: "upload" })),
+      ...(youtubeResult.data || []).map(video => ({ ...video, source: "youtube" }))
+    ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     const courses = new Map();
     videos.forEach(video => {
       if (video.courses && !courses.has(video.course_id)) courses.set(video.course_id, video.courses);
@@ -111,10 +121,31 @@ if (session) {
       courseFilter.append(option);
     });
 
+    function getYouTubeId(value) {
+      let url;
+      try { url = new URL(value); } catch { return null; }
+      if (url.protocol !== "https:") return null;
+      const host = url.hostname.toLowerCase().replace(/^www\\./, "");
+      let id = null;
+      if (host === "youtu.be") id = url.pathname.split("/").filter(Boolean)[0];
+      else if (["youtube.com", "m.youtube.com", "youtube-nocookie.com"].includes(host)) {
+        const parts = url.pathname.split("/").filter(Boolean);
+        if (url.pathname === "/watch") id = url.searchParams.get("v");
+        else if (["embed", "shorts", "live"].includes(parts[0])) id = parts[1];
+      }
+      return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+    }
+
     let activeVideoPlayer = null;
+    let activeYoutubeFrame = null;
     let activeHideButton = null;
 
     function closeActiveVideo() {
+      if (activeYoutubeFrame) {
+        activeYoutubeFrame.src = "about:blank";
+        activeYoutubeFrame.hidden = true;
+      }
+      activeYoutubeFrame = null;
       if (activeVideoPlayer) {
         activeVideoPlayer.pause();
         activeVideoPlayer.removeAttribute("src");
@@ -153,6 +184,71 @@ if (session) {
       visible.forEach(video => {
         const card = document.createElement("article");
         card.className = "video-card";
+
+        if (video.source === "youtube") {
+          const body = document.createElement("div");
+          body.className = "video-card-body";
+          const courseLabel = document.createElement("p");
+          courseLabel.className = "course-code";
+          courseLabel.textContent = video.courses?.code
+            ? video.courses.code + " · " + (video.courses.title || "")
+            : "Course tutorial";
+          const title = document.createElement("h3");
+          title.textContent = video.title;
+          body.append(courseLabel, title);
+          if (video.topic) {
+            const topic = document.createElement("span");
+            topic.className = "video-card-topic";
+            topic.textContent = video.topic;
+            body.append(topic);
+          }
+          if (video.description) {
+            const description = document.createElement("p");
+            description.className = "video-card-description";
+            description.textContent = video.description;
+            body.append(description);
+          }
+          const meta = document.createElement("p");
+          meta.className = "resource-meta";
+          meta.textContent = "YouTube · " + new Date(video.created_at).toLocaleDateString();
+          body.append(meta);
+
+          const frame = document.createElement("iframe");
+          frame.className = "video-player youtube-video-player";
+          frame.title = video.title;
+          frame.loading = "lazy";
+          frame.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+          frame.referrerPolicy = "strict-origin-when-cross-origin";
+          frame.allowFullscreen = true;
+          frame.hidden = true;
+          const actions = document.createElement("div");
+          actions.className = "video-card-actions";
+          const playButton = document.createElement("button");
+          playButton.type = "button";
+          playButton.className = "btn primary";
+          playButton.textContent = "▶ Watch video";
+          playButton.addEventListener("click", () => {
+            if (activeVideoPlayer || activeYoutubeFrame) closeActiveVideo();
+            const id = getYouTubeId(video.youtube_url);
+            if (!id) {
+              const error = document.createElement("p");
+              error.className = "message video-play-error";
+              error.textContent = "This YouTube link is invalid.";
+              body.append(error);
+              return;
+            }
+            frame.src = "https://www.youtube-nocookie.com/embed/" + id + "?autoplay=1&rel=0";
+            frame.hidden = false;
+            activeYoutubeFrame = frame;
+            playButton.textContent = "▶ Playing video";
+          });
+          actions.append(playButton);
+          body.append(actions);
+          card.append(frame, body);
+          target.append(card);
+          return;
+        }
+
         const player = document.createElement("video");
         player.className = "video-player";
         player.controls = true;
