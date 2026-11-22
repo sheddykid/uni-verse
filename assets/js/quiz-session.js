@@ -1,6 +1,6 @@
 import { supabase, requireProfile, signOut } from "./supabase.js";
 const $ = selector => document.querySelector(selector);
-$("#logout").addEventListener("click", signOut);
+$("#logout")?.addEventListener("click", signOut);
 
 const session = await requireProfile();
 if (session) {
