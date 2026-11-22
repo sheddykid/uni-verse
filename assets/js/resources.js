@@ -52,7 +52,7 @@ async function loadPage() {
   }
 
   const { data: resourceData, error: resourceError } = await supabase.from("course_resources")
-    .select("id,course_id,title,description,resource_type,assessment_type,academic_year,semester,file_name,file_path,mime_type,created_at")
+    .select("id,course_id,title,description,resource_type,assessment_type,academic_year,semester,file_name,file_path,file_size,mime_type,created_at")
     .eq("is_active", true)
     .eq("resource_type", pageType)
     .in("course_id", courses.map(course => course.id))
@@ -138,7 +138,11 @@ function renderResources() {
       const term = [typeLabel, resource.academic_year, resource.semester ? "Semester " + resource.semester : null, (resource.file_name || "").split(".").pop()?.toUpperCase()].filter(Boolean).join(" · ");
       const meta = document.createElement("p");
       meta.className = "resource-meta";
-      meta.textContent = term;
+      meta.textContent = term + (pageType === "note" && Number.isFinite(Number(resource.file_size)) && Number(resource.file_size) > 0
+        ? " · " + (Number(resource.file_size) >= 1048576
+          ? (Number(resource.file_size) / 1048576).toFixed(1) + " MB"
+          : Math.max(1, Math.round(Number(resource.file_size) / 1024)) + " KB")
+        : "");
       info.append(meta);
       const actions = document.createElement("div");
       actions.className = "resource-actions";
