@@ -36,7 +36,11 @@ async function loadHistory() {
     const date = document.createElement("p"); date.className = "muted";
     date.textContent = new Date(item.created_at).toLocaleString();
     copy.append(course, title, date);
-    const download = document.createElement("button"); download.className = "btn primary";
+    const actions = document.createElement("div"); actions.className = "summary-result-actions";
+    const view = document.createElement("a"); view.className = "btn primary";
+    view.href = "./summary-session.html?id=" + encodeURIComponent(item.id);
+    view.textContent = "View summary";
+    const download = document.createElement("button"); download.className = "btn secondary";
     download.type = "button"; download.textContent = "Download PDF";
     download.addEventListener("click", async () => {
       download.disabled = true; download.textContent = "Preparing…";
@@ -50,7 +54,8 @@ async function loadHistory() {
       document.body.append(link); link.click(); link.remove();
       download.textContent = "Download PDF"; download.disabled = false;
     });
-    card.append(copy, download); list.append(card);
+    actions.append(view, download);
+    card.append(copy, actions); list.append(card);
   });
   button.disabled = false;
 }
