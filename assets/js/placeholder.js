@@ -1,6 +1,5 @@
-import { requireProfile, signOut } from "./supabase.js";
+import { requireProfile } from "./supabase.js";
 
-document.querySelector("#logout").addEventListener("click", signOut);
 const session = await requireProfile();
 if (session) {
   document.querySelector("#user-label").textContent = session.profile.role === "admin"
