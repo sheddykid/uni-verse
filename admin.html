@@ -1,38 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>UNI-VERSE | Admin dashboard</title><link rel="stylesheet" href="./assets/css/styles.css"></head><body><header class="topbar"><a class="brand" href="./admin.html"><span class="brand-mark small">U</span> UNI-VERSE / Admin</a><div><span id="user-label" class="muted"></span><button id="logout" class="btn ghost">Sign out</button></div></header><main class="dashboard"><p class="eyebrow">ADMINISTRATION</p><h1>Content management</h1><p class="muted">Create courses and upload learning resources.</p><p><a class="btn secondary" href="./admin-manage.html">Manage existing courses &amp; resources →</a> <a class="btn primary" href="./student.html">Student View →</a></p>
-<section class="section"><h2>Add a course</h2><form id="course-form" class="admin-form"><fieldset class="department-picker"><legend>Departments <span class="muted">Tick every department that should have access to this course.</span></legend><div id="department-options" class="department-options"><p class="muted">Loading departments…</p></div></fieldset><label>Course code<input id="code" required placeholder="e.g. CPE 311"></label><label>Course title<input id="title" required></label><label>Description<textarea id="description" rows="3"></textarea></label><button class="btn primary" type="submit">Add course</button><p id="message" class="message" role="status"></p></form></section>
-<section class="section"><h2>Upload notes and past questions</h2><p class="muted">Notes: PDF, DOCX and PPTX. Past questions (tests/exams): PDF, DOCX, PPTX, JPG, PNG and WEBP. Maximum file size: 50 MB.</p><form id="resource-form" class="admin-form">
-<label>Course<div class="course-select-row"><select id="resource-course" required><option value="">Loading courses…</option></select><button class="btn secondary" id="refresh-courses" type="button" aria-label="Refresh course list">↻ Refresh</button></div></label>
-<label>Resource type<select id="resource-type" required><option value="note">Notes</option><option value="past_question">Past questions</option></select></label>
-<label>Title<input id="resource-title" required maxlength="160" placeholder="e.g. Introduction to Digital Logic"></label>
-<label>Description (optional)<textarea id="resource-description" rows="2" placeholder="Brief description of this resource"></textarea></label>
-<div id="question-fields" class="field-grid" hidden>
-<label>Assessment type<select id="assessment-type"><option value="">Select type</option><option value="test">Test questions</option><option value="exam">Exam questions</option></select></label>
-<label>Academic year (optional)<input id="academic-year" placeholder="e.g. 2025/2026"></label>
-<label>Semester (optional)<select id="semester"><option value="">Not specified</option><option value="1">First semester</option><option value="2">Second semester</option></select></label>
-</div>
-<label>Choose file<input id="resource-file" type="file" accept=".pdf,.docx,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation" required></label>
-<button class="btn primary" id="upload-button" type="submit">Upload resource</button><p id="resource-message" class="message" role="status"></p>
-</form></section>
-
-<section class="section"><h2>Upload video tutorials</h2><p class="muted">Upload course-specific MP4, WEBM or MOV videos. Maximum file size: 5 GiB per video. Uploads are resumable if your connection is interrupted.</p>
-<form id="video-form" class="admin-form">
-<label>Course<div class="course-select-row"><select id="video-course" required><option value="">Loading courses…</option></select><button class="btn secondary" id="refresh-video-courses" type="button">↻ Refresh</button></div></label>
-<label>Video title<input id="video-title" required maxlength="160" placeholder="e.g. Introduction to Measurements"></label>
-<label>Topic (optional)<input id="video-topic" maxlength="120" placeholder="e.g. Measurement errors"></label>
-<label>Description (optional)<textarea id="video-description" rows="3" maxlength="2000" placeholder="What students will learn in this video"></textarea></label>
-<label>Choose video<input id="video-file" type="file" accept=".mp4,.webm,.mov,video/mp4,video/webm,video/quicktime" required></label>
-<div id="video-upload-progress" class="video-upload-progress" hidden><div class="video-upload-progress-head"><span id="video-upload-status">Preparing upload…</span><strong id="video-upload-percent">0%</strong></div><div class="generation-progress-track"><span id="video-upload-bar"></span></div></div>
-<button class="btn primary" id="video-upload-button" type="submit">Upload video</button><p id="video-message" class="message" role="status" aria-live="polite"></p>
-</form></section>
-<section class="section"><h2>Add a YouTube tutorial</h2><p class="muted">Paste a YouTube video link. Students will watch it directly inside UNI-VERSE.</p>
-<form id="youtube-video-form" class="admin-form">
-<label>Course<select id="youtube-video-course" required><option value="">Loading courses…</option></select></label>
-<label>Video title<input id="youtube-video-title" required maxlength="160" placeholder="e.g. Introduction to Control Systems"></label>
-<label>YouTube URL<input id="youtube-video-url" type="url" required maxlength="2048" placeholder="https://www.youtube.com/watch?v=…"></label>
-<label>Topic (optional)<input id="youtube-video-topic" maxlength="120" placeholder="e.g. Open-loop and closed-loop systems"></label>
-<label>Description (optional)<textarea id="youtube-video-description" rows="3" maxlength="2000" placeholder="What students will learn in this video"></textarea></label>
-<button class="btn primary" id="youtube-video-submit" type="submit">Add YouTube video</button><p id="youtube-video-message" class="message" role="status" aria-live="polite"></p>
-</form></section>
-</main><nav class="bottom-nav admin-bottom-nav" aria-label="Administrator pages"><a href="./admin.html" aria-label="Admin dashboard"><span aria-hidden="true">⌂</span><small>Dashboard</small></a><a href="./admin-manage.html" aria-label="Manage courses and resources"><span aria-hidden="true">▤</span><small>Manage</small></a><a href="./student.html" aria-label="Student view"><span aria-hidden="true">◉</span><small>Student view</small></a></nav>
-<script type="module" src="./assets/js/admin.js"></script></body></html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101827"><title>UNI-VERSE | Admin — Courses</title><link rel="stylesheet" href="./assets/css/styles.css"></head><body>
+<header class="topbar"><a class="brand" href="./admin.html"><span class="brand-mark small">U</span> UNI-VERSE / Admin</a><span id="user-label" class="muted"></span></header>
+<main class="dashboard admin-dashboard"><p class="eyebrow">ADMINISTRATION</p><h1>Add a course</h1><p class="muted">Choose the departments that should have access to this course.</p><section class="section"><h2>Add a course</h2><form id="course-form" class="admin-form"><fieldset class="department-picker"><legend>Departments <span class="muted">Tick every department that should have access to this course.</span></legend><div id="department-options" class="department-options"><p class="muted">Loading departments…</p></div></fieldset><label>Course code<input id="code" required placeholder="e.g. CPE 311"></label><label>Course title<input id="title" required></label><label>Description<textarea id="description" rows="3"></textarea></label><button class="btn primary" type="submit">Add course</button><p id="message" class="message" role="status"></p></form></section></main>
+<script type="module" src="./assets/js/admin-navigation.js"></script><script type="module" src="./assets/js/admin.js"></script></body></html>
