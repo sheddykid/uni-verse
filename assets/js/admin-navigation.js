@@ -14,7 +14,7 @@ if (session && session.profile.role !== "admin") {
     <aside class="student-drawer" id="admin-drawer" aria-label="Administrator navigation" aria-hidden="true">
       <div class="student-drawer-head">
         <div class="student-profile-mark">U</div>
-        <div class="student-profile-copy"><strong>${session.profile.full_name || "Administrator"}</strong><span>UNI-VERSE Admin</span></div>
+        <div class="student-profile-copy"><strong>${session.profile.full_name || "Administrator"}</strong><span>Administration</span></div>
         <button class="student-drawer-close" type="button" aria-label="Close menu">×</button>
       </div>
       <nav class="student-drawer-links" aria-label="Admin pages">
