@@ -490,4 +490,84 @@ if (session && session.profile.role === "admin" && document.querySelector("#vide
   });
 
   await loadVideoCourses();
+
+  const youtubeForm = document.querySelector("#youtube-video-form");
+  if (youtubeForm) {
+    const youtubeCourse = document.querySelector("#youtube-video-course");
+    const youtubeMessage = document.querySelector("#youtube-video-message");
+    const youtubeSubmit = document.querySelector("#youtube-video-submit");
+    const youtubeUrlInput = document.querySelector("#youtube-video-url");
+
+    async function loadYoutubeCourses() {
+      const previous = youtubeCourse.value;
+      const { data, error } = await supabase.from("courses")
+        .select("id,code,title,is_active").eq("is_active", true).order("code");
+      if (error) {
+        youtubeCourse.innerHTML = '<option value="">Could not load courses</option>';
+        showMessage(youtubeMessage, "Could not load courses: " + error.message);
+        return;
+      }
+      youtubeCourse.innerHTML = '<option value="">Select course</option>';
+      (data || []).forEach(course => {
+        const option = document.createElement("option");
+        option.value = course.id;
+        option.textContent = course.code + " — " + course.title;
+        youtubeCourse.append(option);
+      });
+      if ((data || []).some(course => course.id === previous)) youtubeCourse.value = previous;
+    }
+
+    function getYouTubeId(value) {
+      let url;
+      try { url = new URL(value.trim()); } catch { return null; }
+      if (url.protocol !== "https:") return null;
+      const host = url.hostname.toLowerCase().replace(/^www\./, "");
+      let id = null;
+      if (host === "youtu.be") id = url.pathname.split("/").filter(Boolean)[0];
+      else if (["youtube.com", "m.youtube.com", "youtube-nocookie.com"].includes(host)) {
+        const parts = url.pathname.split("/").filter(Boolean);
+        if (url.pathname === "/watch") id = url.searchParams.get("v");
+        else if (["embed", "shorts", "live"].includes(parts[0])) id = parts[1];
+      }
+      return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+    }
+
+    youtubeUrlInput.addEventListener("input", () => {
+      youtubeUrlInput.setCustomValidity(
+        getYouTubeId(youtubeUrlInput.value) ? "" : "Enter a valid YouTube video URL."
+      );
+    });
+
+    youtubeForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const courseId = youtubeCourse.value;
+      const title = document.querySelector("#youtube-video-title").value.trim();
+      const youtubeUrl = youtubeUrlInput.value.trim();
+      const youtubeId = getYouTubeId(youtubeUrl);
+      if (!courseId || !title || !youtubeId) {
+        showMessage(youtubeMessage, "Select a course, enter a title and provide a valid YouTube video URL.");
+        return;
+      }
+      youtubeSubmit.disabled = true;
+      youtubeSubmit.textContent = "Adding…";
+      try {
+        const { error } = await supabase.from("course_video_links").insert({
+          course_id: courseId,
+          title,
+          youtube_url: "https://www.youtube.com/watch?v=" + youtubeId,
+          topic: document.querySelector("#youtube-video-topic").value.trim() || null,
+          description: document.querySelector("#youtube-video-description").value.trim() || null
+        });
+        if (error) throw error;
+        showMessage(youtubeMessage, "YouTube video added and published.", true);
+        youtubeForm.reset();
+      } catch (error) {
+        showMessage(youtubeMessage, error?.message || "The YouTube video could not be added.");
+      } finally {
+        youtubeSubmit.disabled = false;
+        youtubeSubmit.textContent = "Add YouTube video";
+      }
+    });
+    await loadYoutubeCourses();
+  }
 }
