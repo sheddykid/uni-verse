@@ -180,7 +180,7 @@ if (session && session.profile.role !== "admin") {
       const course=resource.courses?.code ? resource.courses.code+" — "+(resource.courses.title||"") : "Course";
       const type=isNotes ? "Note" : resource.assessment_type==="test" ? "Test" : "Examination";
       const details=[type,resource.academic_year,resource.semester ? "Semester "+resource.semester : null,resource.file_name,
-        isNotes && Number(resource.file_size) > 0 ? (Number(resource.file_size) >= 1048576
+        Number(resource.file_size) > 0 ? (Number(resource.file_size) >= 1048576
           ? (Number(resource.file_size)/1048576).toFixed(1)+" MB"
           : Math.max(1,Math.round(Number(resource.file_size)/1024))+" KB") : null].filter(Boolean).join(" · ");
       const status=resource.is_active ? "Active" : "Inactive";
@@ -217,7 +217,12 @@ if (session && session.profile.role !== "admin") {
     if(error){target.textContent=error.message;return;}
     const rows=(data||[]).map(video=>{
       const course=video.courses?.code ? video.courses.code+" — "+(video.courses.title||"") : "Course";
-      const details=[video.topic,video.file_name].filter(Boolean).join(" · ");
+      const sizeLabel = Number(video.file_size) > 0
+        ? (Number(video.file_size) >= 1048576
+          ? (Number(video.file_size)/1048576).toFixed(1)+" MB"
+          : Math.max(1,Math.round(Number(video.file_size)/1024))+" KB")
+        : null;
+      const details=[video.topic,video.file_name,sizeLabel].filter(Boolean).join(" · ");
       const status=video.is_active?"Active":"Inactive";
       const actions=[
         button(video.is_active?"Deactivate":"Activate","secondary",async()=>{
