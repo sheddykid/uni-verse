@@ -152,66 +152,82 @@ const validatedSummary = z.object({
 
 function normalizeSummary(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return value;
-  // Providers sometimes wrap the requested object in a top-level result/summary/data key.
   let source = value;
   for (let depth = 0; depth < 3; depth++) {
     const nested = source.summary || source.studySummary || source.result || source.data;
     if (!nested || typeof nested !== "object" || Array.isArray(nested)) break;
     source = nested;
   }
-  const summary = { ...source };
-  const asText = (...items) => {
-    for (const item of items) {
-      if (typeof item === "string" && item.trim()) return cleanText(item).slice(0, 1200);
-      if (Array.isArray(item)) {
-        const joined = item.filter(part => typeof part === "string" && part.trim()).join("; ");
-        if (joined) return cleanText(joined).slice(0, 1200);
-      }
-    }
+
+  const asText = value => {
+    if (typeof value === "string") return cleanText(value);
+    if (typeof value === "number") return String(value);
     return "";
   };
-  summary.title = (asText(summary.title, summary.topic, summary.name) || "Study Summary").slice(0, 180);
-  summary.overview = asText(summary.overview, summary.summary, summary.description, summary.introduction, summary.keyPoints) || "Review the main concepts and supporting explanations in this course note.";
-  if (summary.overview.length < 20) summary.overview = (summary.overview + " Review the related explanations in the original note.").slice(0, 1800);
-  const sentences = summary.overview.split(/(?<=[.!?])\s+/).map(text => text.trim()).filter(text => text.length > 20);
-  const existingPoints = Array.isArray(summary.keyPoints)
-    ? summary.keyPoints.map(item => asText(item)).filter(Boolean) : [];
-  summary.keyPoints = (existingPoints.length ? existingPoints : sentences).map(point => point.slice(0, 600)).slice(0, 80);
-  if (!summary.keyPoints.length && summary.overview) summary.keyPoints = [summary.overview];
-  const rawSections = Array.isArray(summary.sections) ? summary.sections : Array.isArray(summary.topics) ? summary.topics : [];
-  summary.sections = rawSections.slice(0, 80).map((section, index) => {
-    if (typeof section === "string") {
-      return { heading: "Topic " + (index + 1), summary: section, details: [] };
-    }
-    const item = section && typeof section === "object" ? section : {};
-    const heading = (asText(item.heading, item.title, item.topic, item.name) || "Key topic " + (index + 1)).slice(0, 160);
-    const sectionSummary = asText(item.summary, item.explanation, item.description, item.content, item.text)
-      || summary.keyPoints[index] || summary.overview;
-    const rawDetails = item.details || item.keyPoints || item.points || item.bulletPoints || [];
-    const details = (Array.isArray(rawDetails) ? rawDetails : [rawDetails])
-      .map(detail => asText(detail).slice(0, 600)).filter(Boolean).slice(0, 8);
-    return { heading, summary: sectionSummary || "Review the related key points in this note.", details };
-  }).filter(section => section.heading && section.summary);
-  if (!summary.sections.length && summary.overview) {
-    summary.sections = [{
-      heading: summary.title || "Summary",
-      summary: summary.overview,
-      details: summary.keyPoints.slice(0, 8)
-    }];
+  const pick = (...values) => values.map(asText).find(Boolean) || "";
+  const rawPoints = source.keyPoints || source.key_points || source.mainPoints || source.takeaways;
+  const keyPoints = Array.isArray(rawPoints) ? rawPoints.map(asText).filter(Boolean) : [];
+  const rawSections = source.sections || source.topics || source.topicBreakdown;
+  const sections = Array.isArray(rawSections) ? rawSections.map((item, index) => {
+    if (typeof item === "string") return { heading: "Topic " + (index + 1), summary: item, details: [] };
+    if (!item || typeof item !== "object") return null;
+    const rawDetails = item.details || item.keyPoints || item.points || [];
+    return {
+      heading: pick(item.heading, item.title, item.topic, item.name),
+      summary: pick(item.summary, item.explanation, item.description, item.content, item.text),
+      details: Array.isArray(rawDetails) ? rawDetails.map(asText).filter(Boolean) : []
+    };
+  }).filter(item => item && item.heading && item.summary) : [];
+  const rawTerms = source.keyTerms || source.key_terms || source.terms;
+  const keyTerms = Array.isArray(rawTerms) ? rawTerms.map(item => ({
+    term: pick(item?.term, item?.name),
+    definition: pick(item?.definition, item?.meaning, item?.description)
+  })).filter(item => item.term && item.definition) : [];
+  const rawFormulas = source.formulas || source.equations;
+  const formulas = Array.isArray(rawFormulas) ? rawFormulas.map(item => ({
+    name: pick(item?.name, item?.title),
+    expression: pick(item?.expression, item?.formula),
+    explanation: pick(item?.explanation, item?.description)
+  })).filter(item => item.name && item.expression) : [];
+  const rawChecklist = source.revisionChecklist || source.revision_checklist || source.checklist;
+  const revisionChecklist = Array.isArray(rawChecklist) ? rawChecklist.map(asText).filter(Boolean) : [];
+
+  return {
+    title: pick(source.title, source.topic, source.name),
+    overview: pick(source.overview, source.summaryText, source.description, source.introduction),
+    keyPoints,
+    sections,
+    keyTerms,
+    formulas,
+    revisionChecklist
+  };
+}
+
+function validateSummarySubstance(summary, sourceText) {
+  const placeholder = /review the main concepts and supporting explanations in this course note/i;
+  const content = [
+    summary.overview,
+    ...summary.keyPoints,
+    ...summary.sections.flatMap(section => [section.heading, section.summary, ...section.details]),
+    ...summary.keyTerms.flatMap(item => [item.term, item.definition]),
+    ...summary.formulas.flatMap(item => [item.name, item.expression, item.explanation]),
+    ...summary.revisionChecklist
+  ].join(" ").trim();
+
+  if (placeholder.test(content)) return "The AI returned generic placeholder text instead of summarizing the selected note.";
+  if (content.length < 500 || summary.keyPoints.length < 2 || summary.sections.length < 1 ||
+      summary.revisionChecklist.length < 2 || summary.overview.length < 80) {
+    return "The AI response was too incomplete to be a useful study summary. No summary was saved.";
   }
-  summary.keyTerms = Array.isArray(summary.keyTerms) ? summary.keyTerms.map(item => ({
-    term: asText(item?.term, item?.name).slice(0, 120), definition: asText(item?.definition, item?.meaning, item?.description).slice(0, 500)
-  })).filter(item => item.term && item.definition).slice(0, 100) : [];
-  summary.formulas = Array.isArray(summary.formulas) ? summary.formulas.map(item => ({
-    name: (asText(item?.name, item?.title) || "Formula").slice(0, 120),
-    expression: asText(item?.expression, item?.formula).slice(0, 240),
-    explanation: asText(item?.explanation, item?.description).slice(0, 500)
-  })).filter(item => item.expression).slice(0, 60) : [];
-  const checklist = Array.isArray(summary.revisionChecklist)
-    ? summary.revisionChecklist.map(item => asText(item)).filter(Boolean) : [];
-  summary.revisionChecklist = (checklist.length ? checklist : summary.keyPoints.slice(0, 8)
-     .map(point => "Review and be able to explain: " + point)).map(item => item.slice(0, 400)).slice(0, 80);
-  return summary;
+
+  const sourceWords = new Set((sourceText.toLowerCase().match(/[a-z0-9]{4,}/g) || []));
+  const summaryWords = (content.toLowerCase().match(/[a-z0-9]{4,}/g) || []);
+  const meaningfulWords = summaryWords.filter(word => sourceWords.has(word));
+  const overlap = summaryWords.length ? meaningfulWords.length / summaryWords.length : 0;
+  if (meaningfulWords.length < 12 || overlap < 0.08) {
+    return "The AI response did not contain enough terminology from the selected note. No summary was saved.";
+  }
+  return null;
 }
 
 function parseGeminiText(result) {
@@ -442,10 +458,16 @@ export default async function handler(req, res) {
     const fullText = sourceParts.join("\n\n---\n\n");
     const generated = await generateNoteSummary(fullText, course, log);
     const normalized = normalizeSummary(generated.result);
+    const substanceError = normalized && typeof normalized === "object"
+      ? validateSummarySubstance(normalized, fullText) : "The AI response was not a structured summary.";
+    if (substanceError) {
+      log("summary_substance_validation_failed", { provider: generated.provider, reason: substanceError, inputCharacters: totalText });
+      return respond(res, 502, { error: substanceError });
+    }
     const parsed = validatedSummary.safeParse(normalized);
     if (!parsed.success) {
       log("summary_validation_failed", { provider: generated.provider, issues: parsed.error.issues.slice(0, 8).map(issue => ({ path: issue.path.join("."), code: issue.code })) });
-      return respond(res, 502, { error: "The AI returned a summary in an invalid format. Please try again." });
+      return respond(res, 502, { error: "The AI returned an incomplete summary structure. No summary was saved." });
     }
     log("summary_generated", { provider: generated.provider, courseId, noteCount: resources.length, inputCharacters: totalText, chunkCount: generated.chunkCount });
     return respond(res, 200, {
