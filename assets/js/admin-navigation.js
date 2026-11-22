@@ -29,6 +29,7 @@ if (session && session.profile.role !== "admin") {
   topbar.prepend(mount);
   const $ = selector => mount.querySelector(selector);
   const trigger = $(".student-menu-trigger"), drawer = $(".student-drawer"), backdrop = $(".student-drawer-backdrop");
+  window.mountThemeMenuItem?.(drawer);
   function setDrawer(open) {
     drawer.classList.toggle("is-open", open);
     drawer.setAttribute("aria-hidden", String(!open));
