@@ -152,7 +152,14 @@ const validatedSummary = z.object({
 
 function normalizeSummary(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return value;
-  const summary = { ...value };
+  // Providers sometimes wrap the requested object in a top-level result/summary/data key.
+  let source = value;
+  for (let depth = 0; depth < 3; depth++) {
+    const nested = source.summary || source.studySummary || source.result || source.data;
+    if (!nested || typeof nested !== "object" || Array.isArray(nested)) break;
+    source = nested;
+  }
+  const summary = { ...source };
   const asText = (...items) => {
     for (const item of items) {
       if (typeof item === "string" && item.trim()) return cleanText(item).slice(0, 1200);
@@ -220,7 +227,7 @@ async function callGemini(prompt, log) {
   try {
     response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
       method: "POST",
-      signal: AbortSignal.timeout(18000),
+      signal: AbortSignal.timeout(35000),
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
         model: process.env.GEMINI_MODEL || "gemini-3.6-flash",
@@ -231,6 +238,7 @@ async function callGemini(prompt, log) {
       })
     });
   } catch (error) {
+    log("gemini_request_failed", { reason: error?.name || "network_error" });
     const failure = new Error(error?.name === "TimeoutError" || error?.name === "AbortError"
       ? "Gemini timed out while preparing the summary." : "Gemini could not be reached.");
     failure.statusCode = 503;
@@ -239,13 +247,17 @@ async function callGemini(prompt, log) {
   }
   const result = await response.json().catch(() => ({}));
   if (!response.ok) {
-    log("gemini_http_error", { status: response.status });
+    log("gemini_http_error", {
+      status: response.status,
+      message: typeof result?.error?.message === "string" ? result.error.message.slice(0, 300) : undefined
+    });
     const error = new Error(`Gemini returned HTTP ${response.status}.`);
     error.statusCode = response.status;
     error.retryable = response.status === 429 || response.status >= 500;
     throw error;
   }
   if (result.status && result.status !== "completed") {
+    log("gemini_incomplete", { status: result.status, error: result.error?.message?.slice?.(0, 300) });
     const error = new Error("Gemini did not complete the summary.");
     error.statusCode = 503;
     error.retryable = true;
@@ -274,7 +286,7 @@ async function callGroq(prompt, log) {
           { role: "user", content: prompt }
         ],
         reasoning_effort: "low",
-        max_completion_tokens: 3500,
+        max_completion_tokens: 1500,
         response_format: { type: "json_object" }
       })
     });
