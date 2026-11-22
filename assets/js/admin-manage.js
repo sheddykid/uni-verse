@@ -451,7 +451,7 @@ if (session && session.profile.role !== "admin") {
         if (nextUrl === null) return;
         let parsed;
         try { parsed = new URL(nextUrl.trim()); } catch {}
-        const host = parsed?.hostname?.toLowerCase().replace(/^www\\./, "");
+        const host = parsed?.hostname?.toLowerCase().replace(/^www\./, "");
         const parts = parsed?.pathname?.split("/").filter(Boolean) || [];
         const id = host === "youtu.be" ? parts[0]
           : ["youtube.com", "m.youtube.com", "youtube-nocookie.com"].includes(host)
