@@ -15,26 +15,28 @@
 - **Email confirmation:** New accounts must confirm their email address before signing in. The sign-in page also provides a way to resend a confirmation email when needed.
 - **Secure sign-in and sign-out:** Supabase Authentication manages student sessions.
 - **Department-based course listing:** Students see active courses assigned to their registered department.
-- **Feature hub:** The student dashboard links to dedicated pages for notes, past questions, quizzes, flashcards and video tutorials.
-- **Learning resources:** Notes, past questions and video tutorials have dedicated pages, with course filtering and test/exam filtering for past questions.
+- **Feature hub:** The student dashboard links to dedicated pages for notes, past questions, quizzes, flashcards, AI Note Summarizer, and video tutorials.
+- **Learning resources:** Notes, past questions, uploaded videos and YouTube videos have dedicated searchable pages. Notes and past questions are course-filtered; past questions also support Test/Exam filtering. Video Tutorials in the student navigation drawer separates uploaded videos from YouTube videos.
 - **Past-question details:** Resources can identify test or examination questions and optionally include the academic year and semester.
 - **Downloads and video playback:** Students can download course files and stream course-specific videos. Image-based past questions can also be previewed in the dashboard.
-- **AI flashcards:** Students can select a course and up to five uploaded notes to generate interactive question-and-answer revision cards through the Gemini API from the authenticated Vercel serverless endpoint. Only active course notes are eligible; past questions are excluded.
+- **AI flashcards:** Students can select a course and up to five uploaded notes to generate interactive question-and-answer revision cards through the authenticated Vercel serverless endpoint. Only active course notes are eligible; past questions are excluded.
+- **AI quizzes and note summaries:** Dedicated quiz and AI Note Summarizer workflows use course-specific learning materials. Students can revisit available quiz and summary history from their history pages.
 - **Password recovery:** Students can request a password-reset email and set a new password through the recovery link.
 
 ### Administrator features
 - **Restricted administrator sign-in:** The administrator login checks the account's role before allowing access to the admin dashboard.
 - **Course creation:** Administrators can add a course code, title and description, and assign the course to one or more departments.
-- **Resource uploads:** Administrators can upload notes, past questions and course videos to a selected course.
+- **Resource uploads:** Administrators use separate pages to create courses, upload notes/past questions, and upload videos or add YouTube links.
 - **Supported files:** Notes accept PDF, DOCX and PPTX. Past questions accept PDF, DOCX, PPTX, JPG, PNG and WEBP.
 - **Upload validation:** Notes and past-question files are limited to 50 MB. Video uploads accept MP4, WEBM and MOV up to 5 GiB and use resumable multipart transfers.
 - **Course management:** Administrators can edit course titles, activate or deactivate courses, and delete courses with their associated resource records and stored files.
-- **Resource management:** Administrators can edit resource titles and descriptions, publish or hide resources, and delete resources and videos.
+- **Resource management:** The searchable Manage Courses & Resources page has separate tables for courses, notes, past questions, uploaded videos and YouTube videos. Administrators can edit, activate/deactivate, hide/show and delete the relevant records. Admin tables show file sizes for notes, past questions and uploaded videos.
 - **Course-list refresh:** The upload form has a dedicated refresh control to reload the course dropdown without refreshing the whole page.
-- **Student preview:** Administrators can open the student dashboard to view the student-facing experience.
+- **Student preview:** Administrators can open the student dashboard from the admin navigation menu to view the student-facing experience.
+- **Department organization:** Course assignment is grouped by college, with expandable department/programme options and college-level selection.
 
-### Planned learning tools
-The video tutorial library supports admin uploads, course-based access, search, playback and admin management. Quiz generation is implemented separately.
+### Video tutorials
+The video library supports uploaded course videos and YouTube links as separate student-facing searchable pages. Uploaded videos are stored privately in Cloudflare R2 (with legacy Supabase Storage paths still supported); YouTube videos are embedded in the platform when the video owner permits external embedding. Administrators can hide/show YouTube entries and manage uploaded videos separately.
 
 ---
 
@@ -50,9 +52,12 @@ The video tutorial library supports admin uploads, course-based access, search, 
 | `past-questions.html` | Past questions browser with test/exam filters |
 | `quizzes.html` | AI quiz generation and practice |
 | `flashcards.html` | AI flashcard generator and interactive study deck (Vercel deployment) |
-| `videos.html` | Course video search and playback |
-| `admin.html` | Create courses and upload resources |
-| `admin-manage.html` | Manage courses, uploaded resources and videos |
+| `videos.html` | Search and play uploaded course videos |
+| `youtube-videos.html` | Search and play embedded YouTube tutorials |
+| `admin.html` | Create courses |
+| `admin-resources.html` | Upload notes and past questions |
+| `admin-videos.html` | Upload videos and add YouTube links |
+| `admin-manage.html` | Search and manage courses, notes, past questions, uploaded videos and YouTube videos |
 | `reset-password.html` | Request a password-reset email |
 | `update-password.html` | Set a new password from a valid recovery link |
 
@@ -222,7 +227,7 @@ For GitHub Pages deployment, ensure GitHub Pages is configured to use **GitHub A
 
 ## 10. Current scope and limitations
 
-- UNI-VERSE includes authentication, department-based course access, course administration, downloadable learning resources and AI flashcard generation.
+- UNI-VERSE includes authentication, college/department-based course assignment, course administration, notes and past questions, uploaded and YouTube video tutorials, AI flashcards, quizzes and AI note summaries.
 - AI flashcards require the Vercel deployment because GitHub Pages does not run the `/api/flashcards` serverless function. The Gemini API key is stored as a Vercel environment variable and is never exposed to the browser.
 - Video tutorials support resumable Cloudflare R2 uploads, course-based access, search, playback and admin management. Quiz generation is implemented separately.
 - The frontend validates supported file extensions and file size, but backend Storage policies must also enforce appropriate access and upload restrictions.
@@ -463,3 +468,43 @@ The user confirmed that course video playback works on the production site after
 
 - CSP diagnostics: [073a44b](https://github.com/sheddykid/uni-verse/commit/073a44b0308d6de1608a83f5cf2a0538749c5ea4)
 - Prevent stale video-page CSP caching: [016cb48](https://github.com/sheddykid/uni-verse/commit/016cb487e5a8ef1a5da64dad688756fb324e6245)
+
+
+## 13. Admin/student interface update and verification boundary (2026-11-22)
+
+### Student interface
+
+- Student navigation uses a hamburger drawer. Video Tutorials expands into separate Uploaded Videos and YouTube Videos destinations.
+- Uploaded videos and YouTube tutorials have separate searchable pages. YouTube links play through an embedded player when the video owner allows embedding.
+- Student-facing video pages do not display uploaded-video file sizes. Course-note file sizes remain visible; past-question and video sizes are not shown to students.
+- Course loading and student-page initialization fixes were committed after a reported issue where removal of the old top-bar Sign Out control left scripts attempting to attach listeners to a missing element. Affected workflows include course selection in AI Note Summarizer, quizzes and flashcards, notes, past questions, and history views.
+
+### Admin interface
+
+- Admin tasks are separated into course creation, notes/past-question upload, video/YouTube upload, and Manage Courses & Resources pages.
+- Admin navigation is a hamburger menu. The UNI-VERSE brand is centered and no longer includes an `/ Admin` suffix. Student View is available from the admin menu.
+- College groups expand to show their department/programme options. College selection selects the child options; department totals and redundant picker labels were removed.
+- Manage Resources uses shortened department labels and Active/Inactive status wording. YouTube entries have Hide/Show controls.
+- Admin resource tables show file sizes for notes, past questions and uploaded videos. This is intentionally different from the student-facing video pages.
+
+### YouTube fullscreen
+
+The embedded iframe requests fullscreen permission and the player container has viewport-sized fullscreen CSS. A user-reported mobile screenshot showed the player in a portrait viewport; device-level fullscreen behavior still needs testing on the target phone/browser. Videos are 16:9, so black space may remain in portrait orientation.
+
+### Source and deployment status
+
+- Latest related UI commits include [admin branding cleanup](https://github.com/sheddykid/uni-verse/commit/5bc448928abce71c84df2c31ade2eab77a3cdf58) and [admin file-size restoration](https://github.com/sheddykid/uni-verse/commit/b7c93f847b8826cc85529955403f965193a50420). The video, fullscreen, navigation and student loading fixes are also in the current `main` history.
+- Vercel deployment API currently returns HTTP 402 because the free-tier daily deployment API limit (more than 100 calls in 24 hours) has been exceeded. Vercel reported a 24-hour retry window.
+- GitHub source updates are committed, but this latest UI revision is not confirmed deployed to the Vercel production alias. Do not describe the latest fixes as production-verified until deployment reaches READY and the affected student/admin flows are retested.
+
+### Post-deployment regression checklist
+
+- [ ] Confirm uploaded-video and YouTube-video lists load and search correctly for students.
+- [ ] Confirm YouTube embedding works for embeddable videos and the fullscreen control behaves correctly on Android portrait and landscape.
+- [ ] Confirm students do not see video file sizes, while note file sizes remain visible.
+- [ ] Confirm admin tables show file sizes for notes, past questions and uploaded videos.
+- [ ] Confirm course choices load in AI Note Summarizer, Quizzes and Flashcards.
+- [ ] Confirm notes, past questions, quiz history and summary history load for an authenticated student.
+- [ ] Confirm YouTube Hide/Show works from Manage Resources and hidden videos are not shown to students.
+- [ ] Confirm admin branding, department abbreviations, college expand/collapse and Active/Inactive labels on mobile and desktop.
+- [ ] Deploy the latest `main` revision to Vercel and record the exact READY deployment SHA.
