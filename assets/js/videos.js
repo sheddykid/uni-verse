@@ -125,7 +125,7 @@ if (session) {
       let url;
       try { url = new URL(value); } catch { return null; }
       if (url.protocol !== "https:") return null;
-      const host = url.hostname.toLowerCase().replace(/^www\\./, "");
+      const host = url.hostname.toLowerCase().replace(/^www\./, "");
       let id = null;
       if (host === "youtu.be") id = url.pathname.split("/").filter(Boolean)[0];
       else if (["youtube.com", "m.youtube.com", "youtube-nocookie.com"].includes(host)) {
