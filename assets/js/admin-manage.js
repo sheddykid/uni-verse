@@ -173,13 +173,16 @@ if (session && session.profile.role !== "admin") {
     const targetId = isNotes ? "notes-table" : "questions-table";
     const searchId = isNotes ? "notes-search" : "questions-search";
     const { data, error } = await supabase.from("course_resources")
-      .select("id,course_id,title,description,resource_type,assessment_type,academic_year,semester,file_name,file_path,is_active,created_at,courses(code,title)")
+      .select("id,course_id,title,description,resource_type,assessment_type,academic_year,semester,file_name,file_path,file_size,is_active,created_at,courses(code,title)")
       .eq("resource_type",kind).order("created_at",{ascending:false});
     if(error){document.querySelector("#"+targetId).textContent=error.message;return;}
     const rows=(data||[]).map(resource=>{
       const course=resource.courses?.code ? resource.courses.code+" — "+(resource.courses.title||"") : "Course";
       const type=isNotes ? "Note" : resource.assessment_type==="test" ? "Test" : "Examination";
-      const details=[type,resource.academic_year,resource.semester ? "Semester "+resource.semester : null,resource.file_name].filter(Boolean).join(" · ");
+      const details=[type,resource.academic_year,resource.semester ? "Semester "+resource.semester : null,resource.file_name,
+        isNotes && Number(resource.file_size) > 0 ? (Number(resource.file_size) >= 1048576
+          ? (Number(resource.file_size)/1048576).toFixed(1)+" MB"
+          : Math.max(1,Math.round(Number(resource.file_size)/1024))+" KB") : null].filter(Boolean).join(" · ");
       const status=resource.is_active ? "Active" : "Inactive";
       const actions=[
         button(resource.is_active?"Deactivate":"Activate","secondary",async()=>{
@@ -214,7 +217,7 @@ if (session && session.profile.role !== "admin") {
     if(error){target.textContent=error.message;return;}
     const rows=(data||[]).map(video=>{
       const course=video.courses?.code ? video.courses.code+" — "+(video.courses.title||"") : "Course";
-      const details=[video.topic,video.file_name,(video.file_size/1048576).toFixed(1)+" MB"].filter(Boolean).join(" · ");
+      const details=[video.topic,video.file_name].filter(Boolean).join(" · ");
       const status=video.is_active?"Active":"Inactive";
       const actions=[
         button(video.is_active?"Deactivate":"Activate","secondary",async()=>{
@@ -252,7 +255,7 @@ if (session && session.profile.role !== "admin") {
       const details=[video.topic,video.youtube_url].filter(Boolean).join(" · ");
       const status=video.is_active?"Active":"Inactive";
       const actions=[
-        button(video.is_active?"Deactivate":"Activate","secondary",async()=>{
+        button(video.is_active?"Hide":"Show","secondary",async()=>{
           const {error}=await supabase.from("course_video_links").update({is_active:!video.is_active}).eq("id",video.id);
           if(error)alert(error.message);await loadYoutubeVideos();
         }),
