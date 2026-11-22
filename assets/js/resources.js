@@ -7,7 +7,7 @@ const courseFilter = $("#course-filter");
 const assessmentFilter = $("#assessment-filter");
 const searchInput = $("#resource-search");
 
-$("#logout").addEventListener("click", signOut);
+$("#logout")?.addEventListener("click", signOut);
 const session = await requireProfile();
 if (!session) throw new Error("Authentication required.");
 
@@ -52,7 +52,7 @@ async function loadPage() {
   }
 
   const { data: resourceData, error: resourceError } = await supabase.from("course_resources")
-    .select("id,course_id,title,description,resource_type,assessment_type,academic_year,semester,file_name,file_path,file_size,mime_type,created_at")
+    .select("id,course_id,title,description,resource_type,assessment_type,academic_year,semester,file_name,file_path,mime_type,created_at")
     .eq("is_active", true)
     .eq("resource_type", pageType)
     .in("course_id", courses.map(course => course.id))
