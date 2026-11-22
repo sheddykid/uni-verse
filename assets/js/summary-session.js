@@ -1,25 +1,47 @@
 import { supabase, requireProfile, signOut } from "./supabase.js";
 
 const $ = selector => document.querySelector(selector);
-$("#logout").addEventListener("click", signOut);
+$("#logout")?.addEventListener("click", signOut);
 
 const session = await requireProfile();
 if (session) {
   const { profile, user } = session;
   $("#user-label").textContent = profile.full_name || user.email;
-  let result = null;
-  try {
-    result = JSON.parse(sessionStorage.getItem("universeActiveSummary") || "null");
-  } catch {
-    result = null;
+  const summaryId = new URLSearchParams(location.search).get("id");
+  const empty = $("#summary-empty");
+  const resultSection = $("#summary-result");
+
+  if (!summaryId) {
+    showEmpty("This summary link is incomplete. Open it from Summary history.");
+  } else {
+    const { data: record, error } = await supabase.from("note_summary_history")
+      .select("id,course_code,course_title,source_title,pdf_path,summary_data,created_at")
+      .eq("id", summaryId).eq("user_id", user.id).eq("status", "ready").single();
+
+    if (error || !record) {
+      showEmpty("This saved summary could not be found. It may have been removed or may not belong to your account.");
+    } else if (!record.summary_data?.summary) {
+      showEmpty("This older summary has a saved PDF but no on-page copy. Open Summary history to download it.");
+      $("#summary-empty").querySelector("p").insertAdjacentHTML("afterend",
+        '<p><a class="btn secondary" href="./summary-history.html">Open summary history</a></p>');
+    } else {
+      const result = record.summary_data;
+      result.historyPdfPath = record.pdf_path;
+      renderSummary(result, record);
+    }
   }
 
-  if (!result?.summary || !result?.course) {
-    $("#summary-empty").hidden = false;
-  } else {
+  function showEmpty(message) {
+    empty.hidden = false;
+    empty.querySelector("p").textContent = message;
+  }
+
+  function renderSummary(result, record) {
     const summary = result.summary;
-    $("#summary-title").textContent = summary.title || "Study summary";
-    $("#summary-meta").textContent = `${result.course.code} — ${result.course.title} · ${(result.sources || []).join(", ")} · ${result.provider} AI${result.sampled ? " · long notes sampled to fit the AI context limit" : ""}`;
+    $("#summary-title").textContent = summary.title || record.source_title || "Study summary";
+    $("#summary-meta").textContent = record.course_code + " — " + record.course_title +
+      " · " + record.source_title + " · " + (result.provider || "AI") +
+      " · Saved " + new Date(record.created_at).toLocaleString();
     $("#summary-overview").textContent = summary.overview || "";
     fillList($("#summary-key-points"), summary.keyPoints);
     fillList($("#summary-checklist"), summary.revisionChecklist);
@@ -68,24 +90,26 @@ if (session) {
       formulas.append(article);
     });
     $("#summary-formulas-block").hidden = !summary.formulas?.length;
-    $("#summary-result").hidden = false;
+    resultSection.hidden = false;
 
     $("#copy-summary").addEventListener("click", async () => {
+      const button = $("#copy-summary");
       try {
-        await navigator.clipboard.writeText(toPlainText(result));
-        $("#copy-summary").textContent = "Copied";
-        setTimeout(() => { $("#copy-summary").textContent = "Copy text"; }, 1600);
+        await navigator.clipboard.writeText(toPlainText(result, record));
+        button.textContent = "Copied";
+        setTimeout(() => { button.textContent = "Copy text"; }, 1600);
       } catch {
-        $("#copy-summary").textContent = "Copy unavailable";
+        button.textContent = "Copy unavailable";
       }
     });
+
     $("#download-summary-pdf").addEventListener("click", async () => {
       const button = $("#download-summary-pdf");
-      if (!result.historyPdfPath) { button.textContent = "PDF unavailable"; return; }
+      if (!record.pdf_path) { button.textContent = "PDF unavailable"; return; }
       button.disabled = true;
       button.textContent = "Preparing…";
       const { data, error } = await supabase.storage.from("summary-pdfs")
-        .createSignedUrl(result.historyPdfPath, 60, { download: (summary.title || "study-summary") + ".pdf" });
+        .createSignedUrl(record.pdf_path, 60, { download: (summary.title || "study-summary") + ".pdf" });
       if (error || !data?.signedUrl) {
         button.textContent = "Download unavailable";
       } else {
@@ -97,6 +121,8 @@ if (session) {
       }
       button.disabled = false;
     });
+
+    $("#print-summary").addEventListener("click", () => window.print());
   }
 }
 
@@ -109,29 +135,29 @@ function fillList(root, items) {
   });
 }
 
-function toPlainText(result) {
+function toPlainText(result, record) {
   const s = result.summary;
   return [
     s.title,
-    `${result.course.code} — ${result.course.title}`,
-    `Source notes: ${(result.sources || []).join(", ")}`,
+    record.course_code + " — " + record.course_title,
+    "Source note: " + record.source_title,
     "",
     "OVERVIEW",
     s.overview,
     "",
     "KEY POINTS",
-    ...(s.keyPoints || []).map(value => `• ${value}`),
+    ...(s.keyPoints || []).map(value => "• " + value),
     "",
     "TOPIC BREAKDOWN",
-    ...(s.sections || []).flatMap(section => [section.heading, section.summary, ...(section.details || []).map(value => `• ${value}`)]),
+    ...(s.sections || []).flatMap(section => [section.heading, section.summary, ...(section.details || []).map(value => "• " + value)]),
     "",
     "KEY TERMS",
-    ...(s.keyTerms || []).map(item => `${item.term}: ${item.definition}`),
+    ...(s.keyTerms || []).map(item => item.term + ": " + item.definition),
     "",
     "FORMULAS AND EQUATIONS",
-    ...(s.formulas || []).flatMap(item => [`${item.name}: ${item.expression}`, item.explanation]),
+    ...(s.formulas || []).flatMap(item => [item.name + ": " + item.expression, item.explanation]),
     "",
     "REVISION CHECKLIST",
-    ...(s.revisionChecklist || []).map(value => `□ ${value}`)
+    ...(s.revisionChecklist || []).map(value => "□ " + value)
   ].join("\n");
 }
