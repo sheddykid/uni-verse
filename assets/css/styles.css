@@ -307,8 +307,7 @@ html[data-theme="dark"] .progress-track{background:#29364c}
 html[data-theme="dark"] .flashcard{color:var(--text)}
 html[data-theme="dark"] .brand-panel{background:#080e1b}
 html[data-theme="dark"] .form-card{box-shadow:0 18px 55px #0004}
-.theme-switcher{position:fixed;z-index:1200;right:16px;bottom:16px;display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid #dce1eb;border-radius:999px;background:#fff;color:#172033;box-shadow:0 6px 24px #17203322;font:600 13px/1.2 inherit}
-.theme-switcher button{border:0;border-radius:999px;padding:8px 11px;background:transparent;color:inherit;font:inherit;cursor:pointer}
-.theme-switcher button[aria-pressed="true"]{background:#5365e8;color:#fff}
-html[data-theme="dark"] .theme-switcher{background:#151e30;color:#e7ecf6;border-color:#35435b;box-shadow:0 6px 24px #0006}
-@media(max-width:600px){.theme-switcher{right:10px;bottom:10px}}
+
+/* Theme switch lives inside the student and admin navigation drawers. */
+.student-drawer-theme{display:block;width:calc(100% - 32px);margin:14px 16px 8px;padding:12px 14px;border:1px solid var(--border,#e7eaf1);border-radius:10px;background:var(--surface-soft,#fbfcff);color:var(--text,#172033);font:600 .9rem inherit;text-align:left;cursor:pointer}
+html[data-theme="dark"] .student-drawer-theme{background:#202d45;border-color:#35435b;color:#e7ecf6}
