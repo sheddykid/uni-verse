@@ -50,6 +50,7 @@ if (session) {
   // The trigger is moved from the mount into the top bar above, so query it from the document.
   const trigger = document.querySelector(".topbar .student-menu-trigger");
   const drawer = $(".student-drawer");
+  window.mountThemeMenuItem?.(drawer);
   const backdrop = $(".student-drawer-backdrop");
   const profile = session.profile;
   $(".student-profile-name").textContent = profile.full_name || "Student";
