@@ -32,7 +32,8 @@ document.querySelector("#logout").addEventListener("click", signOut);
 const session = await requireProfile();
 
 if (session) {
-  document.querySelector("#user-label").textContent = session.profile.full_name || session.user.email;
+  const userLabel = document.querySelector("#user-label");
+  if (userLabel) userLabel.textContent = session.profile.full_name || session.user.email;
   const searchInput = document.querySelector("#video-search");
   const courseFilter = document.querySelector("#video-course-filter");
   const target = document.querySelector("#video-list");
@@ -106,10 +107,11 @@ if (session) {
     target.textContent = "Video tutorials could not be loaded. " + loadError.message;
     count.textContent = "Video library unavailable";
   } else {
-    const videos = [
-      ...(uploadedResult.data || []).map(video => ({ ...video, source: "upload" })),
-      ...(youtubeResult.data || []).map(video => ({ ...video, source: "youtube" }))
-    ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    const videoSourceFilter = document.body.dataset.videoSource || "upload";
+    const videos = (videoSourceFilter === "youtube"
+      ? (youtubeResult.data || []).map(video => ({ ...video, source: "youtube" }))
+      : (uploadedResult.data || []).map(video => ({ ...video, source: "upload" }))
+    ).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     const courses = new Map();
     videos.forEach(video => {
       if (video.courses && !courses.has(video.course_id)) courses.set(video.course_id, video.courses);
