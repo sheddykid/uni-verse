@@ -1,4 +1,4 @@
-import { supabase, requireProfile, signOut, showMessage } from "./supabase.js";
+import { supabase, requireProfile, showMessage } from "./supabase.js";
 
 const session = await requireProfile();
 
