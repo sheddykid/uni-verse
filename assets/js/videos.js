@@ -222,6 +222,27 @@ if (session) {
           frame.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen";
           frame.referrerPolicy = "strict-origin-when-cross-origin";
           frame.allowFullscreen = true;
+          // When YouTube enters native fullscreen on Android, request landscape so
+          // a 16:9 video uses the phone's wide viewport instead of portrait letterboxing.
+          let landscapeLockRequested = false;
+          const syncYoutubeFullscreenOrientation = async () => {
+            const fullscreenFrame = document.fullscreenElement || document.webkitFullscreenElement;
+            if (fullscreenFrame === frame) {
+              if (screen.orientation?.lock) {
+                try {
+                  await screen.orientation.lock("landscape");
+                  landscapeLockRequested = true;
+                } catch (error) {
+                  console.info("[UNI-VERSE YouTube fullscreen] Landscape lock unavailable:", error?.name || error);
+                }
+              }
+            } else if (landscapeLockRequested) {
+              try { screen.orientation?.unlock?.(); } catch {}
+              landscapeLockRequested = false;
+            }
+          };
+          document.addEventListener("fullscreenchange", syncYoutubeFullscreenOrientation);
+          document.addEventListener("webkitfullscreenchange", syncYoutubeFullscreenOrientation);
           frame.hidden = true;
           const actions = document.createElement("div");
           actions.className = "video-card-actions";
