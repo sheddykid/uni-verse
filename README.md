@@ -1,6 +1,5 @@
 # UNI-VERSE
 
-- **Project documentation (Notion):** [UNI-VERSE Project Hub](https://app.notion.com/p/41de122efc64815faefbd04825255a88) — project decisions, implementation notes, verification status and outstanding work.
 
 
 **UNI-VERSE** is a web-based learning platform for Covenant University students. It brings course information and academic learning materials into one place, allowing students to access notes and past questions for courses assigned to their department. Administrators manage departments' course catalogues and publish learning resources through a separate content-management area.
