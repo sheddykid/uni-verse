@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101827"><title>UNI-VERSE | Study Summary</title><link rel="stylesheet" href="./assets/css/styles.css"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101827"><title>UNI-VERSE | Study Summary</title><link rel="stylesheet" href="./assets/css/styles.css"><style>@media print{.topbar,.back-link,.summary-result-actions,#logout{display:none!important}body{background:#fff!important;color:#111!important}.dashboard{max-width:100%!important;padding:0!important;margin:0!important}.summary-result{display:block!important;box-shadow:none!important;border:0!important;padding:0!important}.summary-topic,.summary-overview{break-inside:avoid}a{color:#111!important}}</style></head>
 <body>
 <header class="topbar"><a class="brand" href="./student.html"><span class="brand-mark small">U</span> UNI-VERSE</a><div><span id="user-label" class="muted"></span></div></header>
 <main class="dashboard summary-dashboard">
 <a class="back-link" href="./note-summarizer.html">← Back to summary generator</a>
 <div id="summary-empty" class="flashcard-panel" hidden><h1>No active summary</h1><p class="muted">Generate a summary first, then it will appear here.</p><a class="btn primary" href="./note-summarizer.html">Open AI summarizer</a></div>
 <section id="summary-result" class="summary-result" hidden aria-live="polite">
-<div class="summary-result-head"><div><p class="eyebrow">YOUR STUDY SUMMARY</p><h1 id="summary-title"></h1><p id="summary-meta" class="muted"></p></div><div class="summary-result-actions"><button id="copy-summary" class="btn secondary" type="button">Copy text</button><button id="download-summary-pdf" class="btn secondary" type="button">Download PDF</button></div></div>
+<div class="summary-result-head"><div><p class="eyebrow">YOUR STUDY SUMMARY</p><h1 id="summary-title"></h1><p id="summary-meta" class="muted"></p></div><div class="summary-result-actions"><button id="copy-summary" class="btn secondary" type="button">Copy text</button><button id="print-summary" class="btn secondary" type="button">Print / Save as PDF</button><button id="download-summary-pdf" class="btn primary" type="button">Download PDF</button></div></div>
 <article class="summary-overview"><h3>Overview</h3><p id="summary-overview"></p></article>
 <section class="summary-block"><h3>Key points</h3><ul id="summary-key-points"></ul></section>
 <section class="summary-block"><h3>Topic breakdown</h3><div id="summary-sections" class="summary-sections"></div></section>
