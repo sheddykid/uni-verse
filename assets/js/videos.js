@@ -298,8 +298,7 @@ if (session) {
             body.append(error);
           }
           const storageDetail = playbackDiagnostics
-            ? " R2 check: " + (playbackDiagnostics.rangeSupported ? "byte-range OK" : "byte-range failed") +
-              "; stored size " + (Number(playbackDiagnostics.contentLength || 0) / 1048576).toFixed(1) + " MB."
+            ? " R2 playback check: " + (playbackDiagnostics.rangeSupported ? "byte-range OK." : "byte-range failed.")
             : "";
           const browserDetail = browserAccessDiagnostics
             ? "\\nBrowser R2 access test: " + JSON.stringify(browserAccessDiagnostics)
