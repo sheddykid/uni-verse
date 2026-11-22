@@ -38,16 +38,16 @@ if (session && session.profile.role !== "admin") {
       departmentOptions.textContent = "Could not load departments. Refresh the page and try again.";
     } else {
       const faculties = [
-        ["College of Engineering", ["Civil Engineering", "Electrical and Information Engineering", "Mechanical Engineering", "Petroleum Engineering", "Chemical Engineering", "Mechatronics Engineering"], "departments / programmes"],
-        ["College of Science and Technology", ["Architecture", "Building Technology", "Estate Management", "Biological Sciences", "Biochemistry", "Chemistry", "Computer and Information Sciences", "Mathematics", "Physics", "Quantity Surveying"], "departments / programmes"],
+        ["College of Engineering", ["Civil Engineering", "Electrical and Information Engineering", "Mechanical Engineering", "Petroleum Engineering", "Chemical Engineering", "Mechatronics Engineering"]],
+        ["College of Science and Technology", ["Architecture", "Building Technology", "Estate Management", "Biological Sciences", "Biochemistry", "Chemistry", "Computer and Information Sciences", "Mathematics", "Physics", "Quantity Surveying"]],
         ["College of Management and Social Sciences", ["Accounting", "Banking and Finance", "Business Management", "Economics", "Mass Communication", "Sociology"]],
         ["College of Leadership and Development Studies", ["Political Science and International Relations", "Psychology", "Languages and General Studies", "Leadership Studies"]],
-        ["College of Health Sciences", ["Anatomy", "Medical Laboratory Science", "Medicine and Surgery", "Nursing Science", "Physiology"], "programmes"],
-        ["College of Law", ["Law"], "programme"]
+        ["College of Health Sciences", ["Anatomy", "Medical Laboratory Science", "Medicine and Surgery", "Nursing Science", "Physiology"]],
+        ["College of Law", ["Law"]]
       ];
       departmentOptions.replaceChildren();
       const byName = new Map((departments || []).map(item => [item.name, item]));
-      faculties.forEach(([facultyName, names, unitLabel = "departments"]) => {
+      faculties.forEach(([facultyName, names]) => {
         const available = names.map(name => byName.get(name)).filter(Boolean);
         const group = document.createElement("details");
         group.className = "faculty-picker-group";
@@ -58,9 +58,7 @@ if (session && session.profile.role !== "admin") {
         facultyCheck.setAttribute("aria-label", "Select all departments and programmes in " + facultyName);
         const label = document.createElement("span");
         label.textContent = facultyName;
-        const count = document.createElement("small");
-        count.textContent = available.length + " " + unitLabel;
-        summary.append(facultyCheck, label, count);
+        summary.append(facultyCheck, label);
         group.append(summary);
         const list = document.createElement("div");
         list.className = "faculty-department-list";
