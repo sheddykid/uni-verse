@@ -39,7 +39,7 @@ if (location.hostname.endsWith("github.io")) {
         return;
       }
       const { data, error } = await supabase.from("course_resources")
-        .select("id,title,file_name,file_path,mime_type,created_at")
+        .select("id,title,file_name,file_path,mime_type,file_size,created_at")
         .eq("course_id", courseSelect.value).eq("resource_type", "note").eq("is_active", true)
         .order("created_at", { ascending: false });
       if (error) {
@@ -71,7 +71,7 @@ if (location.hostname.endsWith("github.io")) {
         const title = document.createElement("strong");
         const meta = document.createElement("small");
         title.textContent = note.title;
-        meta.textContent = summarizedIds.has(note.id) ? "Already summarized · See Summary history" : note.file_name.split(".").pop().toUpperCase();
+        meta.textContent = `${note.file_name.split(".").pop().toUpperCase()} · ${formatSize(note.file_size)}${summarizedIds.has(note.id) ? " · Already summarized · See Summary history" : ""}`;
         details.append(title, meta);
         label.append(checkbox, details);
         notesList.append(label);
@@ -205,7 +205,8 @@ if (location.hostname.endsWith("github.io")) {
     }
 
     function formatSize(bytes) {
-      if (!bytes) return "Size unknown";
+      if (bytes === null || bytes === undefined || Number.isNaN(Number(bytes))) return "Size unknown";
+      if (Number(bytes) === 0) return "0 KB";
       return bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     }
   }
