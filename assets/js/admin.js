@@ -9,6 +9,7 @@ if (session && session.profile.role !== "admin") {
   if (userLabel) userLabel.textContent = session.profile.full_name || session.user.email;
 
   const departmentOptions = document.querySelector("#department-options");
+  const courseForm = document.querySelector("#course-form");
   const resourceCourse = document.querySelector("#resource-course");
   const resourceType = document.querySelector("#resource-type");
   const questionFields = document.querySelector("#question-fields");
@@ -114,8 +115,7 @@ if (session && session.profile.role !== "admin") {
     }
   }
 
-  if (resourceForm) {
-    async function loadCourses() {
+  async function loadCourses() {
       const previousCourseId = resourceCourse.value;
       const { data, error } = await supabase
         .from("courses")
@@ -137,8 +137,6 @@ if (session && session.profile.role !== "admin") {
         resourceCourse.value = previousCourseId;
       }
       return data || [];
-    }
-  
     }
 
   if (resourceForm) {
@@ -169,7 +167,6 @@ if (session && session.profile.role !== "admin") {
     }
 
   if (courseForm) {
-    const courseForm = document.querySelector("#course-form");
     courseForm.addEventListener("submit", async event => {
       event.preventDefault();
       const form = courseForm;
@@ -229,7 +226,6 @@ if (session && session.profile.role !== "admin") {
   
         showMessage(message, "Course added to " + selectedDepartmentIds.length + " department(s).", true);
         form.reset();
-        await loadCourses();
       } catch (error) {
         showMessage(message, error?.message || "The course could not be saved. Check your connection and try again.");
       } finally {
