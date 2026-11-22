@@ -9,7 +9,6 @@ const links = [
   ["./flashcards.html", "▣", "Flashcards"],
   ["./note-summarizer.html", "≡", "AI note summarizer"],
   ["./summary-history.html", "▣", "Summary history"],
-  ["./videos.html", "▶", "Video tutorials"]
 ];
 
 const session = await requireProfile();
@@ -72,6 +71,27 @@ if (session) {
     link.append(glyph, text);
     nav.append(link);
   });
+
+  const videoGroup = document.createElement("details");
+  videoGroup.className = "student-nav-dropdown";
+  videoGroup.open = current === "videos.html" || current === "youtube-videos.html";
+  const videoSummary = document.createElement("summary");
+  videoSummary.textContent = "Video tutorials";
+  const videoLinks = document.createElement("div");
+  videoLinks.className = "student-nav-sublinks";
+  [
+    ["./videos.html", "Uploaded videos"],
+    ["./youtube-videos.html", "YouTube videos"]
+  ].forEach(([href, label]) => {
+    const link = document.createElement("a");
+    link.href = href;
+    link.className = "student-drawer-link student-drawer-sublink";
+    if (href.endsWith(current)) link.setAttribute("aria-current", "page");
+    link.textContent = label;
+    videoLinks.append(link);
+  });
+  videoGroup.append(videoSummary, videoLinks);
+  nav.append(videoGroup);
 
   function setDrawer(open) {
     drawer.classList.toggle("is-open", open);
