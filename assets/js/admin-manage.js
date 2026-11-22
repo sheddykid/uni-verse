@@ -250,9 +250,9 @@ if (session && session.profile.role !== "admin") {
     const rows=(data||[]).map(video=>{
       const course=video.courses?.code ? video.courses.code+" — "+(video.courses.title||"") : "Course";
       const details=[video.topic,video.youtube_url].filter(Boolean).join(" · ");
-      const status=video.is_active?"Published":"Hidden";
+      const status=video.is_active?"Active":"Inactive";
       const actions=[
-        button(video.is_active?"Hide":"Publish","secondary",async()=>{
+        button(video.is_active?"Deactivate":"Activate","secondary",async()=>{
           const {error}=await supabase.from("course_video_links").update({is_active:!video.is_active}).eq("id",video.id);
           if(error)alert(error.message);await loadYoutubeVideos();
         }),
