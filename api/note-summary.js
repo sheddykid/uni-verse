@@ -164,7 +164,8 @@ function normalizeSummary(value) {
     return "";
   };
   summary.title = (asText(summary.title, summary.topic, summary.name) || "Study Summary").slice(0, 180);
-  summary.overview = asText(summary.overview, summary.summary, summary.description, summary.introduction);
+  summary.overview = asText(summary.overview, summary.summary, summary.description, summary.introduction, summary.keyPoints) || "Review the main concepts and supporting explanations in this course note.";
+  if (summary.overview.length < 20) summary.overview = (summary.overview + " Review the related explanations in the original note.").slice(0, 1800);
   const sentences = summary.overview.split(/(?<=[.!?])\s+/).map(text => text.trim()).filter(text => text.length > 20);
   const existingPoints = Array.isArray(summary.keyPoints)
     ? summary.keyPoints.map(item => asText(item)).filter(Boolean) : [];
@@ -226,7 +227,7 @@ async function callGemini(prompt, log) {
         store: false,
         input: prompt,
         generation_config: { thinking_level: "low", max_output_tokens: 3500 },
-        response_format: { type: "text", mime_type: "application/json", schema: summarySchema }
+        response_format: { type: "text", mime_type: "application/json", schema: makeStrictJsonSchema(summarySchema) }
       })
     });
   } catch (error) {
@@ -428,7 +429,8 @@ export default async function handler(req, res) {
 
     const fullText = sourceParts.join("\n\n---\n\n");
     const generated = await generateNoteSummary(fullText, course, log);
-    const parsed = validatedSummary.safeParse(generated.result);
+    const normalized = normalizeSummary(generated.result);
+    const parsed = validatedSummary.safeParse(normalized);
     if (!parsed.success) {
       log("summary_validation_failed", { provider: generated.provider, issues: parsed.error.issues.slice(0, 8).map(issue => ({ path: issue.path.join("."), code: issue.code })) });
       return respond(res, 502, { error: "The AI returned a summary in an invalid format. Please try again." });
