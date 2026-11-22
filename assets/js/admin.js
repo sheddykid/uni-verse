@@ -1,12 +1,12 @@
 import { supabase, requireProfile, signOut, showMessage } from "./supabase.js";
 
-document.querySelector("#logout").addEventListener("click", signOut);
 const session = await requireProfile();
 
 if (session && session.profile.role !== "admin") {
   location.replace("./student.html");
 } else if (session) {
-  document.querySelector("#user-label").textContent = session.profile.full_name || session.user.email;
+  const userLabel = document.querySelector("#user-label");
+  if (userLabel) userLabel.textContent = session.profile.full_name || session.user.email;
 
   const departmentOptions = document.querySelector("#department-options");
   const resourceCourse = document.querySelector("#resource-course");
@@ -30,229 +30,304 @@ if (session && session.profile.role !== "admin") {
   const QUESTION_ACCEPT = DOCUMENT_ACCEPT + ",.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp";
   const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
-  const { data: departments, error: deptError } = await supabase
-    .from("departments").select("id,name,code").eq("is_active", true).order("name");
-  if (deptError) {
-    departmentOptions.textContent = "Could not load departments. Refresh the page and try again.";
-  } else {
-    departmentOptions.replaceChildren();
-    departments.forEach(d => {
-      const label = document.createElement("label");
-      label.className = "department-option";
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.name = "departments";
-      checkbox.value = d.id;
-      const name = document.createElement("span");
-      name.textContent = `${d.name} (${d.code})`;
-      label.append(checkbox, name);
-      departmentOptions.append(label);
-    });
-  }
-
-  async function loadCourses() {
-    const previousCourseId = resourceCourse.value;
-    const { data, error } = await supabase
-      .from("courses")
-      .select("id,code,title,is_active")
-      .eq("is_active", true)
-      .order("code");
-    if (error) {
-      resourceCourse.innerHTML = '<option value="">Could not load courses</option>';
-      return [];
-    }
-    resourceCourse.innerHTML = '<option value="">Select course</option>';
-    (data || []).forEach(course => {
-      const option = document.createElement("option");
-      option.value = course.id;
-      option.textContent = `${course.code} — ${course.title}`;
-      resourceCourse.append(option);
-    });
-    if ((data || []).some(course => course.id === previousCourseId)) {
-      resourceCourse.value = previousCourseId;
-    }
-    return data || [];
-  }
-
-  const refreshCoursesButton = document.querySelector("#refresh-courses");
-  refreshCoursesButton.addEventListener("click", async () => {
-    refreshCoursesButton.disabled = true;
-    refreshCoursesButton.textContent = "Refreshing…";
-    try {
-      await loadCourses();
-    } finally {
-      refreshCoursesButton.disabled = false;
-      refreshCoursesButton.textContent = "↻ Refresh";
-    }
-  });
-
-  function updateFileAccept() {
-    fileInput.accept = resourceType.value === "past_question" ? QUESTION_ACCEPT : DOCUMENT_ACCEPT;
-  }
-  resourceType.addEventListener("change", () => {
-    const isQuestion = resourceType.value === "past_question";
-    questionFields.hidden = !isQuestion;
-    assessmentType.required = isQuestion;
-    if (!isQuestion) assessmentType.value = "";
-    updateFileAccept();
-  });
-  updateFileAccept();
-
-  const courseForm = document.querySelector("#course-form");
-  courseForm.addEventListener("submit", async event => {
-    event.preventDefault();
-    const form = courseForm;
-    const message = document.querySelector("#message");
-    const button = event.currentTarget.querySelector("button");
-    button.disabled = true;
-
-    try {
-      const selectedDepartmentIds = [...departmentOptions.querySelectorAll('input[name="departments"]:checked')]
-        .map(checkbox => checkbox.value);
-      if (!selectedDepartmentIds.length) {
-        showMessage(message, "Select at least one department.");
-        return;
+  if (departmentOptions) {
+    const { data: departments, error: deptError } = await supabase
+      .from("departments").select("id,name,code").eq("is_active", true).order("name");
+    if (deptError) {
+      departmentOptions.textContent = "Could not load departments. Refresh the page and try again.";
+    } else {
+      const faculties = [
+        ["College of Engineering", ["Civil Engineering", "Electrical and Information Engineering", "Mechanical Engineering", "Petroleum Engineering", "Chemical Engineering"]],
+        ["College of Science and Technology", ["Architecture", "Building Technology", "Estate Management", "Biological Sciences", "Biochemistry", "Chemistry", "Computer and Information Sciences", "Mathematics", "Physics"]],
+        ["College of Management and Social Sciences", ["Accounting", "Banking and Finance", "Business Management", "Economics", "Mass Communication", "Sociology"]],
+        ["College of Leadership and Development Studies", ["Political Science and International Relations", "Psychology", "Languages and General Studies", "Leadership Studies"]],
+        ["College of Health Sciences", ["Anatomy", "Medical Laboratory Science", "Medicine and Surgery", "Nursing Science", "Physiology"]],
+        ["College of Law", ["Law"]]
+      ];
+      departmentOptions.replaceChildren();
+      const byName = new Map((departments || []).map(item => [item.name, item]));
+      faculties.forEach(([facultyName, names]) => {
+        const available = names.map(name => byName.get(name)).filter(Boolean);
+        const group = document.createElement("details");
+        group.className = "faculty-picker-group";
+        const summary = document.createElement("summary");
+        const facultyCheck = document.createElement("input");
+        facultyCheck.type = "checkbox";
+        facultyCheck.className = "faculty-select-all";
+        facultyCheck.setAttribute("aria-label", "Select all departments in " + facultyName);
+        const label = document.createElement("span");
+        label.textContent = facultyName;
+        const count = document.createElement("small");
+        count.textContent = available.length + " departments";
+        summary.append(facultyCheck, label, count);
+        group.append(summary);
+        const list = document.createElement("div");
+        list.className = "faculty-department-list";
+        const departmentChecks = [];
+        available.forEach(department => {
+          const row = document.createElement("label");
+          row.className = "department-option";
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.name = "departments";
+          checkbox.value = department.id;
+          checkbox.dataset.faculty = facultyName;
+          const name = document.createElement("span");
+          name.textContent = department.name;
+          row.append(checkbox, name);
+          list.append(row);
+          departmentChecks.push(checkbox);
+          checkbox.addEventListener("change", () => {
+            facultyCheck.checked = departmentChecks.length > 0 && departmentChecks.every(item => item.checked);
+            facultyCheck.indeterminate = departmentChecks.some(item => item.checked) && !facultyCheck.checked;
+          });
+        });
+        facultyCheck.addEventListener("click", event => event.stopPropagation());
+        facultyCheck.addEventListener("change", () => {
+          departmentChecks.forEach(checkbox => { checkbox.checked = facultyCheck.checked; });
+          facultyCheck.indeterminate = false;
+        });
+        group.append(list);
+        departmentOptions.append(group);
+      });
+      const ungrouped = (departments || []).filter(d => !faculties.some(([, names]) => names.includes(d.name)));
+      if (ungrouped.length) {
+        const group = document.createElement("details");
+        group.className = "faculty-picker-group";
+        const summary = document.createElement("summary");
+        const label = document.createElement("span");
+        label.textContent = "Other departments";
+        summary.append(label);
+        group.append(summary);
+        const list = document.createElement("div");
+        list.className = "faculty-department-list";
+        ungrouped.forEach(d => {
+          const row = document.createElement("label");
+          row.className = "department-option";
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox"; checkbox.name = "departments"; checkbox.value = d.id;
+          const name = document.createElement("span"); name.textContent = d.name;
+          row.append(checkbox, name); list.append(row);
+        });
+        group.append(list); departmentOptions.append(group);
       }
+    }
+  }
 
-      const code = document.querySelector("#code").value.trim().toUpperCase();
-      const title = document.querySelector("#title").value.trim();
-      if (!code || !title) {
-        showMessage(message, "Enter both a course code and course title.");
-        return;
-      }
-
-      const payload = {
-        department_id: selectedDepartmentIds[0],
-        code,
-        title,
-        description: document.querySelector("#description").value.trim() || null
-      };
-      const { data: course, error } = await supabase.from("courses").insert(payload).select("id").single();
+  if (resourceForm) {
+    async function loadCourses() {
+      const previousCourseId = resourceCourse.value;
+      const { data, error } = await supabase
+        .from("courses")
+        .select("id,code,title,is_active")
+        .eq("is_active", true)
+        .order("code");
       if (error) {
-        showMessage(message, error.message);
+        resourceCourse.innerHTML = '<option value="">Could not load courses</option>';
+        return [];
+      }
+      resourceCourse.innerHTML = '<option value="">Select course</option>';
+      (data || []).forEach(course => {
+        const option = document.createElement("option");
+        option.value = course.id;
+        option.textContent = `${course.code} — ${course.title}`;
+        resourceCourse.append(option);
+      });
+      if ((data || []).some(course => course.id === previousCourseId)) {
+        resourceCourse.value = previousCourseId;
+      }
+      return data || [];
+    }
+  
+    }
+
+  if (resourceForm) {
+    const refreshCoursesButton = document.querySelector("#refresh-courses");
+    refreshCoursesButton.addEventListener("click", async () => {
+      refreshCoursesButton.disabled = true;
+      refreshCoursesButton.textContent = "Refreshing…";
+      try {
+        await loadCourses();
+      } finally {
+        refreshCoursesButton.disabled = false;
+        refreshCoursesButton.textContent = "↻ Refresh";
+      }
+    });
+  
+    function updateFileAccept() {
+      fileInput.accept = resourceType.value === "past_question" ? QUESTION_ACCEPT : DOCUMENT_ACCEPT;
+    }
+    resourceType.addEventListener("change", () => {
+      const isQuestion = resourceType.value === "past_question";
+      questionFields.hidden = !isQuestion;
+      assessmentType.required = isQuestion;
+      if (!isQuestion) assessmentType.value = "";
+      updateFileAccept();
+    });
+    updateFileAccept();
+  
+    }
+
+  if (courseForm) {
+    const courseForm = document.querySelector("#course-form");
+    courseForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const form = courseForm;
+      const message = document.querySelector("#message");
+      const button = event.currentTarget.querySelector("button");
+      button.disabled = true;
+  
+      try {
+        const selectedDepartmentIds = [...departmentOptions.querySelectorAll('input[name="departments"]:checked')]
+          .map(checkbox => checkbox.value);
+        if (!selectedDepartmentIds.length) {
+          showMessage(message, "Select at least one department.");
+          return;
+        }
+  
+        const code = document.querySelector("#code").value.trim().toUpperCase();
+        const title = document.querySelector("#title").value.trim();
+        if (!code || !title) {
+          showMessage(message, "Enter both a course code and course title.");
+          return;
+        }
+  
+        const payload = {
+          department_id: selectedDepartmentIds[0],
+          code,
+          title,
+          description: document.querySelector("#description").value.trim() || null
+        };
+        const { data: course, error } = await supabase.from("courses").insert(payload).select("id").single();
+        if (error) {
+          showMessage(message, error.message);
+          return;
+        }
+  
+        const { error: assignmentError } = await supabase.from("course_departments").insert(
+          selectedDepartmentIds.map(department_id => ({ course_id: course.id, department_id }))
+        );
+        if (assignmentError) {
+          // Check the compensating delete instead of silently ignoring a failed rollback.
+          let rolledBackCourse = null;
+          let rollbackError = null;
+          try {
+            const rollback = await supabase.from("courses")
+              .delete().eq("id", course.id).select("id").maybeSingle();
+            rolledBackCourse = rollback.data;
+            rollbackError = rollback.error;
+          } catch (error) {
+            rollbackError = error;
+          }
+          if (rollbackError || !rolledBackCourse) {
+            showMessage(message, "Department assignment failed, and the new course could not be confirmed as rolled back. Course ID: " + course.id + ". Assignment error: " + assignmentError.message + (rollbackError ? " Rollback error: " + (rollbackError.message || String(rollbackError)) : ""));
+          } else {
+            showMessage(message, "Course was not saved: " + assignmentError.message);
+          }
+          return;
+        }
+  
+        showMessage(message, "Course added to " + selectedDepartmentIds.length + " department(s).", true);
+        form.reset();
+        await loadCourses();
+      } catch (error) {
+        showMessage(message, error?.message || "The course could not be saved. Check your connection and try again.");
+      } finally {
+        button.disabled = false;
+      }
+    });
+  
+    }
+
+  if (resourceForm) {
+    resourceForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const message = document.querySelector("#resource-message");
+      const file = document.querySelector("#resource-file").files[0];
+      const courseId = resourceCourse.value;
+      const selectedCourse = resourceCourse.selectedOptions[0];
+      const resourceKind = resourceType.value;
+      const extension = file?.name.split(".").pop().toLowerCase();
+      const mimeType = MIME_TYPES[extension];
+  
+      if (!file || !courseId || !selectedCourse?.value) {
+        showMessage(message, "Select a course and a file.");
         return;
       }
-
-      const { error: assignmentError } = await supabase.from("course_departments").insert(
-        selectedDepartmentIds.map(department_id => ({ course_id: course.id, department_id }))
-      );
-      if (assignmentError) {
-        // Check the compensating delete instead of silently ignoring a failed rollback.
-        let rolledBackCourse = null;
-        let rollbackError = null;
-        try {
-          const rollback = await supabase.from("courses")
-            .delete().eq("id", course.id).select("id").maybeSingle();
-          rolledBackCourse = rollback.data;
-          rollbackError = rollback.error;
-        } catch (error) {
-          rollbackError = error;
-        }
-        if (rollbackError || !rolledBackCourse) {
-          showMessage(message, "Department assignment failed, and the new course could not be confirmed as rolled back. Course ID: " + course.id + ". Assignment error: " + assignmentError.message + (rollbackError ? " Rollback error: " + (rollbackError.message || String(rollbackError)) : ""));
+      if (!mimeType) {
+        showMessage(message, resourceKind === "past_question"
+          ? "Accepted: PDF, DOCX, PPTX, JPG, PNG and WEBP."
+          : "Only PDF, DOCX and PPTX files are accepted.");
+        return;
+      }
+      if (mimeType.startsWith("image/") && resourceKind !== "past_question") {
+        showMessage(message, "Image uploads are only available for past questions and tests/exams.");
+        return;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        showMessage(message, "The file exceeds the 50 MB limit.");
+        return;
+      }
+      if (resourceKind === "past_question" && !assessmentType.value) {
+        showMessage(message, "Choose whether this is a test or examination question.");
+        return;
+      }
+  
+      uploadButton.disabled = true;
+      uploadButton.textContent = "Uploading…";
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const filePath = `${courseId}/${crypto.randomUUID()}-${safeName}`;
+      try {
+        const { error: uploadError } = await supabase.storage.from("course-resources")
+          .upload(filePath, file, { contentType: mimeType, cacheControl: "3600", upsert: false });
+  
+        if (uploadError) {
+          showMessage(message, uploadError.message);
         } else {
-          showMessage(message, "Course was not saved: " + assignmentError.message);
+        const payload = {
+          course_id: courseId,
+          resource_type: resourceKind,
+          title: document.querySelector("#resource-title").value.trim(),
+          description: document.querySelector("#resource-description").value.trim() || null,
+          assessment_type: resourceKind === "past_question" ? assessmentType.value : null,
+          academic_year: resourceKind === "past_question" ? document.querySelector("#academic-year").value.trim() || null : null,
+          semester: resourceKind === "past_question" && document.querySelector("#semester").value
+            ? Number(document.querySelector("#semester").value) : null,
+          file_name: file.name,
+          file_path: filePath,
+          mime_type: mimeType,
+          file_size: file.size
+        };
+        const { error: insertError } = await supabase.from("course_resources").insert(payload);
+        if (insertError) {
+          let cleanupError = null;
+          try {
+            const cleanup = await supabase.storage.from("course-resources").remove([filePath]);
+            cleanupError = cleanup.error;
+          } catch (error) {
+            cleanupError = error;
+          }
+          showMessage(message, cleanupError
+            ? insertError.message + " Storage cleanup also failed; orphaned file path: " + filePath + ". Cleanup error: " + (cleanupError.message || String(cleanupError))
+            : insertError.message);
+        } else {
+          showMessage(message, "Resource uploaded and published.", true);
+          resourceForm.reset();
+          updateFileAccept();
+          questionFields.hidden = true;
+          assessmentType.required = false;
         }
-        return;
-      }
-
-      showMessage(message, "Course added to " + selectedDepartmentIds.length + " department(s).", true);
-      form.reset();
-      await loadCourses();
-    } catch (error) {
-      showMessage(message, error?.message || "The course could not be saved. Check your connection and try again.");
-    } finally {
-      button.disabled = false;
-    }
-  });
-
-  resourceForm.addEventListener("submit", async event => {
-    event.preventDefault();
-    const message = document.querySelector("#resource-message");
-    const file = document.querySelector("#resource-file").files[0];
-    const courseId = resourceCourse.value;
-    const selectedCourse = resourceCourse.selectedOptions[0];
-    const resourceKind = resourceType.value;
-    const extension = file?.name.split(".").pop().toLowerCase();
-    const mimeType = MIME_TYPES[extension];
-
-    if (!file || !courseId || !selectedCourse?.value) {
-      showMessage(message, "Select a course and a file.");
-      return;
-    }
-    if (!mimeType) {
-      showMessage(message, resourceKind === "past_question"
-        ? "Accepted: PDF, DOCX, PPTX, JPG, PNG and WEBP."
-        : "Only PDF, DOCX and PPTX files are accepted.");
-      return;
-    }
-    if (mimeType.startsWith("image/") && resourceKind !== "past_question") {
-      showMessage(message, "Image uploads are only available for past questions and tests/exams.");
-      return;
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      showMessage(message, "The file exceeds the 50 MB limit.");
-      return;
-    }
-    if (resourceKind === "past_question" && !assessmentType.value) {
-      showMessage(message, "Choose whether this is a test or examination question.");
-      return;
-    }
-
-    uploadButton.disabled = true;
-    uploadButton.textContent = "Uploading…";
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const filePath = `${courseId}/${crypto.randomUUID()}-${safeName}`;
-    try {
-      const { error: uploadError } = await supabase.storage.from("course-resources")
-        .upload(filePath, file, { contentType: mimeType, cacheControl: "3600", upsert: false });
-
-      if (uploadError) {
-        showMessage(message, uploadError.message);
-      } else {
-      const payload = {
-        course_id: courseId,
-        resource_type: resourceKind,
-        title: document.querySelector("#resource-title").value.trim(),
-        description: document.querySelector("#resource-description").value.trim() || null,
-        assessment_type: resourceKind === "past_question" ? assessmentType.value : null,
-        academic_year: resourceKind === "past_question" ? document.querySelector("#academic-year").value.trim() || null : null,
-        semester: resourceKind === "past_question" && document.querySelector("#semester").value
-          ? Number(document.querySelector("#semester").value) : null,
-        file_name: file.name,
-        file_path: filePath,
-        mime_type: mimeType,
-        file_size: file.size
-      };
-      const { error: insertError } = await supabase.from("course_resources").insert(payload);
-      if (insertError) {
-        let cleanupError = null;
-        try {
-          const cleanup = await supabase.storage.from("course-resources").remove([filePath]);
-          cleanupError = cleanup.error;
-        } catch (error) {
-          cleanupError = error;
         }
-        showMessage(message, cleanupError
-          ? insertError.message + " Storage cleanup also failed; orphaned file path: " + filePath + ". Cleanup error: " + (cleanupError.message || String(cleanupError))
-          : insertError.message);
-      } else {
-        showMessage(message, "Resource uploaded and published.", true);
-        resourceForm.reset();
-        updateFileAccept();
-        questionFields.hidden = true;
-        assessmentType.required = false;
+      } catch (error) {
+        showMessage(message, error?.message || "The upload failed. Check your connection and try again.");
+      } finally {
+        uploadButton.disabled = false;
+        uploadButton.textContent = "Upload resource";
       }
-      }
-    } catch (error) {
-      showMessage(message, error?.message || "The upload failed. Check your connection and try again.");
-    } finally {
-      uploadButton.disabled = false;
-      uploadButton.textContent = "Upload resource";
+    });
+  
+    await loadCourses();
     }
-  });
-
-  await loadCourses();
 }
 
 if (session && session.profile.role === "admin" && document.querySelector("#video-form")) {
