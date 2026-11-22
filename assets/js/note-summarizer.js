@@ -141,13 +141,10 @@ if (location.hostname.endsWith("github.io")) {
         const { error: uploadError } = await supabase.storage.from("summary-pdfs").upload(pdfPath, pdf.output("blob"), { contentType: "application/pdf", upsert: false });
         if (uploadError) throw uploadError;
         currentPhase = "finalizing your summary history";
-        const { error: updateError } = await supabase.from("note_summary_history").update({ pdf_path: pdfPath, status: "ready" }).eq("id", historyId).eq("user_id", user.id);
+        const { error: updateError } = await supabase.from("note_summary_history").update({ pdf_path: pdfPath, summary_data: result, status: "ready" }).eq("id", historyId).eq("user_id", user.id);
         if (updateError) throw updateError;
-        result.historyPdfPath = pdfPath;
-        sessionStorage.setItem("universeActiveSummary", JSON.stringify(result));
-        setSummaryProgress("Summary PDF is ready. Opening it now…", false, 100);
-        setStatus("Your study summary PDF is ready.", true);
-        location.href = "./summary-session.html";
+        setSummaryProgress("Summary saved. Opening your study summary…", false, 100);
+        location.href = "./summary-session.html?id=" + encodeURIComponent(historyId);
       } catch (error) {
         console.error("[UNI-VERSE summary]", currentPhase, error);
         if (pdfPath) await supabase.storage.from("summary-pdfs").remove([pdfPath]);
