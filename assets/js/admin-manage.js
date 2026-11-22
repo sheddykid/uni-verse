@@ -273,9 +273,9 @@ if (session && session.profile.role !== "admin") {
       .select("id,course_id,title,description,topic,video_path,file_name,mime_type,file_size,is_active,created_at,courses(code,title)")
       .order("created_at", { ascending: false });
     if (error) { target.textContent = "Could not load videos: " + error.message; return; }
-    if (!data?.length) { target.textContent = "No course videos have been uploaded yet."; return; }
+    if (!data?.length) target.textContent = "No uploaded videos yet.";
 
-    data.forEach(video => {
+    (data || []).forEach(video => {
       const card = document.createElement("article");
       card.className = "resource-card admin-resource-card";
       const heading = document.createElement("div");
@@ -371,6 +371,123 @@ if (session && session.profile.role !== "admin") {
         if (cleanupError) alert("The video record was deleted, but its private Storage file could not be removed and is now orphaned: " + (cleanupError.message || String(cleanupError)));
       });
 
+      actions.append(toggle, edit, remove);
+      card.append(actions);
+      target.append(card);
+    });
+
+    const { data: youtubeLinks, error: youtubeError } = await supabase.from("course_video_links")
+      .select("id,course_id,title,description,topic,youtube_url,is_active,created_at,courses(code,title)")
+      .order("created_at", { ascending: false });
+    if (youtubeError) {
+      const error = document.createElement("p");
+      error.className = "message";
+      error.textContent = "YouTube videos could not be loaded: " + youtubeError.message;
+      target.append(error);
+      return;
+    }
+
+    (youtubeLinks || []).forEach(video => {
+      const card = document.createElement("article");
+      card.className = "resource-card admin-resource-card";
+      const heading = document.createElement("div");
+      heading.className = "resource-card-heading";
+      const courseLabel = document.createElement("p");
+      courseLabel.className = "course-code";
+      courseLabel.textContent = video.courses?.code
+        ? video.courses.code + " · " + (video.courses.title || "")
+        : "Course video";
+      const title = document.createElement("h3");
+      title.textContent = video.title;
+      heading.append(courseLabel, title);
+      card.append(heading);
+
+      if (video.topic) {
+        const topic = document.createElement("p");
+        topic.className = "video-card-topic";
+        topic.textContent = video.topic;
+        card.append(topic);
+      }
+      if (video.description) {
+        const description = document.createElement("p");
+        description.className = "muted resource-description";
+        description.textContent = video.description;
+        card.append(description);
+      }
+      const link = document.createElement("p");
+      link.className = "resource-meta";
+      link.textContent = "YouTube video · " + video.youtube_url;
+      card.append(link);
+      const status = document.createElement("p");
+      status.className = video.is_active ? "resource-status is-published" : "resource-status is-hidden";
+      status.textContent = video.is_active ? "Visible to eligible students" : "Hidden from students";
+      card.append(status);
+
+      const actions = document.createElement("div");
+      actions.className = "resource-actions";
+      const toggle = document.createElement("button");
+      toggle.className = "btn secondary";
+      toggle.textContent = video.is_active ? "Hide" : "Publish";
+      toggle.addEventListener("click", async () => {
+        toggle.disabled = true;
+        const { error: updateError } = await supabase.from("course_video_links")
+          .update({ is_active: !video.is_active }).eq("id", video.id);
+        if (updateError) alert("Could not update YouTube video visibility: " + updateError.message);
+        await loadVideos();
+      });
+
+      const edit = document.createElement("button");
+      edit.className = "btn secondary";
+      edit.textContent = "Edit details";
+      edit.addEventListener("click", async () => {
+        const nextTitle = prompt("Video title:", video.title);
+        if (nextTitle === null) return;
+        if (!nextTitle.trim()) { alert("The video title cannot be empty."); return; }
+        const nextTopic = prompt("Topic (optional):", video.topic || "");
+        if (nextTopic === null) return;
+        const nextDescription = prompt("Description (optional):", video.description || "");
+        if (nextDescription === null) return;
+        const nextUrl = prompt("YouTube URL:", video.youtube_url);
+        if (nextUrl === null) return;
+        let parsed;
+        try { parsed = new URL(nextUrl.trim()); } catch {}
+        const host = parsed?.hostname?.toLowerCase().replace(/^www\\./, "");
+        const parts = parsed?.pathname?.split("/").filter(Boolean) || [];
+        const id = host === "youtu.be" ? parts[0]
+          : ["youtube.com", "m.youtube.com", "youtube-nocookie.com"].includes(host)
+            ? (parsed.pathname === "/watch" ? parsed.searchParams.get("v")
+              : ["embed", "shorts", "live"].includes(parts[0]) ? parts[1] : null)
+            : null;
+        if (parsed?.protocol !== "https:" || !id || !/^[A-Za-z0-9_-]{11}$/.test(id)) {
+          alert("Enter a valid YouTube video URL.");
+          return;
+        }
+        edit.disabled = true;
+        const { error: editError } = await supabase.from("course_video_links").update({
+          title: nextTitle.trim(),
+          topic: nextTopic.trim() || null,
+          description: nextDescription.trim() || null,
+          youtube_url: "https://www.youtube.com/watch?v=" + id
+        }).eq("id", video.id);
+        if (editError) alert("Could not update YouTube video details: " + editError.message);
+        await loadVideos();
+      });
+
+      const remove = document.createElement("button");
+      remove.className = "btn danger";
+      remove.textContent = "Delete";
+      remove.addEventListener("click", async () => {
+        if (!confirm('Permanently delete the YouTube video "' + video.title + '"?')) return;
+        remove.disabled = true;
+        const { data: deleted, error: deleteError } = await supabase.from("course_video_links")
+          .delete().eq("id", video.id).select("id").maybeSingle();
+        if (deleteError || !deleted) {
+          alert(deleteError?.message || "The YouTube video could not be deleted.");
+          remove.disabled = false;
+          return;
+        }
+        await loadVideos();
+      });
       actions.append(toggle, edit, remove);
       card.append(actions);
       target.append(card);
