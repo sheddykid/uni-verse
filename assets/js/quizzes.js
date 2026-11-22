@@ -1,6 +1,6 @@
 import { supabase, requireProfile, signOut } from "./supabase.js";
 const $ = selector => document.querySelector(selector);
-$("#logout").addEventListener("click", signOut);
+$("#logout")?.addEventListener("click", signOut);
 
 if (location.hostname.endsWith("github.io")) {
   $("#github-pages-notice").hidden = false;
@@ -33,7 +33,7 @@ $("#quiz-mode").addEventListener("change", () => {
       $("#note-count").textContent = "Loading…";
       if (!courseSelect.value) { notesList.textContent = "Choose a course to see its materials."; $("#note-count").textContent = "Select a course first"; return; }
       const { data, error } = await supabase.from("course_resources")
-        .select("id,title,file_name,file_size,mime_type,resource_type,assessment_type,created_at").eq("course_id",courseSelect.value)
+        .select("id,title,file_name,mime_type,resource_type,assessment_type,created_at").eq("course_id",courseSelect.value)
         .eq("resource_type","note").eq("is_active",true).order("created_at",{ascending:false});
       if (error) { notesList.textContent = "Could not load course materials."; $("#note-count").textContent = "Unavailable"; return; }
       notes = (data || []).filter(item => /\.(pdf|docx|pptx)$/i.test(item.file_name || ""));
@@ -44,7 +44,7 @@ $("#quiz-mode").addEventListener("change", () => {
         const checkbox = document.createElement("input"); checkbox.type = "checkbox"; checkbox.value = note.id; checkbox.addEventListener("change", updateSelection);
         const details = document.createElement("span"), title = document.createElement("strong"), meta = document.createElement("small");
         title.textContent = note.title;
-        meta.textContent = `Course note · ${note.file_name.split(".").pop().toUpperCase()} · ${formatSize(note.file_size)}`;
+        meta.textContent = `Course note · ${note.file_name.split(".").pop().toUpperCase()}`;
         details.append(title,meta); label.append(checkbox,details); notesList.append(label);
       });
       updateSelection();
