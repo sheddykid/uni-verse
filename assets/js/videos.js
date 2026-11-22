@@ -219,12 +219,22 @@ if (session) {
           frame.className = "video-player youtube-video-player";
           frame.title = video.title;
           frame.loading = "lazy";
-          frame.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+          frame.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen";
           frame.referrerPolicy = "strict-origin-when-cross-origin";
           frame.allowFullscreen = true;
           frame.hidden = true;
           const actions = document.createElement("div");
           actions.className = "video-card-actions";
+          const hideButton = document.createElement("button");
+          hideButton.type = "button";
+          hideButton.className = "btn secondary";
+          hideButton.textContent = "Hide video";
+          hideButton.hidden = true;
+          hideButton.addEventListener("click", () => {
+            if (activeYoutubeFrame === frame) closeActiveVideo();
+            frame.hidden = true;
+            playButton.textContent = "▶ Watch video";
+          });
           const playButton = document.createElement("button");
           playButton.type = "button";
           playButton.className = "btn primary";
@@ -242,9 +252,11 @@ if (session) {
             frame.src = "https://www.youtube-nocookie.com/embed/" + id + "?autoplay=1&rel=0";
             frame.hidden = false;
             activeYoutubeFrame = frame;
+            activeHideButton = hideButton;
+            hideButton.hidden = false;
             playButton.textContent = "▶ Playing video";
           });
-          actions.append(playButton);
+          actions.append(playButton, hideButton);
           body.append(actions);
           card.append(frame, body);
           target.append(card);
