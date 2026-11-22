@@ -93,6 +93,20 @@ if (session && session.profile.role !== "admin") {
     return tr;
   }
 
+  function shortDepartmentName(name) {
+    const known = {
+      "Civil Engineering":"Civil Eng.", "Electrical and Information Engineering":"EIE",
+      "Mechanical Engineering":"Mech. Eng.", "Petroleum Engineering":"Pet. Eng.",
+      "Chemical Engineering":"Chem. Eng.", "Mechatronics Engineering":"Mechatronics",
+      "Computer and Information Sciences":"CIS", "Political Science and International Relations":"PSIR",
+      "Mass Communication":"Mass Comm.", "Medical Laboratory Science":"MLS",
+      "Banking and Finance":"Banking & Finance", "Business Management":"Business Mgmt.",
+      "Languages and General Studies":"LGS", "Estate Management":"Estate Mgmt.",
+      "Building Technology":"Building Tech."
+    };
+    return known[name] || name;
+  }
+
   async function loadCourses() {
     const target = document.querySelector("#courses");
     const { data, error } = await supabase.from("courses")
@@ -107,7 +121,7 @@ if (session && session.profile.role !== "admin") {
       if (item.departments) byCourse.get(item.course_id).push(item.departments);
     });
     const rows = (data || []).map(course => {
-      const names = (byCourse.get(course.id) || []).map(d => d.name).join(", ");
+      const names = (byCourse.get(course.id) || []).map(d => d.code || shortDepartmentName(d.name)).join(", ");
       const status = course.is_active ? "Active" : "Inactive";
       const actions = [
         button("Edit title", "secondary", async () => {
@@ -166,9 +180,9 @@ if (session && session.profile.role !== "admin") {
       const course=resource.courses?.code ? resource.courses.code+" — "+(resource.courses.title||"") : "Course";
       const type=isNotes ? "Note" : resource.assessment_type==="test" ? "Test" : "Examination";
       const details=[type,resource.academic_year,resource.semester ? "Semester "+resource.semester : null,resource.file_name].filter(Boolean).join(" · ");
-      const status=resource.is_active ? "Published" : "Hidden";
+      const status=resource.is_active ? "Active" : "Inactive";
       const actions=[
-        button(resource.is_active?"Hide":"Publish","secondary",async()=>{
+        button(resource.is_active?"Deactivate":"Activate","secondary",async()=>{
           const {error}=await supabase.from("course_resources").update({is_active:!resource.is_active}).eq("id",resource.id);
           if(error)alert(error.message); await loadResources(kind);
         }),
@@ -201,9 +215,9 @@ if (session && session.profile.role !== "admin") {
     const rows=(data||[]).map(video=>{
       const course=video.courses?.code ? video.courses.code+" — "+(video.courses.title||"") : "Course";
       const details=[video.topic,video.file_name,(video.file_size/1048576).toFixed(1)+" MB"].filter(Boolean).join(" · ");
-      const status=video.is_active?"Published":"Hidden";
+      const status=video.is_active?"Active":"Inactive";
       const actions=[
-        button(video.is_active?"Hide":"Publish","secondary",async()=>{
+        button(video.is_active?"Deactivate":"Activate","secondary",async()=>{
           const {error}=await supabase.from("course_videos").update({is_active:!video.is_active}).eq("id",video.id);
           if(error)alert(error.message); await loadUploadedVideos();
         }),
