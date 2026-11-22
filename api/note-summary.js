@@ -334,7 +334,7 @@ async function callGroq(prompt, log, modelOverride) {
 async function callGroqInTwoParts(prompt, log) {
   const marker = "COMPLETE COURSE NOTES (";
   const markerIndex = prompt.indexOf(marker);
-  const textStart = markerIndex < 0 ? -1 : prompt.indexOf("\\n", markerIndex);
+  const textStart = markerIndex < 0 ? -1 : prompt.indexOf("\n", markerIndex);
   if (textStart < 0) return callGroq(prompt, log);
 
   const instructions = prompt.slice(0, markerIndex);
@@ -342,9 +342,9 @@ async function callGroqInTwoParts(prompt, log) {
   if (noteText.length < 24000) return callGroq(prompt, log);
 
   const midpoint = Math.floor(noteText.length / 2);
-  let splitAt = noteText.indexOf("\\n\\n", midpoint);
+  let splitAt = noteText.indexOf("\n\n", midpoint);
   if (splitAt < midpoint * 0.7 || splitAt > midpoint * 1.3) {
-    splitAt = noteText.indexOf("\\n", midpoint);
+    splitAt = noteText.indexOf("\n", midpoint);
   }
   if (splitAt < 0) splitAt = midpoint;
 
@@ -354,7 +354,7 @@ async function callGroqInTwoParts(prompt, log) {
   log("groq_fallback_split", { partCharacters: parts.map(part => part.length), models: [firstModel, secondModel] });
 
   const results = await Promise.all(parts.map((part, index) => callGroq(
-    instructions + "\\nSummarize only PART " + (index + 1) + " OF 2 of the same course note. Preserve its important details; do not assume the other part's contents.\\n\\nCOURSE NOTE PART " + (index + 1) + ":\\n" + part,
+    instructions + "\nSummarize only PART " + (index + 1) + " OF 2 of the same course note. Preserve its important details; do not assume the other part's contents.\n\nCOURSE NOTE PART " + (index + 1) + ":\n" + part,
     log,
     index === 0 ? firstModel : secondModel
   )));
@@ -363,7 +363,7 @@ async function callGroqInTwoParts(prompt, log) {
   const overview = results.map(result => result?.overview).filter(value => typeof value === "string" && value.trim());
   return {
     title: results.map(result => result?.title).find(value => typeof value === "string" && value.trim()) || "Study summary",
-    overview: overview.join("\\n\\n"),
+    overview: overview.join("\n\n"),
     keyPoints: arrays("keyPoints"),
     sections: arrays("sections"),
     keyTerms: arrays("keyTerms"),
