@@ -260,3 +260,55 @@ body.student-drawer-open{overflow:hidden}
 }
 .youtube-video-player:fullscreen::backdrop,
 .youtube-video-player:-webkit-full-screen::backdrop{background:#000}
+
+
+/* Theme modes */
+:root{color-scheme:light;--page-bg:#f5f7fb;--surface:#fff;--surface-soft:#fbfcff;--text:#172033;--muted:#778198;--border:#e7eaf1;--field-bg:#fff;--field-text:#172033}
+html[data-theme="dark"]{color-scheme:dark;--page-bg:#0b1120;--surface:#151e30;--surface-soft:#101a2b;--text:#e7ecf6;--muted:#a5b0c5;--border:#29364c;--field-bg:#101a2b;--field-text:#e7ecf6}
+body{background:var(--page-bg);color:var(--text)}
+html[data-theme="dark"] .topbar,
+html[data-theme="dark"] .form-card,
+html[data-theme="dark"] .course-card,
+html[data-theme="dark"] .feature,
+html[data-theme="dark"] .admin-form,
+html[data-theme="dark"] .flashcard-panel,
+html[data-theme="dark"] .flashcard,
+html[data-theme="dark"] .resource-filter-panel,
+html[data-theme="dark"] .resource-card,
+html[data-theme="dark"] .coming-panel,
+html[data-theme="dark"] .department-picker,
+html[data-theme="dark"] .mcq-card,
+html[data-theme="dark"] .theory-card,
+html[data-theme="dark"] .answer-review,
+html[data-theme="dark"] .student-drawer,
+html[data-theme="dark"] .contact-dialog{background:var(--surface);color:var(--text);border-color:var(--border)}
+html[data-theme="dark"] .student-resource,
+html[data-theme="dark"] .resource-item,
+html[data-theme="dark"] .department-option,
+html[data-theme="dark"] .mcq-option,
+html[data-theme="dark"] .note-choice{background:var(--surface-soft);color:var(--text);border-color:var(--border)}
+html[data-theme="dark"] .brand{color:var(--text)}
+html[data-theme="dark"] .muted,
+html[data-theme="dark"] .resource-meta,
+html[data-theme="dark"] .resource-empty,
+html[data-theme="dark"] .card-hint,
+html[data-theme="dark"] .department-picker legend .muted{color:var(--muted)}
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea{background:var(--field-bg);color:var(--field-text);border-color:var(--border)}
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder{color:#8996ad}
+html[data-theme="dark"] .secondary,
+html[data-theme="dark"] .password-toggle{background:#263453;color:#dce4ff;border-color:#354666}
+html[data-theme="dark"] .course-row{border-color:var(--border)}
+html[data-theme="dark"] .course-row button{background:#40252d;color:#ffc5ce}
+html[data-theme="dark"] .resource-empty-state{background:var(--surface);border-color:var(--border)}
+html[data-theme="dark"] .progress-track{background:#29364c}
+html[data-theme="dark"] .flashcard{color:var(--text)}
+html[data-theme="dark"] .brand-panel{background:#080e1b}
+html[data-theme="dark"] .form-card{box-shadow:0 18px 55px #0004}
+.theme-switcher{position:fixed;z-index:1200;right:16px;bottom:16px;display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid #dce1eb;border-radius:999px;background:#fff;color:#172033;box-shadow:0 6px 24px #17203322;font:600 13px/1.2 inherit}
+.theme-switcher button{border:0;border-radius:999px;padding:8px 11px;background:transparent;color:inherit;font:inherit;cursor:pointer}
+.theme-switcher button[aria-pressed="true"]{background:#5365e8;color:#fff}
+html[data-theme="dark"] .theme-switcher{background:#151e30;color:#e7ecf6;border-color:#35435b;box-shadow:0 6px 24px #0006}
+@media(max-width:600px){.theme-switcher{right:10px;bottom:10px}}
