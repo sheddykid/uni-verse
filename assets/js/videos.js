@@ -397,7 +397,7 @@ if (session) {
         playButton.className = "btn primary";
         playButton.textContent = "▶ Watch video";
         playButton.addEventListener("click", async () => {
-          if (activeVideoPlayer && activeVideoPlayer !== player) closeActiveVideo();
+          if ((activeVideoPlayer && activeVideoPlayer !== player) || activeYoutubeFrame) closeActiveVideo();
           playButton.disabled = true;
           playButton.textContent = "Preparing video…";
           try {
