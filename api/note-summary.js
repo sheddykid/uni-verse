@@ -414,13 +414,12 @@ async function callGroqInTwoParts(prompt, log) {
   };
 }
 
-async function callOpenRouter(prompt, log) {
+async function callOpenRouter(prompt, log, modelOverride) {
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) { const error = new Error("OpenRouter is not configured."); error.statusCode = 503; throw error; }
 
-  const primaryModel = process.env.OPENROUTER_MODEL || "nvidia/nemotron-3.5-lightning";
-  const fallbackModel = process.env.OPENROUTER_FALLBACK_MODEL || "nvidia/nemotron-3.5-super-vl";
-  const models = [...new Set([primaryModel, fallbackModel])];
+  const primaryModel = modelOverride || process.env.OPENROUTER_MODEL || "nvidia/nemotron-3.5-lightning";
+  const models = [primaryModel];
   let lastFailure = null;
 
   for (const model of models) {
@@ -502,12 +501,12 @@ async function callOpenRouter(prompt, log) {
   throw failure;
 }
 
-async function callOpenRouterInParts(prompt, log) {
+async function callOpenRouterInParts(prompt, log, modelOverride) {
   const marker = "COMPLETE COURSE NOTES (";
   const markerIndex = prompt.indexOf(marker);
   const textStart = markerIndex < 0 ? -1 : prompt.indexOf("\n", markerIndex);
   if (textStart < 0) {
-    const response = await callOpenRouter(prompt, log);
+    const response = await callOpenRouter(prompt, log, modelOverride);
     return { result: response.result, model: response.model, chunkCount: 1 };
   }
   const instructions = prompt.slice(0, markerIndex);
@@ -608,15 +607,22 @@ async function generateSummary(prompt, log) {
   }
 
   if (process.env.OPENROUTER_API_KEY) {
-    try {
-      const fallback = await callOpenRouterInParts(prompt, log);
-      const checked = checkCandidate(fallback.result, "OpenRouter");
-      log("openrouter_fallback_succeeded", { model: fallback.model, chunkCount: fallback.chunkCount });
-      return { result: checked, provider: "OpenRouter", model: fallback.model, chunkCount: fallback.chunkCount };
-    } catch (error) {
-      log("openrouter_fallback_failed", { status: error.statusCode || 502, message: error.message });
-      throw error;
+    const primaryModel = process.env.OPENROUTER_MODEL || "nvidia/nemotron-3.5-lightning";
+    const fallbackModel = process.env.OPENROUTER_FALLBACK_MODEL || "nvidia/nemotron-3.5-super-vl";
+    const models = [...new Set([primaryModel, fallbackModel])];
+    let lastError = null;
+    for (const model of models) {
+      try {
+        const fallback = await callOpenRouterInParts(prompt, log, model);
+        const checked = checkCandidate(fallback.result, "OpenRouter");
+        log("openrouter_fallback_succeeded", { model: fallback.model, chunkCount: fallback.chunkCount });
+        return { result: checked, provider: "OpenRouter", model: fallback.model, chunkCount: fallback.chunkCount };
+      } catch (error) {
+        lastError = error;
+        log("openrouter_fallback_model_failed", { model, status: error.statusCode || 502, message: error.message });
+      }
     }
+    throw lastError || new Error("OpenRouter could not produce a valid summary.");
   }
 
   const error = new Error("All configured AI providers failed to produce a complete study summary.");
