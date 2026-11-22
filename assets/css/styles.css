@@ -244,3 +244,9 @@ body.student-drawer-open{overflow:hidden}
 @media(max-width:650px){.admin-table-section .resource-results-head{align-items:stretch;flex-direction:column}.admin-table-section .resource-results-head input{max-width:none}.admin-data-table{min-width:700px}.admin-table-actions{min-width:180px}}
 
 .admin-page{padding-bottom:0!important}
+
+/* Center the UNI-VERSE wordmark across administrator pages. */
+.admin-page .topbar{position:relative;justify-content:space-between;min-height:68px}
+.admin-page .topbar>.brand{position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap}
+.admin-page .topbar>#user-label{margin-left:auto}
+@media(max-width:420px){.admin-page .topbar>.brand{font-size:.88rem}.admin-page .topbar>#user-label{display:none}}
