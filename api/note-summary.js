@@ -432,7 +432,7 @@ async function callOpenRouter(prompt, log) {
       output = output.map(part => typeof part === "string" ? part : (part && typeof part.text === "string" ? part.text : "")).join("\\n");
     }
     if (typeof output === "string" && output.trim()) {
-      try { return { result: JSON.parse(output.trim()), model: result.model || model }; }
+      try { const cleaned = output.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, ""); return { result: JSON.parse(cleaned), model: result.model || model }; }
       catch {
         const failure = new Error("OpenRouter returned an invalid summary format.");
         failure.statusCode = 502;
@@ -515,7 +515,7 @@ async function callOpenRouterInParts(prompt, log) {
 async function generateSummary(prompt, log) {
   const marker = "COMPLETE COURSE NOTES (";
   const markerIndex = prompt.indexOf(marker);
-  const textStart = markerIndex < 0 ? -1 : prompt.indexOf("\\n", markerIndex);
+  const textStart = markerIndex < 0 ? -1 : prompt.indexOf("\n", markerIndex);
   const sourceText = textStart < 0 ? "" : prompt.slice(textStart + 1).trim();
 
   const checkCandidate = (result, provider) => {
