@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101827"><title>UNI-VERSE | Admin — Resources</title><link rel="stylesheet" href="./assets/css/styles.css"></head><body>
+<header class="topbar"><a class="brand" href="./admin.html"><span class="brand-mark small">U</span> UNI-VERSE / Admin</a><span id="user-label" class="muted"></span></header>
+<main class="dashboard admin-dashboard"><p class="eyebrow">ADMINISTRATION</p><h1>Upload notes and past questions</h1><p class="muted">Add course notes, tests and examination questions.</p><section class="section"><h2>Upload notes and past questions</h2><p class="muted">Notes: PDF, DOCX and PPTX. Past questions (tests/exams): PDF, DOCX, PPTX, JPG, PNG and WEBP. Maximum file size: 50 MB.</p><form id="resource-form" class="admin-form">
+<label>Course<div class="course-select-row"><select id="resource-course" required><option value="">Loading courses…</option></select><button class="btn secondary" id="refresh-courses" type="button" aria-label="Refresh course list">↻ Refresh</button></div></label>
+<label>Resource type<select id="resource-type" required><option value="note">Notes</option><option value="past_question">Past questions</option></select></label>
+<label>Title<input id="resource-title" required maxlength="160" placeholder="e.g. Introduction to Digital Logic"></label>
+<label>Description (optional)<textarea id="resource-description" rows="2" placeholder="Brief description of this resource"></textarea></label>
+<div id="question-fields" class="field-grid" hidden>
+<label>Assessment type<select id="assessment-type"><option value="">Select type</option><option value="test">Test questions</option><option value="exam">Exam questions</option></select></label>
+<label>Academic year (optional)<input id="academic-year" placeholder="e.g. 2025/2026"></label>
+<label>Semester (optional)<select id="semester"><option value="">Not specified</option><option value="1">First semester</option><option value="2">Second semester</option></select></label>
+</div>
+<label>Choose file<input id="resource-file" type="file" accept=".pdf,.docx,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation" required></label>
+<button class="btn primary" id="upload-button" type="submit">Upload resource</button><p id="resource-message" class="message" role="status"></p>
+</form></section></main>
+<script type="module" src="./assets/js/admin-navigation.js"></script><script type="module" src="./assets/js/admin.js"></script></body></html>
