@@ -55,7 +55,7 @@ if (session && session.profile.role !== "admin") {
         const facultyCheck = document.createElement("input");
         facultyCheck.type = "checkbox";
         facultyCheck.className = "faculty-select-all";
-        facultyCheck.setAttribute("aria-label", "Select all departments in " + facultyName);
+        facultyCheck.setAttribute("aria-label", "Select all departments and programmes in " + facultyName);
         const label = document.createElement("span");
         label.textContent = facultyName;
         const count = document.createElement("small");
