@@ -242,3 +242,5 @@ body.student-drawer-open{overflow:hidden}
 .summary-guidance ul{margin:0;padding-left:20px;display:grid;gap:4px}
 .youtube-video-player{border:0}
 @media(max-width:650px){.admin-table-section .resource-results-head{align-items:stretch;flex-direction:column}.admin-table-section .resource-results-head input{max-width:none}.admin-data-table{min-width:700px}.admin-table-actions{min-width:180px}}
+
+.admin-page{padding-bottom:0!important}
