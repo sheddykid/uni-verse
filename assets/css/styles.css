@@ -250,3 +250,13 @@ body.student-drawer-open{overflow:hidden}
 .admin-page .topbar>.brand{position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap}
 .admin-page .topbar>#user-label{margin-left:auto}
 @media(max-width:420px){.admin-page .topbar>.brand{font-size:.88rem}.admin-page .topbar>#user-label{display:none}}
+
+/* Let the embedded YouTube iframe occupy the complete viewport in fullscreen. */
+.youtube-video-player:fullscreen,
+.youtube-video-player:-webkit-full-screen{
+  position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;
+  max-width:none!important;max-height:none!important;min-width:100vw!important;min-height:100vh!important;
+  aspect-ratio:auto!important;border:0!important;background:#000!important;z-index:2147483647!important
+}
+.youtube-video-player:fullscreen::backdrop,
+.youtube-video-player:-webkit-full-screen::backdrop{background:#000}
