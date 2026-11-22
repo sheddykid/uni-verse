@@ -246,7 +246,7 @@ async function callGemini(prompt, log) {
       signal: AbortSignal.timeout(35000),
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
-        model: process.env.GEMINI_MODEL || "gemini-3.6-flash",
+        model: process.env.GEMINI_MODEL || "gemini-3.8-flash",
         store: false,
         input: prompt,
         generation_config: { thinking_level: "low", max_output_tokens: 3500 },
@@ -285,10 +285,10 @@ async function callGemini(prompt, log) {
   catch { const error = new Error("Gemini returned an invalid summary format."); error.statusCode = 502; error.retryable = true; throw error; }
 }
 
-async function callGroq(prompt, log) {
+async function callGroq(prompt, log, modelOverride) {
   const key = process.env.GROQ_API_KEY;
   if (!key) { const error = new Error("The backup AI provider is not configured."); error.statusCode = 503; throw error; }
-  const model = process.env.GROQ_MODEL || "openai/gpt-oss-20b";
+  const model = modelOverride || process.env.GROQ_MODEL || "openai/gpt-oss-20b";
   let response;
   try {
     response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -302,7 +302,7 @@ async function callGroq(prompt, log) {
           { role: "user", content: prompt }
         ],
         reasoning_effort: "low",
-        max_completion_tokens: 1500,
+        max_completion_tokens: 900,
         response_format: { type: "json_object" }
       })
     });
@@ -330,6 +330,48 @@ async function callGroq(prompt, log) {
   catch { const error = new Error("The backup AI provider returned an invalid summary format."); error.statusCode = 502; throw error; }
 }
 
+
+async function callGroqInTwoParts(prompt, log) {
+  const marker = "COMPLETE COURSE NOTES (";
+  const markerIndex = prompt.indexOf(marker);
+  const textStart = markerIndex < 0 ? -1 : prompt.indexOf("\\n", markerIndex);
+  if (textStart < 0) return callGroq(prompt, log);
+
+  const instructions = prompt.slice(0, markerIndex);
+  const noteText = prompt.slice(textStart + 1).trim();
+  if (noteText.length < 24000) return callGroq(prompt, log);
+
+  const midpoint = Math.floor(noteText.length / 2);
+  let splitAt = noteText.indexOf("\\n\\n", midpoint);
+  if (splitAt < midpoint * 0.7 || splitAt > midpoint * 1.3) {
+    splitAt = noteText.indexOf("\\n", midpoint);
+  }
+  if (splitAt < 0) splitAt = midpoint;
+
+  const parts = [noteText.slice(0, splitAt).trim(), noteText.slice(splitAt).trim()];
+  const firstModel = process.env.GROQ_MODEL || "openai/gpt-oss-20b";
+  const secondModel = firstModel === "openai/gpt-oss-120b" ? "openai/gpt-oss-20b" : "openai/gpt-oss-120b";
+  log("groq_fallback_split", { partCharacters: parts.map(part => part.length), models: [firstModel, secondModel] });
+
+  const results = await Promise.all(parts.map((part, index) => callGroq(
+    instructions + "\\nSummarize only PART " + (index + 1) + " OF 2 of the same course note. Preserve its important details; do not assume the other part's contents.\\n\\nCOURSE NOTE PART " + (index + 1) + ":\\n" + part,
+    log,
+    index === 0 ? firstModel : secondModel
+  )));
+
+  const arrays = key => results.flatMap(result => Array.isArray(result?.[key]) ? result[key] : []);
+  const overview = results.map(result => result?.overview).filter(value => typeof value === "string" && value.trim());
+  return {
+    title: results.map(result => result?.title).find(value => typeof value === "string" && value.trim()) || "Study summary",
+    overview: overview.join("\\n\\n"),
+    keyPoints: arrays("keyPoints"),
+    sections: arrays("sections"),
+    keyTerms: arrays("keyTerms"),
+    formulas: arrays("formulas"),
+    revisionChecklist: arrays("revisionChecklist")
+  };
+}
+
 async function generateSummary(prompt, log) {
   let primaryError;
   try {
@@ -340,7 +382,7 @@ async function generateSummary(prompt, log) {
     if (!error.retryable || !process.env.GROQ_API_KEY) throw error;
     log("groq_fallback_started", { reason: error.statusCode || "provider_error" });
   }
-  const result = await callGroq(prompt, log);
+  const result = await callGroqInTwoParts(prompt, log);
   log("groq_fallback_succeeded", { model: process.env.GROQ_MODEL || "openai/gpt-oss-20b" });
   return { result, provider: "Groq" };
 }
