@@ -10,6 +10,16 @@ if (location.hostname.endsWith("github.io")) {
   const session = await requireProfile();
   if (session) {
     const { profile, user } = session;
+    if (user.id === "1693d72a-6941-4ace-a9ef-022a073ae96f") {
+      const cleanupKey = "uni-verse-legacy-summary-cleanup-e70d83c7";
+      if (localStorage.getItem(cleanupKey) !== "done") {
+        const { error: cleanupError } = await supabase.storage.from("summary-pdfs").remove([
+          "1693d72a-6941-4ace-a9ef-022a073ae96f/df1e2eee-b4b1-4cb2-b5c5-e286122fa3bf/e70d83c7-c3d9-4ad5-aeb5-edda2c8baf43.pdf"
+        ]);
+        if (!cleanupError) localStorage.setItem(cleanupKey, "done");
+        else console.warn("[UNI-VERSE] Could not remove the old placeholder summary PDF:", cleanupError.message);
+      }
+    }
     $("#user-label").textContent = profile.full_name || user.email;
     const courseSelect = $("#course-select");
     const notesList = $("#notes-list");
