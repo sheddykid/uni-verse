@@ -311,3 +311,46 @@ html[data-theme="dark"] .form-card{box-shadow:0 18px 55px #0004}
 /* Theme switch lives inside the student and admin navigation drawers. */
 .student-drawer-theme{display:block;width:calc(100% - 32px);margin:14px 16px 8px;padding:12px 14px;border:1px solid var(--border,#e7eaf1);border-radius:10px;background:var(--surface-soft,#fbfcff);color:var(--text,#172033);font:600 .9rem inherit;text-align:left;cursor:pointer}
 html[data-theme="dark"] .student-drawer-theme{background:#202d45;border-color:#35435b;color:#e7ecf6}
+
+
+/* Improve navigation drawer contrast in dark mode. */
+html[data-theme="dark"] .student-drawer-link,
+html[data-theme="dark"] .student-nav-dropdown > summary {
+  color: #e7ecf6;
+}
+html[data-theme="dark"] .student-drawer-link:hover,
+html[data-theme="dark"] .student-drawer-link[aria-current="page"] {
+  background: #2a3957;
+  color: #ffffff;
+}
+html[data-theme="dark"] .student-nav-dropdown {
+  border-color: #35435b;
+}
+html[data-theme="dark"] .student-nav-dropdown > summary:hover,
+html[data-theme="dark"] .student-nav-dropdown[open] > summary {
+  background: #202d45;
+  color: #ffffff;
+}
+html[data-theme="dark"] .student-nav-dropdown > summary::after {
+  color: #c0cbe0;
+}
+html[data-theme="dark"] .student-profile-copy span {
+  color: #b7c3d8;
+}
+html[data-theme="dark"] .student-drawer-head {
+  border-bottom-color: #35435b;
+}
+html[data-theme="dark"] .student-drawer-close {
+  background: #263550;
+  color: #f1f5ff;
+}
+html[data-theme="dark"] .student-drawer-signout {
+  background: #3a252f;
+  border-color: #69404d;
+  color: #ffd1d9;
+}
+html[data-theme="dark"] .student-drawer-theme {
+  background: #263550;
+  border-color: #465775;
+  color: #f1f5ff;
+}
