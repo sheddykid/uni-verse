@@ -512,7 +512,7 @@ async function callOpenRouterInParts(prompt, log, modelOverride) {
   const instructions = prompt.slice(0, markerIndex);
   const noteText = prompt.slice(textStart + 1).trim();
   if (noteText.length < 24000) {
-    const response = await callOpenRouter(prompt, log);
+    const response = await callOpenRouter(prompt, log, modelOverride);
     return { result: response.result, model: response.model, chunkCount: 1 };
   }
   const parts = [];
@@ -534,7 +534,8 @@ async function callOpenRouterInParts(prompt, log, modelOverride) {
       instructions + "\nSummarize only PART " + (index + 1) + " OF " + parts.length +
       " of the same course note. Preserve its important details; do not assume the other parts' contents. Return the same JSON structure.\n\nCOURSE NOTE PART " +
       (index + 1) + ":\n" + parts[index],
-      log
+      log,
+      modelOverride
     );
     results.push(response);
   }
