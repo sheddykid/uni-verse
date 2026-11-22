@@ -28,7 +28,7 @@ document.addEventListener("securitypolicyviolation", event => {
   }
 });
 
-document.querySelector("#logout").addEventListener("click", signOut);
+document.querySelector("#logout")?.addEventListener("click", signOut);
 const session = await requireProfile();
 
 if (session) {
@@ -93,7 +93,7 @@ if (session) {
 
   const [uploadedResult, youtubeResult] = await Promise.all([
     supabase.from("course_videos")
-      .select("id,course_id,title,description,topic,video_path,file_name,mime_type,file_size,created_at,courses(code,title)")
+      .select("id,course_id,title,description,topic,video_path,file_name,mime_type,created_at,courses(code,title)")
       .eq("is_active", true)
       .order("created_at", { ascending: false }),
     supabase.from("course_video_links")
@@ -379,8 +379,7 @@ if (session) {
 
         const meta = document.createElement("p");
         meta.className = "resource-meta";
-        meta.textContent = (video.file_size / 1048576).toFixed(1) + " MB · " +
-          new Date(video.created_at).toLocaleDateString();
+        meta.textContent = new Date(video.created_at).toLocaleDateString();
         body.append(meta);
 
         const actions = document.createElement("div");
