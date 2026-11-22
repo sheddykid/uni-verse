@@ -4,6 +4,7 @@ const session = await requireProfile();
 if (session && session.profile.role !== "admin") {
   location.replace("./student.html");
 } else if (session) {
+  document.body.classList.add("admin-page");
   const topbar = document.querySelector(".topbar");
   const mount = document.createElement("div");
   mount.id = "admin-navigation";
