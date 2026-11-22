@@ -1,6 +1,6 @@
 import { supabase, requireProfile, signOut } from "./supabase.js";
 const $ = selector => document.querySelector(selector);
-$("#logout").addEventListener("click", signOut);
+$("#logout")?.addEventListener("click", signOut);
 if (location.hostname.endsWith("github.io")) {
   $("#github-pages-notice").hidden = false;
   $(".flashcard-panel").hidden = true;
@@ -24,7 +24,7 @@ if (session) {
     currentNotes = []; generateButton.disabled = true; notesList.replaceChildren();
     $("#note-count").textContent = "Loading…";
     if (!courseSelect.value) { notesList.textContent = "Choose a course to see its notes."; $("#note-count").textContent = "Select a course first"; return; }
-    const { data, error } = await supabase.from("course_resources").select("id,title,file_name,file_size,mime_type,created_at")
+    const { data, error } = await supabase.from("course_resources").select("id,title,file_name,mime_type,created_at")
       .eq("course_id", courseSelect.value).eq("resource_type", "note").eq("is_active", true).order("created_at", { ascending: false });
     if (error) { notesList.textContent = "Could not load course notes."; $("#note-count").textContent = "Unavailable"; return; }
     currentNotes = (data || []).filter(item => /\.(pdf|docx|pptx)$/i.test(item.file_name || ""));
@@ -34,7 +34,7 @@ if (session) {
       const label = document.createElement("label"); label.className = "note-choice";
       const checkbox = document.createElement("input"); checkbox.type = "checkbox"; checkbox.value = note.id; checkbox.addEventListener("change", updateSelection);
       const details = document.createElement("span"), title = document.createElement("strong"), meta = document.createElement("small");
-      title.textContent = note.title; meta.textContent = `${note.file_name.split(".").pop().toUpperCase()} · ${formatSize(note.file_size)}`;
+      title.textContent = note.title; meta.textContent = `${note.file_name.split(".").pop().toUpperCase()}`;
       details.append(title, meta); label.append(checkbox, details); notesList.append(label);
     });
     updateSelection();
