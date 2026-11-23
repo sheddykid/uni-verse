@@ -149,7 +149,6 @@ uni-verse/
 ├── update-password.html       # New-password page
 ├── README.md
 ├── .nojekyll                  # Prevents GitHub Pages from applying Jekyll processing
-└── (verification scripts)     # assets/js/verification.js and assets/js/admin-verifications.js
 ```
 
 ---
