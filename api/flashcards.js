@@ -225,14 +225,7 @@ async function generateFlashcardsWithGroq(prompt, schema, log) {
         ],
         reasoning_effort: "low",
         max_completion_tokens: 4096,
-        response_format: {
-          type: "json_schema",
-          json_schema: {
-            name: "flashcard_generation_result",
-            strict: true,
-            schema: makeStrictJsonSchema(schema)
-          }
-        }
+        response_format: { type: "json_object" }
       })
     });
   } catch (error) {
@@ -264,8 +257,21 @@ async function generateFlashcardsWithGroq(prompt, schema, log) {
     throw failure;
   }
   try {
-    return JSON.parse(output);
-  } catch {
+    const cleaned = output.trim()
+      .replace(/^\uFEFF/, "")
+      .replace(/^\x60\x60\x60(?:json)?\s*/i, "")
+      .replace(/\s*\x60\x60\x60$/, "");
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
+    if (start < 0 || end <= start) throw new Error("No JSON object found.");
+    return JSON.parse(cleaned.slice(start, end + 1));
+  } catch (parseError) {
+    log("groq_invalid_json", {
+      model: result?.model || model,
+      finishReason: result?.choices?.[0]?.finish_reason || null,
+      contentPreview: output.slice(0, 500),
+      parseMessage: parseError?.message || "JSON parsing failed"
+    });
     const failure = new Error("Groq returned invalid JSON output.");
     failure.statusCode = 502;
     throw failure;
