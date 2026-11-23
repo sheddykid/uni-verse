@@ -35,6 +35,7 @@ Flashcards and quizzes are separate features and are not disabled by this notice
 ### Student features
 - **Account registration:** Students create an account with their full name, matriculation number, email address, department and password.
 - **Email confirmation:** New accounts must confirm their email address before signing in. The sign-in page also provides a way to resend a confirmation email when needed.
+- **Student identity verification:** Students submit a university ID image for administrator review. Verified status is controlled by secure server-side database functions; administrators are exempt from student verification.
 - **Secure sign-in and sign-out:** Supabase Authentication manages student sessions.
 - **Department-based course listing:** Students see active courses assigned to their registered department.
 - **Feature hub:** The student dashboard links to dedicated pages for notes, past questions, quizzes, flashcards, AI Note Summarizer, and video tutorials.
@@ -56,6 +57,7 @@ Flashcards and quizzes are separate features and are not disabled by this notice
 - **Resource management:** The searchable Manage Courses & Resources page has separate tables for courses, notes, past questions, uploaded videos and YouTube videos. Administrators can edit, activate/deactivate, hide/show and delete the relevant records. Admin tables show file sizes for notes, past questions and uploaded videos.
 - **Course-list refresh:** The upload form has a dedicated refresh control to reload the course dropdown without refreshing the whole page.
 - **Student preview:** Administrators can open the student dashboard from the admin navigation menu to view the student-facing experience.
+- **Verification review:** Administrators can inspect pending student ID submissions, approve or reject them with a reason, and retry failed post-approval image cleanup. Administrator accounts bypass the student verification gate.
 - **Department organization:** Course assignment is grouped by college, with expandable department/programme options and college-level selection.
 
 ### Video tutorials
@@ -82,6 +84,8 @@ The video library supports uploaded course videos and YouTube links as separate 
 | `admin-resources.html` | Upload notes and past questions |
 | `admin-videos.html` | Upload videos and add YouTube links |
 | `admin-manage.html` | Search and manage courses, notes, past questions, uploaded videos and YouTube videos |
+| `verification.html` | Student ID submission and verification status |
+| `admin-verifications.html` | Administrator review of student verification requests |
 | `reset-password.html` | Request a password-reset email |
 | `update-password.html` | Set a new password from a valid recovery link |
 
@@ -139,10 +143,13 @@ uni-verse/
 ├── videos.html                 # Video tutorials landing page
 ├── admin.html                 # Administrator content dashboard
 ├── admin-manage.html          # Course and resource management page
+├── verification.html           # Student identity verification page
+├── admin-verifications.html   # Admin verification review queue
 ├── reset-password.html        # Password-reset request page
 ├── update-password.html       # New-password page
 ├── README.md
-└── .nojekyll                  # Prevents GitHub Pages from applying Jekyll processing
+├── .nojekyll                  # Prevents GitHub Pages from applying Jekyll processing
+└── (verification scripts)     # assets/js/verification.js and assets/js/admin-verifications.js
 ```
 
 ---
@@ -525,3 +532,42 @@ The embedded iframe requests fullscreen permission and the player container has 
 - [ ] Confirm YouTube Hide/Show works from Manage Resources and hidden videos are not shown to students.
 - [ ] Confirm admin branding, department abbreviations, college expand/collapse and Active/Inactive labels on mobile and desktop.
 - [ ] Deploy the latest `main` revision to Vercel and record the exact READY deployment SHA.
+
+
+---
+
+## 20. Student identity verification — production deployed (2026-11-23)
+
+UNI-VERSE now includes a student identity-verification workflow for access to selected learning features.
+
+### Student workflow
+- Students upload a university ID image in JPG, PNG or WEBP format, up to 5 MB.
+- The image is stored in the private `student-verification` Supabase Storage bucket under a user-specific path.
+- A verification request is created with a pending status. Students can view their status and, if rejected, read the administrator's reason and submit a corrected image.
+- Once approved, the student's profile is marked verified and a plain `✔️` indicator appears beside the matriculation number in the student navigation drawer.
+- Unverified students retain access to permitted notes, past questions and PDFs. Verification is required for selected features including course videos, video links, AI flashcards and saved AI summaries.
+- Administrator accounts bypass the student verification requirement.
+
+### Administrator review and security
+- Administrators review pending requests and can approve or reject them. Rejection requires a reason that is displayed separately from the resubmission instruction.
+- Privileged review operations run through server-side functions in the non-exposed `private` schema. Students cannot directly change their verification status or request review status.
+- The verification bucket is private; administrators receive signed image previews for review.
+- After approval, the uploaded ID image is deleted and its stored path is cleared. Failed cleanup is tracked for retry without reversing the approval.
+- A rejected submission remains available for review until the student resubmits or the request is otherwise resolved.
+
+### Terms and UI
+- Registration requires acceptance of the Terms and Conditions, including the student-verification process.
+- The verification page branding is horizontally centered.
+- The verified indicator is a plain checkmark without a circle or border.
+- Rejection feedback is displayed in a separate, readable administrator-comment panel.
+
+### Production pages
+- Student verification: [verification.html](https://uni-verse-sheddykid.vercel.app/verification.html)
+- Admin review queue: [admin-verifications.html](https://uni-verse-sheddykid.vercel.app/admin-verifications.html)
+
+### Deployment record
+- GitHub commit: [aa976086](https://github.com/sheddykid/uni-verse/commit/aa9760862701f5439ba233e7058339be50eabb10)
+- Vercel production deployment: READY
+- Production alias: https://uni-verse-sheddykid.vercel.app
+
+The deployment includes the verification-page layout refinement, plain verified checkmark, and separated rejection-comment panel. The user has confirmed that the verification flow works.
