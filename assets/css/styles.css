@@ -439,7 +439,7 @@ html[data-theme="dark"] .student-drawer-theme {
 .verification-admin-image{width:100%;max-height:340px;object-fit:contain;background:var(--surface-soft,#fbfcff);border:1px solid var(--border,#e7eaf1);border-radius:10px}
 .verification-admin-copy{min-width:0}
 .verification-admin-copy h3{margin:0 0 8px;overflow-wrap:anywhere}
-.verification-admin-meta{font-size:.84rem;line-height:1.7;color:var(--muted,#778198)}
+.verification-admin-meta{font-size:.84rem;line-height:1.7;white-space:pre-line;color:var(--muted,#778198)}
 .verification-admin-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
 .verification-cleanup-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 15px;border:1px solid var(--border,#e7eaf1);border-radius:11px;background:var(--surface,#fff)}
 @media(max-width:650px){.verification-admin-card{grid-template-columns:1fr}.verification-admin-image{max-height:300px}.verification-cleanup-row{align-items:stretch;flex-direction:column}}
