@@ -661,6 +661,7 @@ ${noteText}`;
 
 export default async function handler(req, res) {
   if (req.method !== "POST") { res.setHeader("Allow", "POST"); return respond(res, 405, { error: "Method not allowed." }); }
+  return respond(res, 503, { error: "AI note summarizer temporarily unavailable while provider reliability is being investigated. Existing saved summaries remain accessible." });
   const auth = req.headers.authorization || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
   if (!token) return respond(res, 401, { error: "Sign in to summarize course notes." });
