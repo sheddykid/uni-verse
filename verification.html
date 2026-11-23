@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101827">
+  <title>UNI-VERSE | Student verification</title>
+  <link rel="stylesheet" href="./assets/css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./student.html"><span class="brand-mark small">U</span> UNI-VERSE</a>
+    <span id="user-label" class="muted"></span>
+  </header>
+  <main class="dashboard verification-dashboard">
+    <p class="eyebrow">STUDENT ACCOUNT</p>
+    <h1>Student verification</h1>
+    <p class="muted">Submit a clear image of your university student ID card for administrator review.</p>
+    <section class="verification-panel">
+      <div id="verification-status" class="verification-status" role="status" aria-live="polite">Checking your verification status…</div>
+      <form id="verification-form" class="verification-upload" hidden>
+        <label for="student-id-image">University ID card image
+          <input id="student-id-image" type="file" accept="image/jpeg,image/png,image/webp" required>
+        </label>
+        <p class="muted">Accepted formats: JPG, PNG or WEBP. Maximum file size: 5 MB. Make sure your name and matriculation number are readable.</p>
+        <img id="verification-preview" class="verification-preview" alt="Preview of selected student ID card" hidden>
+        <button id="verification-submit" class="btn primary" type="submit">Submit for verification</button>
+        <p id="verification-message" class="message" role="status" aria-live="polite"></p>
+      </form>
+      <p class="form-foot"><a href="./student.html">← Return to learning hub</a></p>
+    </section>
+  </main>
+  <script type="module" src="./assets/js/student-navigation.js"></script>
+  <script type="module" src="./assets/js/verification.js"></script>
+  <script type="module" src="./assets/js/theme.js"></script>
+</body>
+</html>
