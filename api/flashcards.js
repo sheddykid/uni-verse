@@ -308,9 +308,12 @@ export default async function handler(req, res) {
     if (!courseId || !resourceIds.length) return respond(res, 400, { error: "Choose a course and at least one set of course notes." });
     if (resourceIds.length > MAX_FILES) return respond(res, 400, { error: `Select no more than ${MAX_FILES} note files at a time.` });
 
-    const profiles = await supabaseRequest(`profiles?select=id,role,department_id&id=eq.${encodeURIComponent(user.id)}&limit=1`, token);
+    const profiles = await supabaseRequest(`profiles?select=id,role,department_id,is_verified&id=eq.${encodeURIComponent(user.id)}&limit=1`, token);
     const profile = profiles[0];
     if (!profile || profile.id !== user.id) return respond(res, 403, { error: "Your student profile could not be verified." });
+    if (profile.role !== "admin" && profile.is_verified !== true) {
+      return respond(res, 403, { error: "Verify your student account before generating AI flashcards." });
+    }
 
     stage = "course_authorization";
     const courseParams = new URLSearchParams({ select: "id,code,title,course_departments!inner(department_id)", id: `eq.${courseId}`, is_active: "eq.true", limit: "1" });
