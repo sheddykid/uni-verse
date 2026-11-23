@@ -354,3 +354,17 @@ html[data-theme="dark"] .student-drawer-theme {
   border-color: #465775;
   color: #f1f5ff;
 }
+
+
+/* Temporary AI note summarizer maintenance notice */
+.summary-maintenance-notice {
+  margin-top: 1rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(234, 179, 8, .45);
+  border-left: 4px solid #d69e22;
+  border-radius: 12px;
+  background: rgba(214, 158, 34, .10);
+  color: var(--text, #e5e7eb);
+}
+.summary-maintenance-notice strong { display: block; margin-bottom: .45rem; }
+.summary-maintenance-notice p { margin: 0; line-height: 1.6; }
