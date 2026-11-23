@@ -34,6 +34,10 @@ const session = await requireProfile();
 if (session) {
   const userLabel = document.querySelector("#user-label");
   if (userLabel) userLabel.textContent = session.profile.full_name || session.user.email;
+  if (session.profile.role !== "admin" && session.profile.is_verified !== true) {
+    document.querySelector("#video-list").textContent = "Verify your student account before watching video tutorials. You can submit your university ID card from the verification page.";
+    document.querySelector("#video-count").textContent = "Verification required";
+  } else {
   const searchInput = document.querySelector("#video-search");
   const courseFilter = document.querySelector("#video-course-filter");
   const target = document.querySelector("#video-list");
@@ -486,5 +490,6 @@ if (session) {
     searchInput.addEventListener("input", renderVideos);
     courseFilter.addEventListener("change", renderVideos);
     renderVideos();
+  }
   }
 }
