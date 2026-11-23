@@ -24,7 +24,7 @@ if (session) {
     currentNotes = []; generateButton.disabled = true; notesList.replaceChildren();
     $("#note-count").textContent = "Loading…";
     if (!courseSelect.value) { notesList.textContent = "Choose a course to see its notes."; $("#note-count").textContent = "Select a course first"; return; }
-    const { data, error } = await supabase.from("course_resources").select("id,title,file_name,mime_type,created_at")
+    const { data, error } = await supabase.from("course_resources").select("id,title,file_name,mime_type,file_size,created_at")
       .eq("course_id", courseSelect.value).eq("resource_type", "note").eq("is_active", true).order("created_at", { ascending: false });
     if (error) { notesList.textContent = "Could not load course notes."; $("#note-count").textContent = "Unavailable"; return; }
     currentNotes = (data || []).filter(item => /\.(pdf|docx|pptx)$/i.test(item.file_name || ""));
@@ -34,7 +34,7 @@ if (session) {
       const label = document.createElement("label"); label.className = "note-choice";
       const checkbox = document.createElement("input"); checkbox.type = "checkbox"; checkbox.value = note.id; checkbox.addEventListener("change", updateSelection);
       const details = document.createElement("span"), title = document.createElement("strong"), meta = document.createElement("small");
-      title.textContent = note.title; meta.textContent = `${note.file_name.split(".").pop().toUpperCase()}`;
+      title.textContent = note.title; meta.textContent = `${note.file_name.split(".").pop().toUpperCase()} · ${formatSize(note.file_size)}`;
       details.append(title, meta); label.append(checkbox, details); notesList.append(label);
     });
     updateSelection();
@@ -72,7 +72,8 @@ if (session) {
     finally { generateButton.disabled = notesList.querySelectorAll('input[type="checkbox"]:checked').length === 0; generateButton.textContent = "Generate flashcards"; }
   }
   function setStatus(message, success = false) { $("#status").textContent = message; $("#status").classList.toggle("success", success); }
-  function formatSize(bytes) { if (!bytes) return "Size unknown"; return bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`; }
+  function formatSize(bytes) { if (bytes === null || bytes === undefined || Number.isNaN(Number(bytes))) return "Size unknown";
+    if (Number(bytes) === 0) return "0 KB"; return bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`; }
 }
 
 }
