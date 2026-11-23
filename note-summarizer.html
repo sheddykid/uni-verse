@@ -13,10 +13,9 @@
 <div class="note-picker-head"><strong>Available course notes</strong><span id="note-count" class="muted">Select a course first</span></div>
 <div id="notes-list" class="notes-picker"><p class="muted">Choose a course to see its notes.</p></div>
 
-<div class="summary-actions"><button id="generate" class="btn primary" type="button" disabled>Generate summary</button><p id="status" class="message" role="status" aria-live="polite"></p></div>
-<div id="summary-generation-progress" class="generation-progress" hidden>
-  <div class="generation-progress-copy"><span id="summary-generation-stage">Preparing your summary…</span></div>
-  <div id="summary-generation-track" class="generation-progress-track" role="progressbar" aria-label="Summary generation progress" aria-valuemin="0" aria-valuemax="100" aria-valuetext="In progress"><span id="summary-generation-fill"></span></div>
+<div class="summary-maintenance-notice" role="status" aria-live="polite">
+  <strong>AI note summarizer temporarily unavailable</strong>
+  <p>Summary generation is paused while we investigate AI provider reliability and request timeouts. The Generate Summary feature will return after the issue is fixed. You can still access summaries you have already saved from Summary history.</p>
 </div>
 </section>
 
