@@ -8,7 +8,14 @@ if (location.hostname.endsWith("github.io")) {
   $(".summary-builder").hidden = true;
 } else {
   const session = await requireProfile();
-  if (session) {
+  if (session && session.profile.role !== "admin" && session.profile.is_verified !== true) {
+    $("#user-label").textContent = session.profile.full_name || session.user.email;
+    $(".summary-builder").hidden = true;
+    const notice = document.createElement("section");
+    notice.className = "flashcard-panel";
+    notice.textContent = "Verify your student account before accessing AI learning materials. Open the verification page to submit your university ID card.";
+    document.querySelector(".summary-dashboard").append(notice);
+  } else if (session) {
     const { profile, user } = session;
     if (user.id === "1693d72a-6941-4ace-a9ef-022a073ae96f") {
       const cleanupKey = "uni-verse-legacy-summary-cleanup-e70d83c7";
