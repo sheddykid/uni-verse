@@ -33,6 +33,17 @@ if (session) {
       <button class="contact-widget-tuck" type="button" aria-label="Hide contact button at screen edge" title="Hide at screen edge">›</button>
     </div>
     <button class="contact-widget-restore" type="button" aria-label="Show Contact Admin" hidden>‹</button>
+    <dialog class="verification-prompt-dialog" aria-labelledby="verification-prompt-title">
+      <div class="verification-prompt-content">
+        <p class="eyebrow">STUDENT VERIFICATION</p>
+        <h2 id="verification-prompt-title">Verify your student account</h2>
+        <p class="muted">Upload a clear image of your university ID card to unlock video tutorials and AI learning materials. You can cancel now and continue using the available course resources.</p>
+        <div class="verification-prompt-actions">
+          <button class="btn secondary verification-prompt-cancel" type="button">Cancel</button>
+          <a class="btn primary" href="./verification.html">Verify account</a>
+        </div>
+      </div>
+    </dialog>
     <dialog class="contact-dialog">
       <div class="contact-dialog-head"><div><p class="eyebrow">STUDENT SUPPORT</p><h2>Contact Admin</h2></div><button class="contact-dialog-close" type="button" aria-label="Close">×</button></div>
       <p class="muted">Send a complaint or message directly to the UNI-VERSE administrator.</p>
@@ -54,9 +65,36 @@ if (session) {
   const backdrop = $(".student-drawer-backdrop");
   const profile = session.profile;
   $(".student-profile-name").textContent = profile.full_name || "Student";
-  $(".student-profile-matric").textContent = profile.matric_number || session.user.email || "Matric number unavailable";
+  const matricLabel = $(".student-profile-matric");
+  matricLabel.textContent = profile.matric_number || session.user.email || "Matric number unavailable";
+  if (profile.is_verified) {
+    const verifiedTick = document.createElement("span");
+    verifiedTick.className = "student-verified-tick";
+    verifiedTick.textContent = "✓";
+    verifiedTick.setAttribute("role", "img");
+    verifiedTick.setAttribute("aria-label", "Verified student");
+    verifiedTick.title = "Verified student";
+    matricLabel.append(" ", verifiedTick);
+  }
 
   const current = location.pathname.split("/").pop() || "student.html";
+  if (profile.role === "student" && profile.is_verified !== true && current !== "verification.html") {
+    const promptDialog = $(".verification-prompt-dialog");
+    const promptKey = "universe-verification-prompt:" + session.user.id;
+    const loginStamp = session.user.last_sign_in_at || session.user.created_at || "first-login";
+    try {
+      if (sessionStorage.getItem(promptKey) !== loginStamp) {
+        sessionStorage.setItem(promptKey, loginStamp);
+        promptDialog.showModal();
+      }
+    } catch {
+      promptDialog.showModal();
+    }
+    $(".verification-prompt-cancel").addEventListener("click", () => promptDialog.close());
+    promptDialog.addEventListener("click", event => {
+      if (event.target === promptDialog) promptDialog.close();
+    });
+  }
   const nav = $(".student-drawer-links");
   links.forEach(([href, icon, label]) => {
     const link = document.createElement("a");
