@@ -51,18 +51,15 @@ if (session && session.profile.role !== "admin") {
         const available = names.map(name => byName.get(name)).filter(Boolean);
         const group = document.createElement("details");
         group.className = "faculty-picker-group";
-        const heading = document.createElement("div");
-        heading.className = "faculty-picker-heading";
+        const summary = document.createElement("summary");
         const facultyCheck = document.createElement("input");
         facultyCheck.type = "checkbox";
         facultyCheck.className = "faculty-select-all";
         facultyCheck.setAttribute("aria-label", "Select all departments and programmes in " + facultyName);
-        const summary = document.createElement("summary");
         const label = document.createElement("span");
         label.textContent = facultyName;
-        summary.append(label);
-        heading.append(facultyCheck, summary);
-        group.append(heading);
+        summary.append(facultyCheck, label);
+        group.append(summary);
         const list = document.createElement("div");
         list.className = "faculty-department-list";
         const departmentChecks = [];
@@ -84,6 +81,7 @@ if (session && session.profile.role !== "admin") {
             facultyCheck.indeterminate = departmentChecks.some(item => item.checked) && !facultyCheck.checked;
           });
         });
+        facultyCheck.addEventListener("click", event => event.stopPropagation());
         facultyCheck.addEventListener("change", () => {
           departmentChecks.forEach(checkbox => { checkbox.checked = facultyCheck.checked; });
           facultyCheck.indeterminate = false;
