@@ -74,6 +74,7 @@ The video library supports uploaded course videos and YouTube links as separate 
 | `notes.html` | Course notes browser and downloads |
 | `past-questions.html` | Past questions browser with test/exam filters |
 | `quizzes.html` | AI quiz generation and practice |
+| `note-summarizer.html` | AI note summarizer page (generation temporarily paused) |
 | `flashcards.html` | AI flashcard generator and interactive study deck (Vercel deployment) |
 | `videos.html` | Search and play uploaded course videos |
 | `youtube-videos.html` | Search and play embedded YouTube tutorials |
@@ -250,7 +251,7 @@ For GitHub Pages deployment, ensure GitHub Pages is configured to use **GitHub A
 
 ## 10. Current scope and limitations
 
-- UNI-VERSE includes authentication, college/department-based course assignment, course administration, notes and past questions, uploaded and YouTube video tutorials, AI flashcards, quizzes and AI note summaries.
+- UNI-VERSE includes authentication, college/department-based course assignment, course administration, notes and past questions, uploaded and YouTube video tutorials, AI flashcards and quizzes. AI note-summary generation is temporarily paused; saved summaries remain available.
 - AI flashcards require the Vercel deployment because GitHub Pages does not run the `/api/flashcards` serverless function. The Gemini API key is stored as a Vercel environment variable and is never exposed to the browser.
 - Video tutorials support resumable Cloudflare R2 uploads, course-based access, search, playback and admin management. Quiz generation is implemented separately.
 - The frontend validates supported file extensions and file size, but backend Storage policies must also enforce appropriate access and upload restrictions.
