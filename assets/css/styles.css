@@ -370,7 +370,7 @@ html[data-theme="dark"] .student-drawer-theme {
 .summary-maintenance-notice p { margin: 0; line-height: 1.6; }
 
 
-/* Keep course headings readable in the desktop Course Notes grid. */
+/* Keep course headings and resource titles readable in grouped resource lists. */
 .resource-results{grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));}
 .resource-card,.resource-card-heading{width:100%;min-width:0;}
 .course-resource-group .resource-card-heading h3{
@@ -381,4 +381,36 @@ html[data-theme="dark"] .student-drawer-theme {
   white-space:normal;
   word-break:normal;
   overflow-wrap:break-word;
+}
+.course-resource-group .resource-item{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) max-content;
+  align-items:center;
+  column-gap:14px;
+  width:100%;
+}
+.course-resource-group .resource-item .course-row-info{
+  display:block;
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  flex:none;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+.course-resource-group .resource-item .course-row-info strong{
+  display:block;
+  width:100%;
+  max-width:100%;
+  white-space:normal;
+  word-break:normal;
+  overflow-wrap:anywhere;
+}
+.course-resource-group .resource-item .resource-actions{
+  min-width:max-content;
+  max-width:100%;
+}
+@media(max-width:600px){
+  .course-resource-group .resource-item{grid-template-columns:minmax(0,1fr);row-gap:10px}
+  .course-resource-group .resource-item .resource-actions{width:100%;min-width:0}
 }
