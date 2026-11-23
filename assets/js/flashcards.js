@@ -6,7 +6,14 @@ if (location.hostname.endsWith("github.io")) {
   $(".flashcard-panel").hidden = true;
 } else {
 const session = await requireProfile();
-if (session) {
+if (session && session.profile.role !== "admin" && session.profile.is_verified !== true) {
+  $("#user-label").textContent = session.profile.full_name || session.user.email;
+  $(".flashcard-panel").hidden = true;
+  const notice = document.createElement("section");
+  notice.className = "flashcard-panel";
+  notice.textContent = "Verify your student account before accessing AI flashcards. Open the verification page to submit your university ID card.";
+  document.querySelector(".flashcard-dashboard").append(notice);
+} else if (session) {
   const { profile, user } = session;
   $("#user-label").textContent = profile.full_name || user.email;
   const courseSelect = $("#course-select"), notesList = $("#notes-list"), generateButton = $("#generate");
