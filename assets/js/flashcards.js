@@ -58,7 +58,8 @@ if (session && session.profile.role !== "admin" && session.profile.is_verified !
     const resourceIds = [...notesList.querySelectorAll('input[type="checkbox"]:checked')].map(input => input.value);
     if (!resourceIds.length) return;
     generateButton.disabled = true; generateButton.textContent = "Generating…";
-    setStatus("Reading your notes and generating flashcards. This may take a little while.");
+    setFlashcardProgress("Reading your notes and preparing your flashcards…", true);
+    setStatus("Your flashcards are being prepared. This can take a little while.");
     try {
       const { data: { session: authSession } } = await supabase.auth.getSession();
       if (!authSession?.access_token) throw new Error("Your session has expired. Sign in again.");
@@ -73,10 +74,26 @@ if (session && session.profile.role !== "admin" && session.profile.is_verified !
       const deck = result.flashcards || [];
       if (!deck.length) throw new Error("No flashcards were generated from these notes.");
       sessionStorage.setItem("universeActiveFlashcards", JSON.stringify({ result }));
+      setFlashcardProgress("Flashcards generated. Opening your study page…", false, 100);
       setStatus(`Prepared ${deck.length} flashcards${result.reusedCount ? ` (${result.reusedCount} reused from the saved note bank)` : ""}. Opening your study page…`, true);
       location.href = "./flashcard-session.html";
     } catch (error) { setStatus(error.message || "Flashcard generation failed."); }
-    finally { generateButton.disabled = notesList.querySelectorAll('input[type="checkbox"]:checked').length === 0; generateButton.textContent = "Generate flashcards"; }
+    finally {
+      generateButton.disabled = notesList.querySelectorAll('input[type="checkbox"]:checked').length === 0;
+      generateButton.textContent = "Generate flashcards";
+      $("#flashcard-generation-progress").hidden = true;
+    }
+  }
+  function setFlashcardProgress(message, indeterminate = true, percent = 0) {
+    const container = $("#flashcard-generation-progress");
+    const track = $("#flashcard-generation-track");
+    container.hidden = false;
+    $("#flashcard-generation-stage").textContent = message;
+    track.classList.toggle("is-indeterminate", indeterminate);
+    track.setAttribute("aria-valuetext", indeterminate ? message : percent + "% complete");
+    if (indeterminate) track.removeAttribute("aria-valuenow");
+    else track.setAttribute("aria-valuenow", String(percent));
+    $("#flashcard-generation-fill").style.width = indeterminate ? "38%" : percent + "%";
   }
   function setStatus(message, success = false) { $("#status").textContent = message; $("#status").classList.toggle("success", success); }
   function formatSize(bytes) { if (bytes === null || bytes === undefined || Number.isNaN(Number(bytes))) return "Size unknown";
