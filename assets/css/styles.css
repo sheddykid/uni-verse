@@ -414,3 +414,55 @@ html[data-theme="dark"] .student-drawer-theme {
   .course-resource-group .resource-item{grid-template-columns:minmax(0,1fr);row-gap:10px}
   .course-resource-group .resource-item .resource-actions{width:100%;min-width:0}
 }
+
+
+/* Keep faculty select-all checkboxes outside the interactive details summary. */
+.faculty-picker-heading{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  padding:0 14px;
+}
+.faculty-picker-heading>summary{
+  display:flex;
+  align-items:center;
+  flex:1;
+  min-width:0;
+  gap:11px;
+  padding:13px 0;
+  cursor:pointer;
+  list-style:none;
+  font-weight:750;
+  color:#29364d;
+}
+.faculty-picker-heading>summary::-webkit-details-marker{display:none}
+.faculty-picker-heading>summary::after{
+  content:"⌄";
+  margin-left:auto;
+  color:#778198;
+}
+.faculty-picker-heading>summary small{
+  margin-left:auto;
+  color:#8993a6;
+  font-size:.72rem;
+  font-weight:600;
+}
+.faculty-picker-heading>.faculty-select-all{
+  width:18px;
+  height:18px;
+  flex:0 0 18px;
+  margin:0;
+  accent-color:#5365e8;
+}
+.faculty-picker-group[open]>.faculty-picker-heading{
+  background:#f7f8fc;
+  border-bottom:1px solid #edf0f5;
+}
+.faculty-picker-group[open]>.faculty-picker-heading>summary{
+  background:transparent;
+}
+html[data-theme="dark"] .faculty-picker-heading>summary{color:#e7ecf6}
+html[data-theme="dark"] .faculty-picker-group[open]>.faculty-picker-heading{
+  background:#202d45;
+  border-bottom-color:#35435b;
+}
