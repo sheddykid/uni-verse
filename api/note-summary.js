@@ -614,14 +614,11 @@ async function generateSummary(prompt, log) {
   }
 
   if (process.env.OPENROUTER_API_KEY) {
-    const configuredPrimary = (process.env.OPENROUTER_MODEL || "").trim();
-    const configuredFallback = (process.env.OPENROUTER_FALLBACK_MODEL || "").trim();
-    // Do not allow the old dynamic free-model router to override the pinned production models.
-    const primaryModel = !configuredPrimary || configuredPrimary.toLowerCase() === "openrouter/free"
-      ? "nvidia/nemotron-3.5-lightning" : configuredPrimary;
-    const fallbackModel = !configuredFallback || configuredFallback.toLowerCase() === "openrouter/free"
-      ? "nvidia/nemotron-3.5-super-vl" : configuredFallback;
-    const models = [...new Set([primaryModel, fallbackModel])];
+    // Keep the summarizer on explicitly free OpenRouter endpoints. Ignore legacy
+    // paid model environment overrides so this path never silently incurs charges.
+    const primaryModel = "nvidia/nemotron-3.5-lightning:free";
+    const fallbackModel = "nvidia/nemotron-3.5-super-vl:free";
+    const models = [primaryModel, fallbackModel];
     let lastError = null;
     for (const model of models) {
       try {
