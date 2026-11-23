@@ -70,7 +70,7 @@ if (session) {
   if (profile.is_verified) {
     const verifiedTick = document.createElement("span");
     verifiedTick.className = "student-verified-tick";
-    verifiedTick.textContent = "✓";
+    verifiedTick.textContent = "✔️";
     verifiedTick.setAttribute("role", "img");
     verifiedTick.setAttribute("aria-label", "Verified student");
     verifiedTick.title = "Verified student";

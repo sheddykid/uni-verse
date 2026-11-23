@@ -444,3 +444,16 @@ html[data-theme="dark"] .student-drawer-theme {
 .verification-cleanup-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 15px;border:1px solid var(--border,#e7eaf1);border-radius:11px;background:var(--surface,#fff)}
 @media(max-width:650px){.verification-admin-card{grid-template-columns:1fr}.verification-admin-image{max-height:300px}.verification-cleanup-row{align-items:stretch;flex-direction:column}}
 html[data-theme="dark"] .verification-status{background:#202d45;border-color:#35435b}
+
+
+/* Verification page refinements */
+.verification-page .topbar>.brand{position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap}
+.verification-page .topbar{position:relative}
+.student-verified-tick{display:inline!important;width:auto!important;height:auto!important;border:0!important;border-radius:0!important;background:transparent!important;color:#16834b!important;font-size:1rem!important;font-weight:800!important;line-height:1!important;vertical-align:baseline!important}
+.verification-status.has-rejection{display:grid;gap:10px}
+.verification-rejection{padding:14px 16px;border:1px solid #f0c9cd;border-left:4px solid #c84e59;border-radius:10px;background:#fff7f7;color:#7e3038}
+.verification-rejection strong{display:block;margin-bottom:6px;font-size:.9rem}
+.verification-rejection p{margin:0;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
+.verification-resubmit-note{margin:0;color:var(--muted,#778198);line-height:1.6}
+html[data-theme="dark"] .verification-rejection{background:#321f29;border-color:#69404a;color:#ffdce0}
+@media(max-width:420px){.verification-page .topbar>.brand{font-size:.88rem}.verification-page .topbar>#user-label{display:none}}

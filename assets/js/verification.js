@@ -48,9 +48,22 @@ if (session) {
         } else {
           const latestRejected = requests.find(item => item.status === "rejected");
           if (latestRejected) {
-            showStatus("Your previous verification submission was not approved. " +
-              (latestRejected.rejection_reason || "Please submit a clearer image of your university ID card.") +
-              " You can upload a new image below.");
+            status.replaceChildren();
+            status.classList.add("has-rejection");
+            const heading = document.createElement("strong");
+            heading.textContent = "Previous submission not approved";
+            const rejection = document.createElement("div");
+            rejection.className = "verification-rejection";
+            const reasonLabel = document.createElement("strong");
+            reasonLabel.textContent = "Administrator's comment";
+            const reasonText = document.createElement("p");
+            reasonText.textContent = latestRejected.rejection_reason || "Please submit a clearer image of your university ID card.";
+            rejection.append(reasonLabel, reasonText);
+            const resubmitNote = document.createElement("p");
+            resubmitNote.className = "verification-resubmit-note";
+            resubmitNote.textContent = "Review the comment above, then upload a corrected image below.";
+            status.append(heading, rejection, resubmitNote);
+            status.hidden = false;
           } else {
             showStatus("No verification request has been submitted yet. Upload your university ID card below.");
           }
