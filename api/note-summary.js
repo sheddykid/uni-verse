@@ -684,9 +684,12 @@ export default async function handler(req, res) {
       return respond(res, 400, { error: "Choose one active course note." });
     }
 
-    const profiles = await supabaseRequest(`profiles?select=id,role,department_id&id=eq.${encodeURIComponent(user.id)}&limit=1`, token);
+    const profiles = await supabaseRequest(`profiles?select=id,role,department_id,is_verified&id=eq.${encodeURIComponent(user.id)}&limit=1`, token);
     const profile = profiles[0];
     if (!profile || profile.id !== user.id) return respond(res, 403, { error: "Your account profile could not be verified." });
+    if (profile.role !== "admin" && profile.is_verified !== true) {
+      return respond(res, 403, { error: "Verify your student account before accessing AI learning materials." });
+    }
 
     const courseParams = new URLSearchParams({
       select: "id,code,title,course_departments!inner(department_id)",
