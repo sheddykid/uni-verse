@@ -159,6 +159,7 @@ if (session) {
     if (event.key === "Escape" && drawer.classList.contains("is-open")) setDrawer(false);
   });
   $(".student-drawer-signout").addEventListener("click", async () => {
+    try { sessionStorage.removeItem("universe-verification-prompt:" + session.user.id); } catch {}
     await supabase.auth.signOut();
     location.replace("./index.html");
   });
