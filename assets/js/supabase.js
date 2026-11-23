@@ -35,7 +35,7 @@ export function enablePasswordToggles(root=document) {
 export async function requireProfile() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) { location.replace("./index.html"); return null; }
-  const { data: profile, error } = await supabase.from("profiles").select("id,full_name,matric_number,role,department_id").eq("id", user.id).single();
+  const { data: profile, error } = await supabase.from("profiles").select("id,full_name,matric_number,role,department_id,is_verified").eq("id", user.id).single();
   if (error || !profile) { await supabase.auth.signOut(); location.replace("./index.html"); return null; }
   return { user, profile };
 }
