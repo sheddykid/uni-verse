@@ -128,9 +128,18 @@ if (session) {
           throw inserted.error;
         }
 
-        showStatus("Your ID card has been submitted successfully and is awaiting administrator review.");
         form.hidden = true;
         setMessage("");
+        try {
+          const notification = await supabase.functions.invoke("verification-notification", {
+            body: { requestId: inserted.data.id }
+          });
+          if (notification.error) throw notification.error;
+          showStatus("Your ID card has been submitted successfully. The administrator has been notified by email and will review your request.");
+        } catch (notificationError) {
+          console.error("[UNI-VERSE verification email]", notificationError);
+          showStatus("Your ID card was submitted successfully and is awaiting review. The email alert could not be sent, but your request is visible in the administrator dashboard.");
+        }
       } catch (error) {
         console.error("[UNI-VERSE verification submission]", error);
         setMessage(error.message || "Your ID card could not be submitted. Please try again.");
