@@ -441,15 +441,7 @@ async function callOpenRouter(prompt, log, modelOverride) {
           ],
           max_tokens: 6000,
           temperature: 0.1,
-          response_format: {
-            type: "json_schema",
-            json_schema: {
-              name: "course_note_summary",
-              strict: true,
-              schema: makeStrictJsonSchema(summarySchema)
-            }
-          },
-          provider: { require_parameters: true }
+          response_format: { type: "json_object" }
         })
       });
 
@@ -462,9 +454,10 @@ async function callOpenRouter(prompt, log, modelOverride) {
           code: typeof providerError.code === "string" ? providerError.code : undefined,
           message: typeof providerError.message === "string" ? providerError.message.slice(0, 350) : undefined
         });
+        const providerMessage = typeof providerError.message === "string" ? providerError.message.slice(0, 240) : "No provider error message was supplied.";
         const failure = new Error(response.status === 429
-          ? "OpenRouter's rate limit has been reached."
-          : "OpenRouter could not complete the summary.");
+          ? "OpenRouter rate limit reached: " + providerMessage
+          : "OpenRouter request failed (HTTP " + response.status + ", " + model + "): " + providerMessage);
         failure.statusCode = response.status;
         throw failure;
       }
@@ -476,7 +469,20 @@ async function callOpenRouter(prompt, log, modelOverride) {
         output = output.map(part => typeof part === "string" ? part : (part && typeof part.text === "string" ? part.text : "")).filter(Boolean).join("\n");
       }
 
-      const parsed = parseModelJson(output);
+      let parsed;
+      try {
+        parsed = parseModelJson(output);
+      } catch (parseError) {
+        log("openrouter_invalid_response", {
+          requestedModel: model,
+          returnedModel: result.model || model,
+          finishReason: choice && choice.finish_reason || null,
+          completionTokens: result.usage && result.usage.completion_tokens || null,
+          contentPreview: typeof output === "string" ? output.slice(0, 700) : null,
+          parseMessage: parseError && parseError.message || "JSON parsing failed"
+        });
+        throw parseError;
+      }
       log("openrouter_model_response_accepted", {
         requestedModel: model,
         returnedModel: result.model || model,
@@ -608,8 +614,13 @@ async function generateSummary(prompt, log) {
   }
 
   if (process.env.OPENROUTER_API_KEY) {
-    const primaryModel = process.env.OPENROUTER_MODEL || "nvidia/nemotron-3.5-lightning";
-    const fallbackModel = process.env.OPENROUTER_FALLBACK_MODEL || "nvidia/nemotron-3.5-super-vl";
+    const configuredPrimary = (process.env.OPENROUTER_MODEL || "").trim();
+    const configuredFallback = (process.env.OPENROUTER_FALLBACK_MODEL || "").trim();
+    // Do not allow the old dynamic free-model router to override the pinned production models.
+    const primaryModel = !configuredPrimary || configuredPrimary.toLowerCase() === "openrouter/free"
+      ? "nvidia/nemotron-3.5-lightning" : configuredPrimary;
+    const fallbackModel = !configuredFallback || configuredFallback.toLowerCase() === "openrouter/free"
+      ? "nvidia/nemotron-3.5-super-vl" : configuredFallback;
     const models = [...new Set([primaryModel, fallbackModel])];
     let lastError = null;
     for (const model of models) {
