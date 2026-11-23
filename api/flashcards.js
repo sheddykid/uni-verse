@@ -204,7 +204,33 @@ async function generateFlashcardsWithGemini(prompt, schema, log) {
   }
 }
 
-async function generateFlashcardsWithGroq(prompt, schema, log) {
+function compactPromptForGroq(prompt, log) {
+  const marker = "\nCOURSE NOTES:\n";
+  const markerIndex = prompt.indexOf(marker);
+  if (markerIndex < 0) return prompt;
+
+  const prefix = prompt.slice(0, markerIndex + marker.length);
+  const notes = prompt.slice(markerIndex + marker.length);
+  const MAX_GROQ_NOTE_CHARS = 18000;
+  if (notes.length <= MAX_GROQ_NOTE_CHARS) return prompt;
+
+  // Sample evenly spaced sections so the fallback retains coverage across
+  // the beginning, middle, and end of long lecture notes.
+  const segmentCount = 4;
+  const segmentLength = Math.floor(MAX_GROQ_NOTE_CHARS / segmentCount);
+  const segments = Array.from({ length: segmentCount }, (_, index) => {
+    const start = Math.floor((notes.length - segmentLength) * index / (segmentCount - 1));
+    return notes.slice(start, start + segmentLength);
+  });
+  const compacted = prefix + segments.join("\n\n[Middle section omitted to fit the backup provider's token budget]\n\n");
+  log("groq_prompt_compacted", {
+    originalNoteCharacters: notes.length,
+    sentNoteCharacters: segments.reduce((total, part) => total + part.length, 0)
+  });
+  return compacted;
+}
+
+async function generateFlashcardsWithGroq(prompt, schema, log, cardCount) {
   const key = process.env.GROQ_API_KEY;
   const model = process.env.GROQ_MODEL || "openai/gpt-oss-20b";
   const started = Date.now();
@@ -224,7 +250,7 @@ async function generateFlashcardsWithGroq(prompt, schema, log) {
           { role: "user", content: prompt }
         ],
         reasoning_effort: "low",
-        max_completion_tokens: 4096,
+        max_completion_tokens: Math.min(3072, Math.max(1536, cardCount * 100)),
         response_format: { type: "json_object" }
       })
     });
@@ -423,7 +449,7 @@ ${excerpts.join("\n\n---\n\n")}`;
           reason: geminiError?.code || ("Gemini HTTP " + (geminiError?.statusCode || "network error"))
         });
         try {
-          parsedOutput = await generateFlashcardsWithGroq(prompt, schema, log);
+          parsedOutput = await generateFlashcardsWithGroq(compactPromptForGroq(prompt, log), schema, log, missing);
           log("groq_fallback_succeeded");
         } catch (groqError) {
           log("groq_fallback_failed", {
