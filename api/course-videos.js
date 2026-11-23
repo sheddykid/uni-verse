@@ -51,7 +51,7 @@ async function authenticate(req) {
   if (!response.ok) fail("Your session has expired. Sign in again.", 401);
   const user = await response.json();
   const profiles = await supabaseGet(
-    `profiles?select=id,role&id=eq.${encodeURIComponent(user.id)}&limit=1`, token
+    `profiles?select=id,role,is_verified&id=eq.${encodeURIComponent(user.id)}&limit=1`, token
   );
   const profile = profiles[0];
   if (!profile || profile.id !== user.id) fail("Your account profile could not be verified.", 403);
@@ -347,6 +347,9 @@ export default async function handler(req, res) {
     }
 
     if (action === "playback") {
+      if (context.profile.role !== "admin" && context.profile.is_verified !== true) {
+        fail("Verify your student account before watching video tutorials.", 403);
+      }
       const videoId = String(body.videoId || "");
       if (!validUuid(videoId)) fail("Choose a valid video.", 400);
       const videos = await supabaseGet(
