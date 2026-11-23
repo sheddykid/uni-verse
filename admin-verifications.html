@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101827">
+  <title>UNI-VERSE | Student verification requests</title>
+  <link rel="stylesheet" href="./assets/css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./admin.html"><span class="brand-mark small">U</span> UNI-VERSE</a>
+    <span id="user-label" class="muted"></span>
+  </header>
+  <main class="dashboard admin-dashboard">
+    <p class="eyebrow">ADMINISTRATION</p>
+    <h1>Student verification</h1>
+    <p class="muted">Review submitted university ID cards and approve or reject student verification requests.</p>
+    <section class="section admin-table-section">
+      <div class="resource-results-head"><h2>Pending requests</h2><button id="refresh-verifications" class="btn secondary" type="button">Refresh</button></div>
+      <p id="verification-admin-status" class="message" role="status" aria-live="polite"></p>
+      <div id="pending-verifications" class="verification-admin-list"><p class="muted">Loading requests…</p></div>
+    </section>
+    <section class="section admin-table-section">
+      <h2>Image cleanup pending</h2>
+      <p class="muted">Approved students whose ID images still need storage cleanup appear here.</p>
+      <div id="verification-cleanup-list" class="verification-admin-list"><p class="muted">Checking cleanup status…</p></div>
+    </section>
+  </main>
+  <script type="module" src="./assets/js/admin-navigation.js"></script>
+  <script type="module" src="./assets/js/admin-verifications.js"></script>
+  <script type="module" src="./assets/js/theme.js"></script>
+</body>
+</html>
