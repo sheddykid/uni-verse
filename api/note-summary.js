@@ -334,7 +334,7 @@ async function callGroq(prompt, log, modelOverride) {
   try {
     response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(14000),
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({
         model,
@@ -426,7 +426,7 @@ async function callOpenRouter(prompt, log, modelOverride) {
     try {
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
-        signal: AbortSignal.timeout(14000),
+        signal: AbortSignal.timeout(10000),
         headers: {
           "Content-Type": "application/json",
           Authorization: "Bearer " + key,
