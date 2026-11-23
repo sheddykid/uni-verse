@@ -1,6 +1,26 @@
 # UNI-VERSE
 
+## Contents
 
+- [Current service status](#current-service-status)
+- [Features](#features)
+- [Application pages](#application-pages)
+- [Technology stack](#technology-stack)
+- [Repository structure](#repository-structure)
+- [How the application works](#how-the-application-works)
+- [Local development](#local-development)
+- [Supabase setup](#supabase-setup)
+- [Deployment](#deployment)
+- [Security notes](#security-notes)
+- [Current scope and limitations](#current-scope-and-limitations)
+- [Implementation history and verification](#implementation-history-and-verification)
+- [Contributing and maintenance](#contributing-and-maintenance)
+
+## Current service status
+
+> **AI Note Summarizer temporarily unavailable.** Summary generation is paused while provider reliability and request-timeout issues are investigated. The Generate Summary control is removed during this maintenance period. Existing saved summaries and Summary history remain available.
+
+Flashcards and quizzes are separate features and are not disabled by this notice.
 
 **UNI-VERSE** is a web-based learning platform for Covenant University students. It brings course information and academic learning materials into one place, allowing students to access notes and past questions for courses assigned to their department. Administrators manage departments' course catalogues and publish learning resources through a separate content-management area.
 
@@ -22,7 +42,8 @@
 - **Past-question details:** Resources can identify test or examination questions and optionally include the academic year and semester.
 - **Downloads and video playback:** Students can download course files and stream course-specific videos. Image-based past questions can also be previewed in the dashboard.
 - **AI flashcards:** Students can select a course and up to five uploaded notes to generate interactive question-and-answer revision cards through the authenticated Vercel serverless endpoint. Only active course notes are eligible; past questions are excluded.
-- **AI quizzes and note summaries:** Dedicated quiz and AI Note Summarizer workflows use course-specific learning materials. Students can revisit available quiz and summary history from their history pages.
+- **AI quizzes:** Students can generate and take course-note-based quizzes. Quiz generation is separate from the temporarily paused note summarizer.
+- **AI note summaries:** Summary generation is temporarily unavailable; saved summary history remains accessible.
 - **Password recovery:** Students can request a password-reset email and set a new password through the recovery link.
 
 ### Administrator features
@@ -74,7 +95,7 @@ The video library supports uploaded course videos and YouTube links as separate 
 - **File storage:** Supabase Storage keeps private course documents and summary PDFs. Private Cloudflare R2 stores video files; Supabase Postgres retains video metadata and access rules.
 - **Hosting:** Vercel and GitHub Pages.
 - **Video storage API:** Authenticated Vercel serverless API signs multipart R2 uploads and short-lived playback URLs using server-side S3 credentials.
-- **AI generation:** Google Gemini API called from authenticated Vercel serverless functions; document extraction supports PDF, DOCX and PPTX course notes.
+- **AI generation:** Authenticated Vercel serverless functions call Gemini, Groq and OpenRouter providers for the study tools. Provider credentials remain server-side. Note summarization is currently paused; flashcards and quizzes have separate generation flows.
 - **Supabase JavaScript client:** Loaded from `https://esm.sh/@supabase/supabase-js@2`.
 
 The project is a static frontend. It does not currently require a Node.js build step or a package manager to run.
@@ -285,8 +306,7 @@ The live schema confirms that deleting a course cascades to its course-departmen
 
 **Important:** Database-first deletion avoids leaving a live resource record pointing to a file that was already deleted. It cannot make Postgres and Storage one atomic transaction; if Storage cleanup fails after the database deletion, the remaining private file is an orphan and requires a separate cleanup. Do not report a deletion as fully complete until both stages succeed.
 
-
-## 13. Navigation and resource management UI update (2026-11-20)
+## 12. Navigation and resource management UI update (2026-11-20)
 
 - The administrator **Manage resources** list now uses the student resource-browser card hierarchy: course label, resource title, optional description, file/type metadata, visibility status and grouped actions. Cards adapt to narrow screens.
 - Student learning pages now use a hamburger-triggered slide-out navigation drawer instead of the previous bottom quick-navigation bar.
@@ -300,7 +320,7 @@ The live schema confirms that deleting a course cascades to its course-departmen
 - [ ] Check resource cards and fixed navigation on mobile and desktop.
 - [ ] Confirm the updated UI is deployed to Vercel and GitHub Pages.
 
-## 12. Contributing and maintenance
+## 13. Contributing and maintenance
 
 When changing the application:
 
@@ -312,7 +332,6 @@ When changing the application:
 6. Never commit private credentials or service-role keys.
 
 For bugs or feature requests, open an issue in the GitHub repository.
-
 
 ## 14. Student navigation and Contact Admin (2026-11-20)
 
@@ -343,7 +362,6 @@ After saving the secrets, the Edge Function reads them without requiring another
 - [x] Verify the latest Vercel production deployment is READY for commit `04af62f28c7df531f105fab7188e59ab3348f5fa`.
 - [ ] Verify the GitHub Pages workflow after the latest commit.
 
-
 ## 15. Contact Admin shortcut refinement — production verified (2026-11-21)
 
 The student Contact Admin shortcut has been refined and the user has confirmed that the deployed behavior works:
@@ -369,7 +387,6 @@ The student Contact Admin shortcut has been refined and the user has confirmed t
 - [ ] Verify the latest GitHub Pages workflow after the latest commit.
 
 Implementation files: `assets/js/student-navigation.js`, `assets/css/styles.css`, and `supabase/functions/contact-admin/index.ts`.
-
 
 ## 16. Admin management reliability audit — deployment verification (2026-11-21)
 
@@ -414,9 +431,7 @@ The latest `admin-manage.js` no longer contains the stale `removeOrphanedUploads
 
 No destructive database or Storage tests were run during this audit checkpoint. Do not run the deletion/failure-injection cases against production records.
 
-
-
-## Video tutorials and Cloudflare R2
+## 19. Video tutorials and Cloudflare R2
 
 - Video metadata remains in the Supabase `course_videos` table. New video objects are stored in the private Cloudflare R2 bucket `uni-verse-videos`.
 - Admin uploads use multipart transfers with 32 MiB parts, three concurrent workers, retry handling, upload progress and browser-local resume metadata. The per-video upload limit is 5 GiB.
@@ -440,7 +455,7 @@ The R2 bucket CORS policy must allow the production Vercel origin to use `PUT`, 
 
 ---
 
-## 12. Video playback CSP fix — production verified (2026-11-22)
+## 17. Video playback CSP fix — production verified (2026-11-22)
 
 The user confirmed that course video playback works on the production site after correcting the browser's Content Security Policy.
 
@@ -471,8 +486,7 @@ The user confirmed that course video playback works on the production site after
 - CSP diagnostics: [073a44b](https://github.com/sheddykid/uni-verse/commit/073a44b0308d6de1608a83f5cf2a0538749c5ea4)
 - Prevent stale video-page CSP caching: [016cb48](https://github.com/sheddykid/uni-verse/commit/016cb487e5a8ef1a5da64dad688756fb324e6245)
 
-
-## 13. Admin/student interface update and verification boundary (2026-11-22)
+## 18. Admin/student interface update and verification boundary (2026-11-22)
 
 ### Student interface
 
