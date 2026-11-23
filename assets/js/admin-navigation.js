@@ -22,6 +22,7 @@ if (session && session.profile.role !== "admin") {
         <a class="student-drawer-link" href="./admin-resources.html">▤ <span>Upload notes &amp; questions</span></a>
         <a class="student-drawer-link" href="./admin-videos.html">▶ <span>Upload videos &amp; YouTube</span></a>
         <a class="student-drawer-link" href="./admin-manage.html">▥ <span>Manage courses &amp; resources</span></a>
+        <a class="student-drawer-link" href="./admin-verifications.html">✓ <span>Student verification</span></a>
         <a class="student-drawer-link" href="./student.html">◉ <span>Student view</span></a>
       </nav>
       <button class="student-drawer-signout" type="button">Sign out</button>
