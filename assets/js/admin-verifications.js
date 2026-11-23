@@ -123,11 +123,20 @@ if (session && session.profile.role !== "admin") {
       const image = document.createElement("img");
       image.className = "verification-admin-image";
       image.alt = "Student ID card submitted for verification";
+      let imageLoaded = false;
       const signed = await supabase.storage.from("student-verification").createSignedUrl(request.file_path, 600);
+      const imageWarning = createText("p", "message", "");
       if (signed.error || !signed.data?.signedUrl) {
-        image.alt = "ID image unavailable: " + (signed.error?.message || "Could not create secure preview.");
+        image.alt = "ID image unavailable";
         image.hidden = true;
+        imageWarning.textContent = "The ID image could not be opened. Review actions are disabled until the image can be viewed.";
       } else {
+        image.addEventListener("load", () => { imageLoaded = true; });
+        image.addEventListener("error", () => {
+          image.hidden = true;
+          imageWarning.textContent = "The ID image failed to load. Refresh before reviewing this request.";
+          card.dataset.imageUnavailable = "true";
+        });
         image.src = signed.data.signedUrl;
       }
       const copy = document.createElement("div");
@@ -144,8 +153,13 @@ if (session && session.profile.role !== "admin") {
       actions.className = "verification-admin-actions";
       const approve = createButton("Approve", "primary", () => approveRequest(request, approve));
       const reject = createButton("Reject", "danger", () => rejectRequest(request, reject));
+      approve.disabled = reject.disabled = !signed.data?.signedUrl || !imageLoaded;
+      if (signed.data?.signedUrl) {
+        image.addEventListener("load", () => { approve.disabled = reject.disabled = false; });
+        image.addEventListener("error", () => { approve.disabled = reject.disabled = true; });
+      }
       actions.append(approve, reject);
-      copy.append(actions);
+      copy.append(imageWarning, actions);
       card.append(image, copy);
       pendingTarget.append(card);
     }
