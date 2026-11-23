@@ -368,3 +368,17 @@ html[data-theme="dark"] .student-drawer-theme {
 }
 .summary-maintenance-notice strong { display: block; margin-bottom: .45rem; }
 .summary-maintenance-notice p { margin: 0; line-height: 1.6; }
+
+
+/* Keep course headings readable in the desktop Course Notes grid. */
+.resource-results{grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));}
+.resource-card,.resource-card-heading{width:100%;min-width:0;}
+.course-resource-group .resource-card-heading h3{
+  display:block;
+  width:100%;
+  max-width:100%;
+  writing-mode:horizontal-tb;
+  white-space:normal;
+  word-break:normal;
+  overflow-wrap:break-word;
+}
