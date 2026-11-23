@@ -431,7 +431,7 @@ The latest `admin-manage.js` no longer contains the stale `removeOrphanedUploads
 
 No destructive database or Storage tests were run during this audit checkpoint. Do not run the deletion/failure-injection cases against production records.
 
-## 19. Video tutorials and Cloudflare R2
+## 17. Video tutorials and Cloudflare R2
 
 - Video metadata remains in the Supabase `course_videos` table. New video objects are stored in the private Cloudflare R2 bucket `uni-verse-videos`.
 - Admin uploads use multipart transfers with 32 MiB parts, three concurrent workers, retry handling, upload progress and browser-local resume metadata. The per-video upload limit is 5 GiB.
@@ -455,7 +455,7 @@ The R2 bucket CORS policy must allow the production Vercel origin to use `PUT`, 
 
 ---
 
-## 17. Video playback CSP fix — production verified (2026-11-22)
+## 18. Video playback CSP fix — production verified (2026-11-22)
 
 The user confirmed that course video playback works on the production site after correcting the browser's Content Security Policy.
 
@@ -486,7 +486,7 @@ The user confirmed that course video playback works on the production site after
 - CSP diagnostics: [073a44b](https://github.com/sheddykid/uni-verse/commit/073a44b0308d6de1608a83f5cf2a0538749c5ea4)
 - Prevent stale video-page CSP caching: [016cb48](https://github.com/sheddykid/uni-verse/commit/016cb487e5a8ef1a5da64dad688756fb324e6245)
 
-## 18. Admin/student interface update and verification boundary (2026-11-22)
+## 19. Admin/student interface update and verification boundary (2026-11-22)
 
 ### Student interface
 
