@@ -130,6 +130,14 @@ if (session) {
     videoLinks.append(link);
   });
   videoGroup.append(videoSummary, videoLinks);
+  if (profile.role === "student" && profile.is_verified !== true) {
+    const verifyLink = document.createElement("a");
+    verifyLink.href = "./verification.html";
+    verifyLink.className = "student-drawer-link";
+    verifyLink.textContent = "✓  Verify account";
+    if (current === "verification.html") verifyLink.setAttribute("aria-current", "page");
+    nav.append(verifyLink);
+  }
   nav.append(videoGroup);
 
   function setDrawer(open) {
