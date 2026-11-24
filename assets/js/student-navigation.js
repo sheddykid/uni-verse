@@ -70,14 +70,15 @@ if (session) {
   if (profile.is_verified) {
     const verifiedTick = document.createElement("span");
     verifiedTick.className = "student-verified-tick";
-    verifiedTick.textContent = "✔️";
+    verifiedTick.textContent = "✓";
     verifiedTick.setAttribute("role", "img");
     verifiedTick.setAttribute("aria-label", "Verified student");
     verifiedTick.title = "Verified student";
     matricLabel.append(" ", verifiedTick);
   }
 
-  const current = location.pathname.split("/").pop() || "student.html";
+  const currentPath = location.pathname.split("/").pop() || "student";
+  const current = currentPath.endsWith(".html") ? currentPath : currentPath + ".html";
   if (profile.role === "student" && profile.is_verified !== true && current !== "verification.html") {
     const promptDialog = $(".verification-prompt-dialog");
     const promptKey = "universe-verification-prompt:" + session.user.id;
