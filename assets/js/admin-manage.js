@@ -41,6 +41,185 @@ if (session && session.profile.role !== "admin") {
     return el;
   }
 
+  const editorDialog = document.createElement("dialog");
+  editorDialog.className = "admin-editor-dialog";
+  editorDialog.setAttribute("aria-labelledby", "admin-editor-title");
+  editorDialog.innerHTML = '<form method="dialog" class="admin-editor-shell"><div class="admin-editor-heading"><div><p class="eyebrow">ADMINISTRATION</p><h2 id="admin-editor-title">Edit</h2></div><button type="button" class="admin-editor-close" aria-label="Close">×</button></div><div class="admin-editor-fields"></div><p class="admin-editor-message message" role="status"></p><div class="admin-editor-actions"><button type="button" class="btn secondary admin-editor-cancel">Cancel</button><button type="submit" class="btn primary admin-editor-save">Save changes</button></div></form>';
+  document.body.append(editorDialog);
+  const editorFields = editorDialog.querySelector(".admin-editor-fields");
+  const editorMessage = editorDialog.querySelector(".admin-editor-message");
+  const editorSave = editorDialog.querySelector(".admin-editor-save");
+  editorDialog.querySelector(".admin-editor-close").addEventListener("click", () => editorDialog.close());
+  editorDialog.querySelector(".admin-editor-cancel").addEventListener("click", () => editorDialog.close());
+  editorDialog.addEventListener("click", event => { if (event.target === editorDialog) editorDialog.close(); });
+
+  function editorField(labelText, control, className = "") {
+    const label = document.createElement("label");
+    label.className = "admin-editor-field " + className;
+    const caption = document.createElement("span");
+    caption.textContent = labelText;
+    label.append(caption, control);
+    return label;
+  }
+
+  function editorInput(value = "", type = "text") {
+    const input = document.createElement("input");
+    input.type = type;
+    input.value = value ?? "";
+    return input;
+  }
+
+  async function openCourseEditor(course) {
+    editorDialog.querySelector("#admin-editor-title").textContent = "Edit course";
+    editorFields.replaceChildren();
+    editorMessage.textContent = "";
+    const [deptResult, assignmentResult] = await Promise.all([
+      supabase.from("departments").select("id,name,code,is_active").order("name"),
+      supabase.from("course_departments").select("department_id").eq("course_id", course.id)
+    ]);
+    if (deptResult.error || assignmentResult.error) {
+      alert((deptResult.error || assignmentResult.error).message);
+      return;
+    }
+    const code = editorInput(course.code);
+    code.required = true;
+    code.maxLength = 40;
+    const title = editorInput(course.title);
+    title.required = true;
+    title.maxLength = 160;
+    const description = document.createElement("textarea");
+    description.rows = 3;
+    description.value = course.description || "";
+    const departmentBox = document.createElement("div");
+    departmentBox.className = "admin-editor-departments";
+    const selected = new Set((assignmentResult.data || []).map(item => item.department_id));
+    (deptResult.data || []).forEach(department => {
+      const label = document.createElement("label");
+      label.className = "department-option";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.value = department.id;
+      checkbox.checked = selected.has(department.id);
+      checkbox.disabled = !department.is_active && !checkbox.checked;
+      const name = document.createElement("span");
+      name.textContent = (department.code ? department.code + " — " : "") + department.name + (!department.is_active ? " (inactive)" : "");
+      label.append(checkbox, name);
+      departmentBox.append(label);
+    });
+    editorFields.append(
+      editorField("Course code", code),
+      editorField("Course title", title),
+      editorField("Description", description),
+      editorField("Departments offering this course", departmentBox, "admin-editor-wide")
+    );
+    editorSave.disabled = false;
+    editorDialog.showModal();
+    editorDialog.querySelector("form").onsubmit = async event => {
+      event.preventDefault();
+      const departmentIds = [...departmentBox.querySelectorAll('input[type="checkbox"]:checked')].map(input => input.value);
+      if (!code.value.trim() || !title.value.trim() || !departmentIds.length) {
+        editorMessage.textContent = "Enter a course code and title, and select at least one department.";
+        return;
+      }
+      editorSave.disabled = true;
+      editorSave.textContent = "Saving…";
+      try {
+        const update = await supabase.from("courses").update({
+          code: code.value.trim(), title: title.value.trim(), description: description.value.trim() || null
+        }).eq("id", course.id);
+        if (update.error) throw update.error;
+        const removed = await supabase.from("course_departments").delete().eq("course_id", course.id);
+        if (removed.error) throw removed.error;
+        const assigned = await supabase.from("course_departments").insert(
+          departmentIds.map(department_id => ({ course_id: course.id, department_id }))
+        );
+        if (assigned.error) {
+          const restore = await supabase.from("course_departments").insert(
+            [...selected].map(department_id => ({ course_id: course.id, department_id }))
+          );
+          throw new Error(assigned.error.message + (restore.error ? " Previous department assignments could not be restored: " + restore.error.message : " Previous department assignments were restored."));
+        }
+        editorDialog.close();
+        await Promise.all([loadCourses(), loadResources("note"), loadResources("past_question")]);
+      } catch (error) {
+        editorMessage.textContent = error.message || "Course changes could not be saved.";
+      } finally {
+        editorSave.disabled = false;
+        editorSave.textContent = "Save changes";
+      }
+    };
+  }
+
+  async function openResourceEditor(resource, kind) {
+    editorDialog.querySelector("#admin-editor-title").textContent = kind === "note" ? "Edit note" : "Edit past question";
+    editorFields.replaceChildren();
+    editorMessage.textContent = "";
+    const [coursesResult, departmentsResult] = await Promise.all([
+      supabase.from("courses").select("id,code,title,is_active").order("code"),
+      Promise.resolve({ data: [] })
+    ]);
+    if (coursesResult.error) { alert(coursesResult.error.message); return; }
+    const course = document.createElement("select");
+    course.required = true;
+    (coursesResult.data || []).forEach(item => {
+      const option = document.createElement("option");
+      option.value = item.id;
+      option.textContent = item.code + " — " + item.title + (!item.is_active ? " (inactive)" : "");
+      option.selected = item.id === resource.course_id;
+      course.append(option);
+    });
+    const title = editorInput(resource.title);
+    title.required = true;
+    title.maxLength = 160;
+    const description = document.createElement("textarea");
+    description.rows = 3;
+    description.value = resource.description || "";
+    editorFields.append(editorField("Course", course), editorField("Resource title", title), editorField("Description", description));
+    if (kind === "past_question") {
+      const assessment = document.createElement("select");
+      [["test","Test questions"],["exam","Exam questions"]].forEach(([value,label]) => {
+        const option = document.createElement("option");
+        option.value = value; option.textContent = label; option.selected = resource.assessment_type === value; assessment.append(option);
+      });
+      const year = editorInput(resource.academic_year || "");
+      year.maxLength = 20;
+      const semester = document.createElement("select");
+      [["","Not specified"],["1","First semester"],["2","Second semester"]].forEach(([value,label]) => {
+        const option = document.createElement("option");
+        option.value = value; option.textContent = label; option.selected = String(resource.semester || "") === value; semester.append(option);
+      });
+      editorFields.append(editorField("Assessment type", assessment), editorField("Academic year", year), editorField("Semester", semester));
+      resource._editorAssessment = assessment;
+      resource._editorYear = year;
+      resource._editorSemester = semester;
+    }
+    editorSave.disabled = false;
+    editorDialog.showModal();
+    editorDialog.querySelector("form").onsubmit = async event => {
+      event.preventDefault();
+      if (!course.value || !title.value.trim()) { editorMessage.textContent = "Select a course and enter a title."; return; }
+      const payload = { course_id: course.value, title: title.value.trim(), description: description.value.trim() || null };
+      if (kind === "past_question") {
+        payload.assessment_type = resource._editorAssessment.value;
+        payload.academic_year = resource._editorYear.value.trim() || null;
+        payload.semester = resource._editorSemester.value ? Number(resource._editorSemester.value) : null;
+      }
+      editorSave.disabled = true;
+      editorSave.textContent = "Saving…";
+      try {
+        const { error } = await supabase.from("course_resources").update(payload).eq("id", resource.id);
+        if (error) throw error;
+        editorDialog.close();
+        await Promise.all([loadResources("note"), loadResources("past_question")]);
+      } catch (error) {
+        editorMessage.textContent = error.message || "Resource changes could not be saved.";
+      } finally {
+        editorSave.disabled = false;
+        editorSave.textContent = "Save changes";
+      }
+    };
+  }
+
   function renderTable(targetId, searchId, headers, rows, emptyText) {
     const target = document.querySelector("#" + targetId);
     const search = document.querySelector("#" + searchId);
@@ -124,12 +303,7 @@ if (session && session.profile.role !== "admin") {
       const names = (byCourse.get(course.id) || []).map(d => d.code || shortDepartmentName(d.name)).join(", ");
       const status = course.is_active ? "Active" : "Inactive";
       const actions = [
-        button("Edit title", "secondary", async () => {
-          const next = prompt("Course title:", course.title);
-          if (next === null || !next.trim()) return;
-          const { error } = await supabase.from("courses").update({ title: next.trim() }).eq("id", course.id);
-          if (error) alert(error.message); else await loadCourses();
-        }),
+        button("Edit", "secondary", () => openCourseEditor(course)),
         button(course.is_active ? "Deactivate" : "Activate", "secondary", async event => {
           const { error } = await supabase.from("courses").update({ is_active: !course.is_active }).eq("id", course.id);
           if (error) alert(error.message);
@@ -189,12 +363,7 @@ if (session && session.profile.role !== "admin") {
           const {error}=await supabase.from("course_resources").update({is_active:!resource.is_active}).eq("id",resource.id);
           if(error)alert(error.message); await loadResources(kind);
         }),
-        button("Edit","secondary",async()=>{
-          const title=prompt("Resource title:",resource.title); if(title===null||!title.trim())return;
-          const description=prompt("Description:",resource.description||""); if(description===null)return;
-          const {error}=await supabase.from("course_resources").update({title:title.trim(),description:description.trim()||null}).eq("id",resource.id);
-          if(error)alert(error.message); else await loadResources(kind);
-        }),
+        button("Edit","secondary",()=>openResourceEditor(resource,kind)),
         button("Delete","danger",async()=>{
           if(!confirm('Delete "'+resource.title+'" and its uploaded file?'))return;
           const {data:deleted,error}=await supabase.from("course_resources").delete().eq("id",resource.id).select("id").maybeSingle();
