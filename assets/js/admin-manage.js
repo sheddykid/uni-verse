@@ -155,7 +155,7 @@ if (session && session.profile.role !== "admin") {
     editorFields.replaceChildren();
     editorMessage.textContent = "";
     const [coursesResult, departmentsResult] = await Promise.all([
-      supabase.from("courses").select("id,code,title,is_active").order("code"),
+      supabase.from("courses").select("id,code,title,description,is_active").order("code"),
       Promise.resolve({ data: [] })
     ]);
     if (coursesResult.error) { alert(coursesResult.error.message); return; }
