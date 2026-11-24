@@ -1,6 +1,14 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101827"><title>UNI-VERSE | Study Summary</title><link rel="stylesheet" href="./assets/css/styles.css"><style>@media print{.topbar,.back-link,.summary-result-actions,#logout{display:none!important}body{background:#fff!important;color:#111!important}.dashboard{max-width:100%!important;padding:0!important;margin:0!important}.summary-result{display:block!important;box-shadow:none!important;border:0!important;padding:0!important}.summary-topic,.summary-overview{break-inside:avoid}a{color:#111!important}}</style><script>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101827"><title>UNI-VERSE | Study Summary</title><script>
+  try {
+    const savedTheme = localStorage.getItem("uni-verse-theme");
+    document.documentElement.dataset.theme = savedTheme === "dark" ? "dark" : "light";
+  } catch {
+    document.documentElement.dataset.theme = "light";
+  }
+</script>
+<link rel="stylesheet" href="./assets/css/styles.css"><style>@media print{.topbar,.back-link,.summary-result-actions,#logout{display:none!important}body{background:#fff!important;color:#111!important}.dashboard{max-width:100%!important;padding:0!important;margin:0!important}.summary-result{display:block!important;box-shadow:none!important;border:0!important;padding:0!important}.summary-topic,.summary-overview{break-inside:avoid}a{color:#111!important}}</style><script>
   window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
 </script>
 <script defer src="/_vercel/insights/script.js"></script>
