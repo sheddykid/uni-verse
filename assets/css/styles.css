@@ -482,3 +482,218 @@ html[data-theme="dark"] .verification-rejection{background:#321f29;border-color:
 .admin-editor-actions{display:flex;justify-content:flex-end;gap:10px;padding-top:6px}
 .admin-editor-message:empty{display:none}
 @media(max-width:560px){.admin-editor-fields,.admin-editor-departments{grid-template-columns:1fr}.admin-editor-actions{flex-direction:column-reverse}.admin-editor-actions .btn{width:100%}}
+
+
+/* Complete theme coverage for remaining cards, tables and dialogs. */
+:root{
+  --border-color:#e7eaf1;
+  --input-bg:#fff;
+  --table-head-bg:#f7f8fc;
+  --table-row-hover:#fbfcff;
+  --soft-panel-bg:#f8f9fc;
+  --soft-panel-text:#344057;
+}
+html[data-theme="dark"]{
+  --border-color:#35435b;
+  --input-bg:#101a2b;
+  --table-head-bg:#202d45;
+  --table-row-hover:#1b2940;
+  --soft-panel-bg:#202d45;
+  --soft-panel-text:#e7ecf6;
+}
+.admin-editor-dialog{
+  border-color:var(--border);
+  background:var(--surface);
+  color:var(--text);
+  color-scheme:inherit;
+}
+.admin-editor-field>input,
+.admin-editor-field>textarea,
+.admin-editor-field>select{
+  background:var(--field-bg);
+  color:var(--field-text);
+  border-color:var(--border);
+}
+.admin-editor-field>input::placeholder,
+.admin-editor-field>textarea::placeholder{color:var(--muted)}
+.admin-editor-departments{
+  border-color:var(--border);
+  background:var(--surface-soft);
+}
+.admin-editor-departments .department-option{
+  background:var(--surface-soft);
+  color:var(--text);
+  border-color:var(--border);
+}
+.admin-editor-departments .department-option:has(input:checked){
+  background:color-mix(in srgb,#596be5 12%,var(--surface));
+  border-color:#6575eb;
+}
+.admin-editor-dialog .admin-editor-close{
+  border-color:var(--border);
+  color:var(--text);
+}
+.admin-editor-dialog .admin-editor-message{color:#c84e59}
+.admin-editor-dialog .admin-editor-message:empty{display:none}
+.admin-editor-dialog input:focus,
+.admin-editor-dialog textarea:focus,
+.admin-editor-dialog select:focus{
+  outline:3px solid #6d7cff25;
+  border-color:#6d7cff;
+}
+html[data-theme="dark"] .admin-editor-dialog{
+  background:var(--surface);
+  color:var(--text);
+  border-color:var(--border);
+}
+html[data-theme="dark"] .admin-editor-field>input,
+html[data-theme="dark"] .admin-editor-field>textarea,
+html[data-theme="dark"] .admin-editor-field>select{
+  background:var(--field-bg);
+  color:var(--field-text);
+  border-color:var(--border);
+}
+html[data-theme="dark"] .admin-editor-departments,
+html[data-theme="dark"] .admin-editor-departments .department-option{
+  background:var(--surface-soft);
+  color:var(--text);
+  border-color:var(--border);
+}
+html[data-theme="dark"] .admin-editor-departments .department-option:has(input:checked){
+  background:#263653;
+  border-color:#6575eb;
+}
+html[data-theme="dark"] .admin-editor-close{color:var(--text)}
+html[data-theme="dark"] .admin-data-table,
+html[data-theme="dark"] .admin-table-scroll{
+  background:var(--surface);
+  border-color:var(--border);
+}
+html[data-theme="dark"] .admin-data-table th{
+  background:var(--table-head-bg);
+  color:#c1cbe0;
+  border-color:var(--border);
+}
+html[data-theme="dark"] .admin-data-table td{
+  background:var(--surface);
+  color:var(--text);
+  border-color:var(--border);
+}
+html[data-theme="dark"] .admin-data-table tbody tr:hover td{background:var(--table-row-hover)}
+html[data-theme="dark"] .admin-data-table tbody tr[hidden]{display:none}
+html[data-theme="dark"] .admin-resource-card,
+html[data-theme="dark"] .summary-overview,
+html[data-theme="dark"] .summary-block,
+html[data-theme="dark"] .summary-topic,
+html[data-theme="dark"] .summary-formula,
+html[data-theme="dark"] .score-summary,
+html[data-theme="dark"] .theory-feedback,
+html[data-theme="dark"] .answer-review,
+html[data-theme="dark"] .mcq-card,
+html[data-theme="dark"] .theory-card,
+html[data-theme="dark"] .admin-form,
+html[data-theme="dark"] .resource-filter-panel,
+html[data-theme="dark"] .resource-card,
+html[data-theme="dark"] .coming-panel,
+html[data-theme="dark"] .verification-panel,
+html[data-theme="dark"] .verification-admin-card,
+html[data-theme="dark"] .verification-cleanup-row{
+  background:var(--surface);
+  color:var(--text);
+  border-color:var(--border);
+}
+html[data-theme="dark"] .summary-topic,
+html[data-theme="dark"] .summary-formula,
+html[data-theme="dark"] .theory-feedback,
+html[data-theme="dark"] .summary-guidance{
+  background:var(--soft-panel-bg);
+  color:var(--text);
+  border-color:var(--border);
+}
+html[data-theme="dark"] .summary-topic h4,
+html[data-theme="dark"] .summary-terms dt,
+html[data-theme="dark"] .summary-guidance p,
+html[data-theme="dark"] .resource-heading,
+html[data-theme="dark"] .resource-card h3,
+html[data-theme="dark"] .admin-data-table td{
+  color:var(--text);
+}
+html[data-theme="dark"] .summary-guidance{color:var(--muted)}
+html[data-theme="dark"] .summary-formula code{
+  background:#0d1627;
+  color:#e7ecf6;
+  border:1px solid var(--border);
+}
+html[data-theme="dark"] .bottom-nav{
+  background:#151e30;
+  border-color:var(--border);
+  box-shadow:0 -8px 28px #0006;
+}
+html[data-theme="dark"] .bottom-nav a{color:#a5b0c5}
+html[data-theme="dark"] .bottom-nav a:hover,
+html[data-theme="dark"] .bottom-nav a:focus-visible{
+  background:#263653;
+  color:#fff;
+}
+html[data-theme="dark"] .student-menu-trigger{
+  background:#202d45;
+  border-color:var(--border);
+  color:var(--text);
+}
+html[data-theme="dark"] .resource-image-preview,
+html[data-theme="dark"] .question-image-preview,
+html[data-theme="dark"] .verification-preview,
+html[data-theme="dark"] .verification-admin-image{
+  background:#0d1627;
+  border-color:var(--border);
+}
+html[data-theme="dark"] .resource-card .course-code,
+html[data-theme="dark"] .quiz-question-number,
+html[data-theme="dark"] .card-side{color:#9eacff}
+html[data-theme="dark"] .resource-card .resource-meta,
+html[data-theme="dark"] .summary-disclaimer,
+html[data-theme="dark"] .resource-empty-state,
+html[data-theme="dark"] .resource-empty-state .muted{color:var(--muted)}
+html[data-theme="dark"] .verification-rejection{
+  background:#321f29;
+  border-color:#69404a;
+  color:#ffdce0;
+}
+html[data-theme="dark"] .verification-rejection p{color:#ffdce0}
+html[data-theme="dark"] .btn.danger,
+html[data-theme="dark"] .resource-actions .btn.danger{
+  background:#40252d;
+  color:#ffc5ce;
+  border-color:#69404a;
+}
+html[data-theme="dark"] .message.success{color:#68d6a0}
+html[data-theme="dark"] .message{color:#ff9ca7}
+html[data-theme="dark"] .department-picker{
+  background:var(--surface);
+  border-color:var(--border);
+  color:var(--text);
+}
+html[data-theme="dark"] .department-option:has(input:checked),
+html[data-theme="dark"] .mcq-option:has(input:checked),
+html[data-theme="dark"] .note-choice:has(input:checked){
+  background:#263653;
+  border-color:#6575eb;
+}
+html[data-theme="dark"] .progress-track{background:#29364c}
+html[data-theme="dark"] .student-drawer-backdrop{background:#020617b8}
+html[data-theme="dark"] .contact-dialog,
+html[data-theme="dark"] .verification-prompt-dialog{
+  background:var(--surface);
+  color:var(--text);
+  border-color:var(--border);
+}
+html[data-theme="dark"] .contact-dialog input,
+html[data-theme="dark"] .contact-dialog textarea,
+html[data-theme="dark"] .contact-dialog select,
+html[data-theme="dark"] .verification-prompt-dialog input,
+html[data-theme="dark"] .verification-prompt-dialog textarea,
+html[data-theme="dark"] .verification-prompt-dialog select{
+  background:var(--field-bg);
+  color:var(--field-text);
+  border-color:var(--border);
+}
