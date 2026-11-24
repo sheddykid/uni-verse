@@ -131,6 +131,13 @@ if (session) {
     videoLinks.append(link);
   });
   videoGroup.append(videoSummary, videoLinks);
+  if (profile.role === "admin") {
+    const adminViewLink = document.createElement("a");
+    adminViewLink.href = "./admin.html";
+    adminViewLink.className = "student-drawer-link";
+    adminViewLink.textContent = "▥  Admin view";
+    nav.append(adminViewLink);
+  }
   if (profile.role === "student" && profile.is_verified !== true) {
     const verifyLink = document.createElement("a");
     verifyLink.href = "./verification.html";

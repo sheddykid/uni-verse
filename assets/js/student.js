@@ -11,7 +11,4 @@ if (session) {
   document.querySelector("#user-label").textContent = isAdmin
     ? "Admin preview"
     : (profile.matric_number || session.user.email);
-
-  const adminBack = document.querySelector("#admin-back");
-  if (isAdmin && adminBack) adminBack.hidden = false;
 }
