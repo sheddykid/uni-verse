@@ -234,8 +234,16 @@ body.student-drawer-open{overflow:hidden}
 .admin-data-table tbody tr:last-child td{border-bottom:0}
 .admin-data-table tbody tr:hover{background:#fbfcff}
 .admin-data-table tr[hidden]{display:none}
-.admin-table-actions{display:flex;gap:7px;min-width:190px}
-.admin-table-actions .btn{padding:7px 10px;font-size:.73rem;white-space:nowrap}
+.admin-data-table th:last-child,
+.admin-data-table td:last-child{width:1%;min-width:230px;white-space:nowrap}
+.admin-data-table td.admin-table-actions-cell{vertical-align:middle}
+.admin-table-actions{display:flex;align-items:center;justify-content:flex-start;gap:7px;min-width:0;width:max-content;max-width:100%}
+.admin-table-actions .btn{flex:0 0 auto;padding:7px 10px;font-size:.73rem;white-space:nowrap}
+.admin-data-table td{box-sizing:border-box}
+@media(max-width:600px){
+  .admin-table-scroll{max-width:100%;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+  .admin-data-table{min-width:760px}
+}
 .admin-table-empty{padding:18px}
 .summary-guidance{margin:14px 0 20px;padding:15px 18px;border:1px solid #e5e9f2;border-radius:12px;background:#f8f9fc;color:#59657a;font-size:.86rem;line-height:1.65}
 .summary-guidance p{margin:0 0 8px;font-weight:650;color:#344057}
