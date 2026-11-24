@@ -779,3 +779,7 @@ html[data-theme="dark"] .contact-widget-restore {
   color: #fff;
   border-color: #465775;
 }
+
+
+/* Buttons styled as links should not display text underlines. */
+.btn{text-decoration:none}
