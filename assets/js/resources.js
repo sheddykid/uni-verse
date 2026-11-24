@@ -1,7 +1,8 @@
 import { supabase, requireProfile, signOut } from "./supabase.js";
 
 const $ = selector => document.querySelector(selector);
-const pageType = location.pathname.endsWith("past-questions.html") ? "past_question" : "note";
+const currentPath = location.pathname.split("/").pop() || "";
+const pageType = currentPath === "past-questions" || currentPath === "past-questions.html" ? "past_question" : "note";
 const results = $("#resource-results");
 const courseFilter = $("#course-filter");
 const assessmentFilter = $("#assessment-filter");
