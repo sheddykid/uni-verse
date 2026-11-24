@@ -264,7 +264,7 @@ body.student-drawer-open{overflow:hidden}
 
 /* Theme modes */
 :root{color-scheme:light;--page-bg:#f5f7fb;--surface:#fff;--surface-soft:#fbfcff;--text:#172033;--muted:#778198;--border:#e7eaf1;--field-bg:#fff;--field-text:#172033}
-html[data-theme="dark"]{color-scheme:dark;--page-bg:#0b1120;--surface:#151e30;--surface-soft:#101a2b;--text:#e7ecf6;--muted:#a5b0c5;--border:#29364c;--field-bg:#101a2b;--field-text:#e7ecf6}
+html[data-theme="dark"]{color-scheme:dark;background:#0b1120;--page-bg:#0b1120;--surface:#151e30;--surface-soft:#101a2b;--text:#e7ecf6;--muted:#a5b0c5;--border:#29364c;--field-bg:#101a2b;--field-text:#e7ecf6}
 body{background:var(--page-bg);color:var(--text)}
 html[data-theme="dark"] .topbar,
 html[data-theme="dark"] .form-card,
