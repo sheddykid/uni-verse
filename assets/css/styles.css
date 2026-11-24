@@ -457,3 +457,8 @@ html[data-theme="dark"] .verification-status{background:#202d45;border-color:#35
 .verification-resubmit-note{margin:0;color:var(--muted,#778198);line-height:1.6}
 html[data-theme="dark"] .verification-rejection{background:#321f29;border-color:#69404a;color:#ffdce0}
 @media(max-width:420px){.verification-page .topbar>.brand{font-size:.88rem}.verification-page .topbar>#user-label{display:none}}
+
+/* Registration consent: isolate checkbox from the global full-width input rule. */
+#register-form > .terms-consent{display:grid!important;grid-template-columns:18px minmax(0,1fr)!important;align-items:start!important;column-gap:10px!important;width:100%!important;margin:0!important;text-align:left!important}
+#register-form > .terms-consent > input#verification-terms[type="checkbox"]{all:revert!important;appearance:auto!important;-webkit-appearance:checkbox!important;box-sizing:border-box!important;display:block!important;grid-column:1!important;grid-row:1!important;width:18px!important;min-width:18px!important;max-width:18px!important;height:18px!important;margin:3px 0 0!important;padding:0!important;justify-self:start!important;align-self:start!important}
+#register-form > .terms-consent > span{display:block!important;grid-column:2!important;grid-row:1!important;min-width:0!important;text-align:left!important;line-height:1.45!important}
