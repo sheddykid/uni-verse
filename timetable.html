@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101827">
+<title>UNI-VERSE | Academic timetable</title><script src="./assets/js/theme-init.js"></script>
+<link rel="stylesheet" href="./assets/css/styles.css?v=academic-tools-20261124">
+<script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments);};</script><script defer src="/_vercel/insights/script.js"></script>
+</head><body>
+<header class="topbar"><a class="brand" href="./student.html"><span class="brand-mark small">U</span> UNI-VERSE</a><span id="user-label" class="muted"></span></header>
+<main class="dashboard academic-dashboard">
+<a class="back-link" href="./student.html">← Back to learning hub</a>
+<p class="eyebrow">PLAN YOUR SEMESTER</p><h1>Academic timetable</h1><p class="muted">Keep your lectures, tests, examinations and study sessions in one place.</p>
+<section class="timetable-toolbar">
+<div><button id="calendar-prev" class="btn secondary" type="button" aria-label="Previous period">←</button><button id="calendar-today" class="btn secondary" type="button">Today</button><button id="calendar-next" class="btn secondary" type="button" aria-label="Next period">→</button></div>
+<h2 id="calendar-heading">Loading calendar…</h2>
+<div class="calendar-view-switch"><button type="button" data-view="month" class="btn secondary is-active">Month</button><button type="button" data-view="week" class="btn secondary">Week</button></div>
+</section>
+<section class="timetable-layout">
+<div class="calendar-panel">
+<div id="calendar-grid" class="calendar-grid" aria-live="polite"><p class="muted">Loading events…</p></div>
+</div>
+<aside class="timetable-side">
+<section class="timetable-day-panel"><h2 id="selected-day-heading">Selected day</h2><div id="selected-day-events"><p class="muted">Choose a date to see its events.</p></div></section>
+<section class="timetable-form-panel">
+<div class="timetable-form-heading"><div><p class="eyebrow">PERSONAL SCHEDULE</p><h2 id="event-form-heading">Add an event</h2></div><button id="event-form-reset" class="btn secondary" type="button">Clear</button></div>
+<form id="event-form">
+<input id="event-id" type="hidden">
+<label>Event title<input id="event-title" maxlength="160" required placeholder="e.g. CPE 311 lecture"></label>
+<div class="field-grid">
+<label>Event type<select id="event-type"><option value="lecture">Lecture</option><option value="test">Test</option><option value="exam">Examination</option><option value="study">Study session</option></select></label>
+<label>Course (optional)<select id="event-course"><option value="">No course selected</option></select></label>
+</div>
+<div class="field-grid">
+<label>Starts<input id="event-start" type="datetime-local" required></label>
+<label>Ends<input id="event-end" type="datetime-local" required></label>
+</div>
+<label>Location<input id="event-location" maxlength="160" placeholder="e.g. LT 2 / Engineering block"></label>
+<label>Notes<textarea id="event-notes" rows="2" maxlength="2000" placeholder="Additional details…"></textarea></label>
+<label>Reminder<select id="event-reminder"><option value="0">No reminder</option><option value="5">5 minutes before</option><option value="10">10 minutes before</option><option value="15" selected>15 minutes before</option><option value="30">30 minutes before</option><option value="60">1 hour before</option></select></label>
+<button id="event-submit" class="btn primary" type="submit">Save event</button>
+<p id="timetable-status" class="message" role="status" aria-live="polite"></p>
+</form>
+<p class="timetable-reminder-note">Browser reminders work while this timetable page is open. Allow notifications when prompted. Background reminders when the page is closed would require a push-notification service.</p>
+</section>
+</aside>
+</section>
+</main>
+<script type="module" src="./assets/js/student-navigation.js"></script><script type="module" src="./assets/js/timetable.js"></script><script type="module" src="./assets/js/theme.js"></script>
+</body></html>
