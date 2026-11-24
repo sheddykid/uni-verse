@@ -27,6 +27,7 @@ async function loadCourses(){
  const select=$("#event-course"); courses.forEach(c=>select.add(new Option(c.code+" — "+c.title,c.id)));
 }
 function renderCalendar(){
+ $("#calendar-grid").className="calendar-grid";
  const heading=$("#calendar-heading"), grid=$("#calendar-grid");
  grid.replaceChildren();
  const monthStart=new Date(cursor.getFullYear(),cursor.getMonth(),1);
