@@ -266,8 +266,11 @@ if (session && session.profile.role !== "admin") {
       tr.append(td);
     });
     const actionCell = document.createElement("td");
-    actionCell.className = "admin-table-actions";
-    actions.forEach(action => actionCell.append(action));
+    actionCell.className = "admin-table-actions-cell";
+    const actionGroup = document.createElement("div");
+    actionGroup.className = "admin-table-actions";
+    actions.forEach(action => actionGroup.append(action));
+    actionCell.append(actionGroup);
     tr.append(actionCell);
     return tr;
   }
