@@ -710,3 +710,72 @@ html[data-theme="dark"] .verification-prompt-dialog select{
 .contact-dialog form{margin-top:24px;gap:22px}
 .contact-dialog form label{gap:10px;line-height:1.45}
 @media(max-width:600px){.contact-dialog{padding:26px 20px 22px}.contact-dialog-head{gap:14px}.contact-dialog form{gap:20px}}
+
+
+/* Dark-mode coverage for video pages, college picker and Contact Admin shortcut. */
+html[data-theme="dark"] .video-filter-panel,
+html[data-theme="dark"] .video-card,
+html[data-theme="dark"] .video-upload-progress {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+html[data-theme="dark"] .video-card h3,
+html[data-theme="dark"] .video-card-body,
+html[data-theme="dark"] .video-card-description,
+html[data-theme="dark"] .video-count,
+html[data-theme="dark"] .video-upload-progress-head {
+  color: var(--text);
+}
+html[data-theme="dark"] .video-card-topic {
+  background: #263653;
+  color: #cbd5ff;
+}
+html[data-theme="dark"] .video-card-description { color: var(--muted); }
+html[data-theme="dark"] .video-upload-progress { background: var(--surface-soft); }
+html[data-theme="dark"] .faculty-picker-group {
+  background: var(--surface-soft);
+  color: var(--text);
+  border-color: var(--border);
+}
+html[data-theme="dark"] .faculty-picker-group > summary {
+  color: var(--text);
+  background: var(--surface);
+}
+html[data-theme="dark"] .faculty-picker-group > summary:hover,
+html[data-theme="dark"] .faculty-picker-group[open] > summary {
+  background: #202d45;
+  color: #fff;
+}
+html[data-theme="dark"] .faculty-department-list {
+  background: var(--surface-soft);
+  border-color: var(--border);
+}
+html[data-theme="dark"] .faculty-picker-group .department-option {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+html[data-theme="dark"] .faculty-picker-group input[type="checkbox"] {
+  accent-color: #8290ff;
+}
+html[data-theme="dark"] .contact-widget {
+  background: #151e30;
+  border-color: var(--border);
+  box-shadow: 0 10px 35px #0008;
+}
+html[data-theme="dark"] .contact-widget-drag,
+html[data-theme="dark"] .contact-widget-tuck {
+  background: #263550;
+  color: #e7ecf6;
+  border-color: #35435b;
+}
+html[data-theme="dark"] .contact-widget-open {
+  background: #5365e8;
+  color: #fff;
+}
+html[data-theme="dark"] .contact-widget-restore {
+  background: #263550;
+  color: #fff;
+  border-color: #465775;
+}
