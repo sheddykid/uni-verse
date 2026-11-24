@@ -40,7 +40,8 @@ form?.addEventListener("submit", async (event) => {
     showMessage(message, "Your account profile is not ready. Contact an administrator.");
     button.disabled = false; return;
   }
-  const adminPage = location.pathname.endsWith("admin-login.html");
+  const currentPath = location.pathname.split("/").pop() || "";
+  const adminPage = currentPath === "admin-login" || currentPath === "admin-login.html";
   if (adminPage && profile.role !== "admin") {
     await supabase.auth.signOut();
     showMessage(message, "This account does not have administrator access.");
