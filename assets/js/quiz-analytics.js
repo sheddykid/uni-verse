@@ -1,6 +1,7 @@
 import { supabase, requireProfile } from "./supabase.js";
 const $=s=>document.querySelector(s);
-(async()=>{\nconst session=await requireProfile();
+(async()=>{
+const session=await requireProfile();
 if(!session) throw new Error("Sign-in required.");
 $("#user-label").textContent=session.profile.full_name||session.user.email;
 const status=$("#analytics-status");
@@ -26,4 +27,5 @@ const missed=new Map();
 attempts.filter(a=>a.mode==="mcq").forEach(a=>(a.review||[]).forEach(item=>{if(Number.isInteger(item.selectedIndex)&&Number.isInteger(item.correctIndex)&&item.selectedIndex!==item.correctIndex){const key=String(item.question||"").trim();if(!key)return;const entry=missed.get(key)||{question:key,count:0,course:a.course_code};entry.count++;missed.set(key,entry);}}));
 [...missed.values()].sort((a,b)=>b.count-a.count).slice(0,8).forEach(item=>{const row=document.createElement("article");row.className="analytics-missed-card";const question=document.createElement("strong");question.textContent=item.question;const meta=document.createElement("p");meta.className="resource-meta";meta.textContent=item.course+" · Missed "+item.count+" time"+(item.count===1?"":"s");row.append(question,meta);$("#analytics-missed").append(row);});
 if(!missed.size){const p=document.createElement("p");p.className="muted";p.textContent="No missed multiple-choice questions recorded yet. Keep completing quizzes to build this section.";$("#analytics-missed").append(p);}
-\n})();\n
+
+})();
