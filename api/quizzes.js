@@ -172,9 +172,10 @@ async function authorize(req) {
   const resourceIds = Array.isArray(body.resourceIds) ? [...new Set(body.resourceIds.map(String))] : [];
   if (!/^[0-9a-f-]{36}$/i.test(courseId) || !resourceIds.length || resourceIds.length > MAX_FILES ||
       resourceIds.some(id => !/^[0-9a-f-]{36}$/i.test(id))) return { error: [400, "Choose a course and one course material file."] };
-  const profiles = await supabaseRequest(`profiles?select=id,role,department_id&id=eq.${encodeURIComponent(user.id)}&limit=1`, token);
+  const profiles = await supabaseRequest(`profiles?select=id,role,department_id,is_verified&id=eq.${encodeURIComponent(user.id)}&limit=1`, token);
   const profile = profiles[0];
   if (!profile || profile.id !== user.id) return { error: [403, "Your account profile could not be verified."] };
+  if (profile.role !== "admin" && profile.is_verified !== true) return { error: [403, "Verify your student account before using AI quizzes."] };
   const params = new URLSearchParams({ select:"id,code,title,course_departments!inner(department_id)", id:`eq.${courseId}`, is_active:"eq.true", limit:"1" });
   if (profile.role !== "admin") {
     if (!profile.department_id) return { error: [403, "Your account has no department assigned."] };
