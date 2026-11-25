@@ -79,12 +79,8 @@ if (session) {
     matricLabel.append(" ", verifiedTick);
   }
 
-  const currentPageCookie = document.cookie.split("; ").find(part => part.startsWith("uv_current="))?.slice("uv_current=".length) || "";
-  let current = "student.html";
-  try {
-    const decoded = decodeURIComponent(currentPageCookie);
-    if (decoded) current = decoded.split("/").pop();
-  } catch {}
+  const currentPath = location.pathname.split("/").pop() || "student";
+  const current = currentPath.endsWith(".html") ? currentPath : currentPath + ".html";
   if (profile.role === "student" && profile.is_verified !== true && current !== "verification.html") {
     const promptDialog = $(".verification-prompt-dialog");
     const promptKey = "universe-verification-prompt:" + session.user.id;
