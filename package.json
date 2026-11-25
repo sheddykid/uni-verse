@@ -13,7 +13,6 @@
     "unpdf": "1.9.1",
     "@aws-sdk/client-s3": "3.1173.0",
     "@aws-sdk/s3-request-presigner": "3.1173.0",
-    "web-push": "3.6.7",
-    "@vercel/functions": "3.11.3"
+    "web-push": "3.6.7"
   }
 }
