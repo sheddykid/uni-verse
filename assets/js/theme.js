@@ -1,14 +1,17 @@
 const STORAGE_KEY = "uni-verse-theme";
 const root = document.documentElement;
+const themeLockedToLight = root.dataset.themeLock === "light";
 
 function currentTheme() {
-  return root.dataset.theme === "dark" ? "dark" : "light";
+  return themeLockedToLight ? "light" : root.dataset.theme === "dark" ? "dark" : "light";
 }
 
 function applyTheme(theme) {
-  const next = theme === "dark" ? "dark" : "light";
+  const next = themeLockedToLight ? "light" : theme === "dark" ? "dark" : "light";
   root.dataset.theme = next;
-  try { localStorage.setItem(STORAGE_KEY, next); } catch {}
+  if (!themeLockedToLight) {
+    try { localStorage.setItem(STORAGE_KEY, next); } catch {}
+  }
   document.querySelectorAll("[data-theme-toggle]").forEach(button => {
     const dark = next === "dark";
     button.textContent = dark ? "☀ Switch to light mode" : "☾ Switch to dark mode";
@@ -16,13 +19,17 @@ function applyTheme(theme) {
     button.setAttribute("aria-pressed", String(dark));
   });
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = next === "dark" ? "#0b1120" : "#101827";
+  if (meta) meta.content = next === "dark" ? "#0b1120" : "#f5f7fb";
 }
 
-try {
-  root.dataset.theme = localStorage.getItem(STORAGE_KEY) === "dark" ? "dark" : "light";
-} catch {
+if (themeLockedToLight) {
   root.dataset.theme = "light";
+} else {
+  try {
+    root.dataset.theme = localStorage.getItem(STORAGE_KEY) === "dark" ? "dark" : "light";
+  } catch {
+    root.dataset.theme = "light";
+  }
 }
 
 window.mountThemeMenuItem = function (drawer) {
