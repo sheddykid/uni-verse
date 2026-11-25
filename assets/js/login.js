@@ -47,5 +47,5 @@ form?.addEventListener("submit", async (event) => {
     showMessage(message, "This account does not have administrator access.");
     button.disabled = false; return;
   }
-  location.replace(profile.role === "admin" ? "./admin.html" : "./student.html");
+  location.replace(profile.role === "admin" ? "/a7Kq2VnP" : "/x8Kp2LmQ");
 });
