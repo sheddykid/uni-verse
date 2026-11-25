@@ -1,4 +1,5 @@
 import webpush from "web-push";
+import { timingSafeEqual } from "node:crypto";
 
 const SUPABASE_URL = "https://xcybjuwearndoljqkzmy.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_8egrnqtwHtrfzvtPcldiQw_y1Wqhh9w";
@@ -17,7 +18,10 @@ export default async function handler(req,res){
       if(!process.env.VAPID_PUBLIC_KEY)return json(res,503,{error:"Push notifications are not configured."});
       return json(res,200,{publicKey:process.env.VAPID_PUBLIC_KEY});
     }
-    if(req.method==="POST" && req.headers["x-push-cron-secret"]===process.env.PUSH_CRON_SECRET){
+    const cronSecret=process.env.PUSH_CRON_SECRET||"";
+    const suppliedCronSecret=String(req.headers["x-push-cron-secret"]||"");
+    const isCronRequest=Boolean(cronSecret && suppliedCronSecret && Buffer.byteLength(cronSecret)===Buffer.byteLength(suppliedCronSecret) && timingSafeEqual(Buffer.from(cronSecret),Buffer.from(suppliedCronSecret)));
+    if(req.method==="POST" && isCronRequest){
       if(!SERVICE_KEY||!process.env.VAPID_PRIVATE_KEY||!process.env.VAPID_PUBLIC_KEY)throw new Error("Push service configuration is incomplete.");
       webpush.setVapidDetails(process.env.VAPID_SUBJECT||"mailto:support@uni-verse.site",process.env.VAPID_PUBLIC_KEY,process.env.VAPID_PRIVATE_KEY);
       const now=new Date(), horizon=new Date(now.getTime()+60*60000);
