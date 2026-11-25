@@ -39,9 +39,5 @@
         }
       ]
     }
-  ],
-  "proxy": {
-    "entrypoint": "proxy.ts",
-    "matcher": "/:path*"
-  }
+  ]
 }
