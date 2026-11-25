@@ -79,8 +79,16 @@ if (session) {
     matricLabel.append(" ", verifiedTick);
   }
 
+  const opaquePageMap = {
+    x8Kp2LmQ: "student.html", n4Vq7RtP: "notes.html", p6Mz2KxW: "past-questions.html",
+    q9Ld4HcR: "quizzes.html", j3Wn8BvT: "quiz-session.html", h5Rp1YkM: "quiz-history.html",
+    c2Tx7NpL: "quiz-analytics.html", t8Km3QwV: "timetable.html", f4Yz9LdN: "flashcards.html",
+    b7Pv2XkJ: "flashcard-session.html", m6Qr8TcW: "note-summarizer.html", r3Nv5HpK: "summary-history.html",
+    d9Xk4VzM: "summary-session.html", v2Lp7QnC: "videos.html", y5Ct1RmH: "youtube-videos.html",
+    g8Wm3PkT: "verification.html"
+  };
   const currentPath = location.pathname.split("/").pop() || "student";
-  const current = currentPath.endsWith(".html") ? currentPath : currentPath + ".html";
+  const current = opaquePageMap[currentPath] || (currentPath.endsWith(".html") ? currentPath : currentPath + ".html");
   if (profile.role === "student" && profile.is_verified !== true && current !== "verification.html") {
     const promptDialog = $(".verification-prompt-dialog");
     const promptKey = "universe-verification-prompt:" + session.user.id;
