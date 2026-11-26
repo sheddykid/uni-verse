@@ -2,7 +2,6 @@ import { supabase, showMessage, enablePasswordToggles } from "./supabase.js";
 enablePasswordToggles();
 const departmentSelect = document.querySelector("#department");
 const message = document.querySelector("#message");
-const termsCheckbox = document.querySelector("#verification-terms");
 
 const { data: departments, error: deptError } = await supabase
   .from("departments").select("id,name,code").eq("is_active", true).order("name");
@@ -35,7 +34,6 @@ document.querySelector("#register-form").addEventListener("submit", async (event
 
   if (password !== confirm) return showMessage(message, "Passwords do not match.");
   if (!departmentId) return showMessage(message, "Select your department.");
-  if (!termsCheckbox.checked) return showMessage(message, "You must accept the Terms and Conditions to register.");
 
   const button = event.currentTarget.querySelector('button[type="submit"]');
   button.disabled = true;
@@ -49,8 +47,7 @@ document.querySelector("#register-form").addEventListener("submit", async (event
       data: {
         full_name: name,
         matric_number: matric,
-        department_id: departmentId,
-        verification_terms_accepted: true
+        department_id: departmentId
       }
     }
   });
