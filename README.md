@@ -226,6 +226,21 @@ To configure Supabase for a deployment:
 
 The exact redirect URLs should match the deployed application and the routes configured in Supabase Auth. If you use another domain, add that domain to the allowed redirect URLs as well.
 
+### Authentication email delivery — AWS SES setup status (2026-11-26)
+
+The application implements Supabase Auth email/password signup confirmation and resend-confirmation handling. Email delivery is controlled by the hosted Supabase Auth SMTP settings, not by frontend code in this repository.
+
+The external AWS SES setup has been started:
+
+- The sending domain `uni-verse.site` was verified in AWS SES.
+- The SES production-access request was still pending at the last recorded check; the SES account was still in the sandbox.
+- The SES SMTP settings page was reached, but standard SES SMTP credentials for `email-smtp.eu-west-1.amazonaws.com:587` had not yet been confirmed as generated.
+- The switch of Supabase Auth's SMTP provider from the previously used Gmail configuration to AWS SES was not confirmed as complete. Do not assume Supabase Auth confirmation emails are currently being sent through SES.
+
+**Remaining work:** obtain SES production access, create/confirm standard SES SMTP credentials, configure those credentials in the hosted Supabase Auth SMTP settings, and test signup confirmation and resend delivery end to end. Keep SMTP credentials out of this repository and frontend code.
+
+The separate Contact Admin Edge Function uses Gmail SMTP; that is a different email workflow and is not evidence that Supabase Auth uses Gmail or SES.
+
 ---
 
 ## 8. Deployment
