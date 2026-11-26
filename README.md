@@ -24,7 +24,7 @@ Flashcards and quizzes are separate features and are not disabled by this notice
 
 **UNI-VERSE** is a web-based learning platform for Covenant University students. It brings course information and academic learning materials into one place, allowing students to access notes and past questions for courses assigned to their department. Administrators manage departments' course catalogues and publish learning resources through a separate content-management area.
 
-- **Live application (Vercel):** https://uni-verse-sheddykid.vercel.app
+- **Live application (Vercel):** uni-verse.site
 - **GitHub repository:** https://github.com/sheddykid/uni-verse
 - **GitHub Pages deployment:** https://sheddykid.github.io/uni-verse/
 
