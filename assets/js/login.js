@@ -1,9 +1,19 @@
 import { supabase, showMessage, enablePasswordToggles } from "./supabase.js";
 const form = document.querySelector("#login-form");
 enablePasswordToggles(form || document);
-const confirmationNotice = new URLSearchParams(location.search).get("confirmed");
-if (confirmationNotice === "1") {
-  showMessage(document.querySelector("#message"), "Email confirmed. Sign in to open your UNI-VERSE student account.", true);
+const isEmailConfirmation =
+  new URLSearchParams(location.search).get("confirmed") === "1" ||
+  new URLSearchParams(location.hash.slice(1)).get("type") === "signup";
+if (isEmailConfirmation) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.user) {
+    const { data: profile } = await supabase.from("profiles")
+      .select("role").eq("id", session.user.id).single();
+    if (profile) {
+      location.replace(profile.role === "admin" ? "/admin" : "/student");
+    }
+  }
+  showMessage(document.querySelector("#message"), "Email confirmed. Sign in to open your UNI-VERSE student account if you are not redirected automatically.", true);
 }
 form?.addEventListener("submit", async (event) => {
   event.preventDefault();
