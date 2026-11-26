@@ -881,3 +881,10 @@ html[data-theme="dark"] .event-type-tag.study{background:#1e3b31;color:#a8ebc5}
 @media(max-width:600px){.settings-profile-grid{grid-template-columns:1fr}.settings-dialog-actions{flex-direction:column-reverse}.settings-dialog-actions .btn{width:100%}}
 html[data-theme="dark"] .settings-section,html[data-theme="dark"] .settings-profile-item,html[data-theme="dark"] .settings-delete-dialog{background:var(--surface);border-color:var(--border);color:var(--text)}
 html[data-theme="dark"] .settings-profile-item{background:var(--surface-soft)}
+
+
+/* Settings header: keep the brand centered while the navigation trigger sits left. */
+.settings-topbar{justify-content:space-between}
+.settings-topbar>.brand{position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap}
+.settings-topbar>#user-label{margin-left:auto;max-width:28%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:600px){.settings-topbar>.brand{font-size:.92rem}.settings-topbar>#user-label{display:none}}
