@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101827">
+<title>UNI-VERSE | Settings</title>
+<script src="./assets/js/theme-init.js"></script>
+<link rel="stylesheet" href="./assets/css/styles.css?v=settings-20261126">
+<script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments);};</script>
+<script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="./student.html"><span class="brand-mark small">U</span> UNI-VERSE</a><span id="user-label" class="muted"></span></header>
+<main class="dashboard settings-dashboard">
+<a class="settings-back" id="dashboard-link" href="./student.html">← Back to dashboard</a>
+<p class="eyebrow">ACCOUNT</p><h1>Settings</h1>
+<p class="muted">Manage your account security and account data.</p>
+<section class="settings-section" aria-labelledby="profile-heading">
+<h2 id="profile-heading">Profile</h2><p class="muted">Your account information currently saved in UNI-VERSE.</p>
+<div class="settings-profile-grid">
+<div class="settings-profile-item"><span>Full name</span><strong id="profile-name">Loading…</strong></div>
+<div class="settings-profile-item"><span>Email address</span><strong id="profile-email">Loading…</strong></div>
+<div class="settings-profile-item"><span>Matric number</span><strong id="profile-matric">—</strong></div>
+<div class="settings-profile-item"><span>Department</span><strong id="profile-department">—</strong></div>
+<div class="settings-profile-item"><span>Account role</span><strong id="profile-role">—</strong></div>
+</div>
+</section>
+<section class="settings-section" aria-labelledby="security-heading">
+<h2 id="security-heading">Security</h2><p class="muted">Change your password. Use at least 8 characters.</p>
+<form id="password-form" class="settings-form">
+<label for="new-password">New password<input id="new-password" name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+<label for="confirm-password">Confirm new password<input id="confirm-password" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required></label>
+<button class="btn primary" type="submit">Update password</button>
+<p class="message settings-status" id="password-status" role="status" aria-live="polite"></p>
+</form>
+</section>
+<section class="settings-section settings-danger" aria-labelledby="account-heading">
+<h2 id="account-heading">Account management</h2>
+<p>Deleting your account permanently removes your sign-in and personal account data, including your learning history and timetable. This action cannot be undone.</p>
+<button class="btn danger" id="open-delete-dialog" type="button">Delete my account</button>
+</section>
+<button class="btn secondary" id="sign-out" type="button">Sign out</button>
+</main>
+<dialog class="settings-delete-dialog" id="delete-dialog" aria-labelledby="delete-title">
+<h2 id="delete-title">Permanently delete account?</h2>
+<p class="settings-delete-warning">This permanently deletes your UNI-VERSE account. Your profile, quiz history, summaries, timetable and notification subscriptions will be removed. Shared learning resources are not intentionally deleted.</p>
+<form id="delete-form" class="settings-form">
+<label for="delete-password">Confirm your current password<input id="delete-password" name="password" type="password" autocomplete="current-password" required></label>
+<label for="delete-confirmation">Type DELETE to confirm<input id="delete-confirmation" name="confirmation" type="text" autocomplete="off" required></label>
+<p class="message settings-status" id="delete-status" role="status" aria-live="polite"></p>
+<div class="settings-dialog-actions">
+<button class="btn secondary" id="cancel-delete" type="button">Cancel</button>
+<button class="btn danger" type="submit">Permanently delete</button>
+</div>
+</form>
+</dialog>
+<script type="module" src="./assets/js/settings.js"></script>
+<script type="module" src="./assets/js/theme.js"></script>
+</body></html>
