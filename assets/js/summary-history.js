@@ -2,12 +2,7 @@ import { supabase, requireProfile, signOut } from "./supabase.js";
 const $ = selector => document.querySelector(selector);
 $("#logout")?.addEventListener("click", signOut);
 const session = await requireProfile();
-if (session && session.profile.role !== "admin" && session.profile.is_verified !== true) {
-  $("#user-label").textContent = session.profile.full_name || session.user.email;
-  $("#summary-history-list").textContent = "Verify your student account before accessing saved AI learning materials.";
-  $("#history-status").textContent = "";
-  $("#refresh-history").disabled = true;
-} else if (session) {
+if (session) {
   $("#user-label").textContent = session.profile.full_name || session.user.email;
   $("#refresh-history").addEventListener("click", loadHistory);
   await loadHistory();
