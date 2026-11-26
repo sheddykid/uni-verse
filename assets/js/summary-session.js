@@ -4,12 +4,7 @@ const $ = selector => document.querySelector(selector);
 $("#logout")?.addEventListener("click", signOut);
 
 const session = await requireProfile();
-if (session && session.profile.role !== "admin" && session.profile.is_verified !== true) {
-  $("#summary-empty").hidden = false;
-  $("#summary-empty").querySelector("h1").textContent = "Verification required";
-  $("#summary-empty").querySelector("p").textContent = "Verify your student account before accessing saved AI learning materials.";
-  $("#summary-result").hidden = true;
-} else if (session) {
+if (session) {
   const { profile, user } = session;
   $("#user-label").textContent = profile.full_name || user.email;
   const summaryId = new URLSearchParams(location.search).get("id");
