@@ -45,7 +45,7 @@ document.querySelector("#register-form").addEventListener("submit", async (event
     email,
     password,
     options: {
-      emailRedirectTo: new URL("./index.html?confirmed=1", location.href).href,
+      emailRedirectTo: location.origin,
       data: {
         full_name: name,
         matric_number: matric,
