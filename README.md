@@ -570,3 +570,10 @@ UNI-VERSE now includes a student identity-verification workflow for access to se
 - Production alias: https://uni-verse-sheddykid.vercel.app
 
 The deployment includes the verification-page layout refinement, plain verified checkmark, and separated rejection-comment panel. The user has confirmed that the verification flow works.
+
+
+
+
+
+
+ingressendpoint-20261126-155524
