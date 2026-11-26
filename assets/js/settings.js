@@ -7,6 +7,7 @@ if (session) {
   $("#dashboard-link").href = profile.role === "admin" ? "./admin.html" : "./student.html";
   $("#user-label").textContent = user.email || "";
   $("#profile-name").textContent = profile.full_name || "Not provided";
+  $("#profile-full-name").value = profile.full_name || "";
   $("#profile-email").textContent = user.email || "Not available";
   $("#profile-matric").textContent = profile.matric_number || "Not provided";
   $("#profile-role").textContent = profile.role === "admin" ? "Administrator" : "Student";
@@ -16,6 +17,30 @@ if (session) {
   } else {
     $("#profile-department").textContent = "Not assigned";
   }
+
+  $("#profile-form").addEventListener("submit", async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const fullName = form.elements.fullName.value.trim();
+    const submit = form.querySelector('button[type="submit"]');
+    if (!fullName) {
+      showMessage($("#profile-status"), "Enter your full name.");
+      return;
+    }
+    submit.disabled = true;
+    submit.textContent = "Saving…";
+    showMessage($("#profile-status"), "");
+    const { error } = await supabase.from("profiles")
+      .update({ full_name: fullName }).eq("id", user.id);
+    if (error) {
+      showMessage($("#profile-status"), error.message || "Profile could not be updated.");
+    } else {
+      $("#profile-name").textContent = fullName;
+      showMessage($("#profile-status"), "Your name has been updated.", true);
+    }
+    submit.disabled = false;
+    submit.textContent = "Save profile changes";
+  });
 
   enablePasswordToggles(document);
   $("#password-form").addEventListener("submit", async event => {
