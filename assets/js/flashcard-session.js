@@ -2,11 +2,7 @@ import { requireProfile, signOut } from "./supabase.js";
 const $ = selector => document.querySelector(selector);
 $("#logout")?.addEventListener("click", signOut);
 const session = await requireProfile();
-if (session && session.profile.role !== "admin" && session.profile.is_verified !== true) {
-  sessionStorage.removeItem("universeActiveFlashcards");
-  $("#session-status").textContent = "Verify your student account before accessing AI flashcards.";
-  $("#deck-section").hidden = true;
-} else if (session) {
+if (session) {
   const { profile, user } = session;
   $("#user-label").textContent = profile.full_name || user.email;
   const stored = sessionStorage.getItem("universeActiveFlashcards");
