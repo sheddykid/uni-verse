@@ -1,6 +1,10 @@
 import { supabase, showMessage, enablePasswordToggles } from "./supabase.js";
 const form = document.querySelector("#login-form");
 enablePasswordToggles(form || document);
+const confirmationNotice = new URLSearchParams(location.search).get("confirmed");
+if (confirmationNotice === "1") {
+  showMessage(document.querySelector("#message"), "Email confirmed. Sign in to open your UNI-VERSE student account.", true);
+}
 form?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const button = form.querySelector('button[type="submit"]');

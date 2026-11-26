@@ -45,7 +45,7 @@ document.querySelector("#register-form").addEventListener("submit", async (event
     email,
     password,
     options: {
-      emailRedirectTo: new URL("./index.html", location.href).href,
+      emailRedirectTo: new URL("./index.html?confirmed=1", location.href).href,
       data: {
         full_name: name,
         matric_number: matric,
@@ -61,7 +61,7 @@ document.querySelector("#register-form").addEventListener("submit", async (event
     return;
   }
 
-  showMessage(message, "Registration submitted. You can continue to sign in when your account is ready.", true);
+  showMessage(message, "Account created. Check your email and click the confirmation link. Once confirmed, sign in to access UNI-VERSE.", true);
   event.currentTarget.reset();
   button.disabled = false;
 });
