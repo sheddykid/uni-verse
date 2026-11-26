@@ -23,6 +23,11 @@
 <div class="settings-profile-item"><span>Department</span><strong id="profile-department">—</strong></div>
 <div class="settings-profile-item"><span>Account role</span><strong id="profile-role">—</strong></div>
 </div>
+<form id="profile-form" class="settings-form">
+<label for="profile-full-name">Update your full name<input id="profile-full-name" name="fullName" type="text" maxlength="120" autocomplete="name" required></label>
+<button class="btn primary" type="submit">Save profile changes</button>
+<p class="message settings-status" id="profile-status" role="status" aria-live="polite"></p>
+</form>
 </section>
 <section class="settings-section" aria-labelledby="security-heading">
 <h2 id="security-heading">Security</h2><p class="muted">Change your password. Use at least 8 characters.</p>
