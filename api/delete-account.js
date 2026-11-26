@@ -82,7 +82,7 @@ export default async function handler(req, res) {
     );
     if (!deleteResponse.ok) {
       const detail = await deleteResponse.json().catch(() => ({}));
-      const message = String(detail.msg || detail.message || detail.error_description || "");
+      const message = String(detail.code || detail.msg || detail.message || detail.error_description || "");
       if (/storage|object|owner/i.test(message)) {
         return respond(res, 409, { error: "This account still owns files in UNI-VERSE storage. Contact an administrator to transfer or remove those files before deleting the account." });
       }
