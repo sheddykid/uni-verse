@@ -2,6 +2,7 @@ import { supabase, requireProfile } from "./supabase.js";
 
 const links = [
   ["./student.html", "⌂", "Learning hub"],
+  ["./settings.html", "⚙", "Settings"],
   ["./notes.html", "▤", "Course notes"],
   ["./past-questions.html", "✎", "Past questions"],
   ["./quizzes.html", "✓", "Quizzes"],

@@ -19,6 +19,7 @@ if (session && session.profile.role !== "admin") {
       </div>
       <nav class="student-drawer-links" aria-label="Admin pages">
         <a class="student-drawer-link" href="./admin.html">⌂ <span>Dashboard</span></a>
+        <a class="student-drawer-link" href="./settings.html">⚙ <span>Settings</span></a>
         <a class="student-drawer-link" href="./admin-add-course.html">＋ <span>Add course</span></a>
         <a class="student-drawer-link" href="./admin-resources.html">▤ <span>Upload notes &amp; questions</span></a>
         <a class="student-drawer-link" href="./admin-videos.html">▶ <span>Upload videos &amp; YouTube</span></a>
