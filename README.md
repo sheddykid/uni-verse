@@ -230,16 +230,22 @@ The exact redirect URLs should match the deployed application and the routes con
 
 The application implements Supabase Auth email/password signup confirmation and resend-confirmation handling. Email delivery is controlled by the hosted Supabase Auth SMTP settings, not by frontend code in this repository.
 
-The external AWS SES setup has been started:
+The AWS SES account and domain were re-checked through the connected AWS account in region `eu-west-1` on 2026-11-26. Current verified state:
 
-- The sending domain `uni-verse.site` was verified in AWS SES.
-- The SES production-access request was still pending at the last recorded check; the SES account was still in the sandbox.
-- The SES SMTP settings page was reached, but standard SES SMTP credentials for `email-smtp.eu-west-1.amazonaws.com:587` had not yet been confirmed as generated.
-- The switch of Supabase Auth's SMTP provider from the previously used Gmail configuration to AWS SES was not confirmed as complete. Do not assume Supabase Auth confirmation emails are currently being sent through SES.
+- Sending domain `uni-verse.site`: identity verification `SUCCESS`; verified for sending.
+- DKIM signing: enabled; status `SUCCESS`.
+- Custom MAIL FROM domain `bounce.uni-verse.site`: status `SUCCESS`.
+- SES production access: granted; `ProductionAccessEnabled=true`.
+- SES sending: enabled; account enforcement status `HEALTHY`.
+- Account sending quota: 50,000 messages per 24 hours and 14 messages per second; 6 messages had been sent in the preceding 24 hours at the time of the check.
+- Configuration set `my-first-configuration-set`: sending enabled and reputation metrics enabled. No event destinations were returned by the configuration-set event-destination API.
+- Account-level suppression reasons are configured for bounces and complaints; the suppression-list query returned no entries at the time of the check.
 
-**Remaining work:** obtain SES production access, create/confirm standard SES SMTP credentials, configure those credentials in the hosted Supabase Auth SMTP settings, and test signup confirmation and resend delivery end to end. Keep SMTP credentials out of this repository and frontend code.
+**Still unverified:** AWS SES does not return an existing SMTP password through these APIs, so creation of standard SES SMTP credentials for `email-smtp.eu-west-1.amazonaws.com:587` is not confirmed. The connected Supabase project is active, but the available project API does not expose hosted Auth SMTP settings; therefore the Supabase Auth SMTP provider switch to SES and actual confirmation-email delivery are not confirmed. Do not assume Supabase Auth confirmation emails are currently being sent through SES.
 
-The separate Contact Admin Edge Function uses Gmail SMTP; that is a different email workflow and is not evidence that Supabase Auth uses Gmail or SES.
+**Remaining work:** confirm or generate standard SES SMTP credentials in AWS, configure them in hosted Supabase Auth SMTP settings, then test signup confirmation and resend delivery end to end. Keep SMTP credentials out of this repository and frontend code.
+
+The separate Contact Admin Edge Function uses Gmail SMTP; that is a different email workflow and is not evidence that Supabase Auth uses Gmail or SES. The previous pending-production-access note is superseded by the live AWS account check above.
 
 ---
 
