@@ -35,7 +35,7 @@ Flashcards and quizzes are separate features and are not disabled by this notice
 ### Student features
 - **Account registration:** Students create an account with their full name, matriculation number, email address, department and password.
 - **Email confirmation:** New accounts must confirm their email address before signing in. The sign-in page also provides a way to resend a confirmation email when needed.
-- **Student identity verification:** Students submit a university ID image for administrator review. Verified status is controlled by secure server-side database functions; administrators are exempt from student verification.
+- **Student ID-card verification:** New ID-card submissions are disabled. `verification.html` now redirects to the student dashboard. Legacy administrator review and image-cleanup code remains for existing verification records only.
 - **Secure sign-in and sign-out:** Supabase Authentication manages student sessions.
 - **Department-based course listing:** Students see active courses assigned to their registered department.
 - **Feature hub:** The student dashboard links to dedicated pages for notes, past questions, quizzes, flashcards, AI Note Summarizer, and video tutorials.
@@ -57,7 +57,7 @@ Flashcards and quizzes are separate features and are not disabled by this notice
 - **Resource management:** The searchable Manage Courses & Resources page has separate tables for courses, notes, past questions, uploaded videos and YouTube videos. Administrators can edit, activate/deactivate, hide/show and delete the relevant records. Admin tables show file sizes for notes, past questions and uploaded videos.
 - **Course-list refresh:** The upload form has a dedicated refresh control to reload the course dropdown without refreshing the whole page.
 - **Student preview:** Administrators can open the student dashboard from the admin navigation menu to view the student-facing experience.
-- **Verification review:** Administrators can inspect pending student ID submissions, approve or reject them with a reason, and retry failed post-approval image cleanup. Administrator accounts bypass the student verification gate.
+- **Legacy verification administration:** `admin-verifications.html` retains review and cleanup controls for pre-existing ID-card requests. New student submissions are disabled by the latest database migration.
 - **Department organization:** Course assignment is grouped by college, with expandable department/programme options and college-level selection.
 
 ### Video tutorials
@@ -84,8 +84,8 @@ The video library supports uploaded course videos and YouTube links as separate 
 | `admin-resources.html` | Upload notes and past questions |
 | `admin-videos.html` | Upload videos and add YouTube links |
 | `admin-manage.html` | Search and manage courses, notes, past questions, uploaded videos and YouTube videos |
-| `verification.html` | Student ID submission and verification status |
-| `admin-verifications.html` | Administrator review of student verification requests |
+| `verification.html` | Retired route; redirects to the student dashboard |
+| `admin-verifications.html` | Legacy administrator review/cleanup for existing verification records |
 | `reset-password.html` | Request a password-reset email |
 | `update-password.html` | Set a new password from a valid recovery link |
 
@@ -143,8 +143,8 @@ uni-verse/
 ├── videos.html                 # Video tutorials landing page
 ├── admin.html                 # Administrator content dashboard
 ├── admin-manage.html          # Course and resource management page
-├── verification.html           # Student identity verification page
-├── admin-verifications.html   # Admin verification review queue
+├── verification.html           # Retired route; redirects to student dashboard
+├── admin-verifications.html   # Legacy admin review/cleanup for existing records
 ├── reset-password.html        # Password-reset request page
 ├── update-password.html       # New-password page
 ├── README.md
@@ -535,70 +535,24 @@ The embedded iframe requests fullscreen permission and the player container has 
 
 ---
 
-## 20. Student identity verification — production deployed (2026-11-23)
+## 20. Student ID-card verification retirement and email-confirmation access (2026-11-26)
 
-UNI-VERSE now includes a student identity-verification workflow for access to selected learning features.
+The current repository no longer exposes student ID-card submission as part of the student experience.
 
-### Student workflow
-- Students upload a university ID image in JPG, PNG or WEBP format, up to 5 MB.
-- The image is stored in the private `student-verification` Supabase Storage bucket under a user-specific path.
-- A verification request is created with a pending status. Students can view their status and, if rejected, read the administrator's reason and submit a corrected image.
-- Once approved, the student's profile is marked verified and a plain `✔️` indicator appears beside the matriculation number in the student navigation drawer.
-- Unverified students retain access to permitted notes, past questions and PDFs. Verification is required for selected features including course videos, video links, AI flashcards and saved AI summaries.
-- Administrator accounts bypass the student verification requirement.
+### Current registration and sign-in behavior
 
-### Administrator review and security
-- Administrators review pending requests and can approve or reject them. Rejection requires a reason that is displayed separately from the resubmission instruction.
-- Privileged review operations run through server-side functions in the non-exposed `private` schema. Students cannot directly change their verification status or request review status.
-- The verification bucket is private; administrators receive signed image previews for review.
-- After approval, the uploaded ID image is deleted and its stored path is cleared. Failed cleanup is tracked for retry without reversing the approval.
-- A rejected submission remains available for review until the student resubmits or the request is otherwise resolved.
+- Registration collects full name, matriculation number, email address, department, password and password confirmation.
+- The registration script creates the account through Supabase Auth email/password signup and displays a prompt to confirm the email address.
+- The sign-in script handles unconfirmed-email errors and offers a resend-confirmation action.
+- The application reads the trusted profile role after sign-in and routes the account to the student or administrator area.
+- Matriculation number and department remain profile fields; neither is an ID-card upload or manual ID-card approval step.
 
-### Terms and UI
-- Registration requires acceptance of the Terms and Conditions, including the student-verification process.
-- The verification page branding is horizontally centered.
-- The verified indicator is a plain checkmark without a circle or border.
-- Rejection feedback is displayed in a separate, readable administrator-comment panel.
+### ID-card verification retirement boundary
 
-### Production pages
-- Student verification: [verification.html](https://uni-verse-sheddykid.vercel.app/verification.html)
-- Admin review queue: [admin-verifications.html](https://uni-verse-sheddykid.vercel.app/admin-verifications.html)
+- `verification.html` immediately redirects to `student.html`; it no longer provides an upload or verification-status form.
+- The latest migration, `20261126173000_use_email_confirmation_for_student_access.sql`, removes the student insert policy for `verification_requests` and the student upload policy for verification images. It also replaces selected feature policies that previously depended on `profiles.is_verified`.
+- The migration does not delete historical verification records, stored images, legacy verification JavaScript, the administrator review page, or the verification-notification Edge Function.
+- `admin-verifications.html` and its script remain in the repository as legacy review/cleanup tooling for existing records. They are not a student registration step.
+- The repository does not contain an AWS SES integration or the hosted Supabase Auth SMTP/template settings. Those external settings cannot be inferred from this source tree.
 
-### Deployment record
-- GitHub commit: [aa976086](https://github.com/sheddykid/uni-verse/commit/aa9760862701f5439ba233e7058339be50eabb10)
-- Vercel production deployment: READY
-- Production alias: https://uni-verse-sheddykid.vercel.app
-
-The deployment includes the verification-page layout refinement, plain verified checkmark, and separated rejection-comment panel. The user has confirmed that the verification flow works.
-
-## 21. Supabase Auth email templates and security notifications (2026-11-26)
-
-UNI-VERSE authentication emails are being aligned with the platform branding. The requested change is to remove the text “COVENANT UNIVERSITY” while retaining the purple U mark, UNI-VERSE name, existing layout, colours and other template content.
-
-### Reset Password email
-
-- A dedicated **Reset Password** template was prepared; it is separate from Confirm Signup.
-- Subject: `UNI-VERSE — Reset your password`.
-- The supplied HTML uses Supabase's `{{ .ConfirmationURL }}` variable for the reset button and fallback link.
-- The user began applying the supplied HTML in Supabase. The live saved template has not been independently read back through the available integration.
-
-### Password Changed security notification
-
-- A separate **Password Changed** notification template was prepared using the UNI-VERSE purple U branding and omitting “COVENANT UNIVERSITY”.
-- Subject: `UNI-VERSE — Your password has been changed`.
-- The notification explains that the password was changed, reassures users who made the change, and advises users who did not authorize it to reset their password and contact UNI-VERSE support.
-- The user confirmed the setup was okay after being advised to enable the Password Changed notification. The setting was not independently read back and no test email delivery has been confirmed.
-
-### Scope
-
-- **Confirm Signup** remains a separate template and was not updated in this change.
-- Other security notifications (email/phone changes, identity linking/unlinking, and MFA method additions/removals) were reviewed but not customized.
-- No SMTP credentials, app passwords, service-role keys or other secrets are included in this README.
-
-### Verification still required
-
-- [ ] Read back the saved Reset Password subject and HTML in Supabase.
-- [ ] Read back the saved Password Changed subject and HTML.
-- [ ] Confirm the Password Changed notification toggle is enabled.
-- [ ] Trigger a password change on a disposable test account and verify delivery and rendering.
-- [ ] Customize Confirm Signup separately if required.
+This section describes the repository implementation only. It does not claim that the external Supabase Auth email-confirmation toggle, SMTP provider, or production deployment has been independently read back or tested.
