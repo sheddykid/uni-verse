@@ -571,9 +571,34 @@ UNI-VERSE now includes a student identity-verification workflow for access to se
 
 The deployment includes the verification-page layout refinement, plain verified checkmark, and separated rejection-comment panel. The user has confirmed that the verification flow works.
 
+## 21. Supabase Auth email templates and security notifications (2026-11-26)
 
+UNI-VERSE authentication emails are being aligned with the platform branding. The requested change is to remove the text “COVENANT UNIVERSITY” while retaining the purple U mark, UNI-VERSE name, existing layout, colours and other template content.
 
+### Reset Password email
 
+- A dedicated **Reset Password** template was prepared; it is separate from Confirm Signup.
+- Subject: `UNI-VERSE — Reset your password`.
+- The supplied HTML uses Supabase's `{{ .ConfirmationURL }}` variable for the reset button and fallback link.
+- The user began applying the supplied HTML in Supabase. The live saved template has not been independently read back through the available integration.
 
+### Password Changed security notification
 
-ingressendpoint-20261126-155524
+- A separate **Password Changed** notification template was prepared using the UNI-VERSE purple U branding and omitting “COVENANT UNIVERSITY”.
+- Subject: `UNI-VERSE — Your password has been changed`.
+- The notification explains that the password was changed, reassures users who made the change, and advises users who did not authorize it to reset their password and contact UNI-VERSE support.
+- The user confirmed the setup was okay after being advised to enable the Password Changed notification. The setting was not independently read back and no test email delivery has been confirmed.
+
+### Scope
+
+- **Confirm Signup** remains a separate template and was not updated in this change.
+- Other security notifications (email/phone changes, identity linking/unlinking, and MFA method additions/removals) were reviewed but not customized.
+- No SMTP credentials, app passwords, service-role keys or other secrets are included in this README.
+
+### Verification still required
+
+- [ ] Read back the saved Reset Password subject and HTML in Supabase.
+- [ ] Read back the saved Password Changed subject and HTML.
+- [ ] Confirm the Password Changed notification toggle is enabled.
+- [ ] Trigger a password change on a disposable test account and verify delivery and rendering.
+- [ ] Customize Confirm Signup separately if required.
