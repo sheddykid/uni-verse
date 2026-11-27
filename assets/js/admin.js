@@ -31,6 +31,10 @@ if (session && session.profile.role !== "admin") {
   const QUESTION_ACCEPT = DOCUMENT_ACCEPT + ",.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp";
   const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
+  function updateFileAccept() {
+    fileInput.accept = resourceType.value === "past_question" ? QUESTION_ACCEPT : DOCUMENT_ACCEPT;
+  }
+
   if (departmentOptions) {
     const { data: departments, error: deptError } = await supabase
       .from("departments").select("id,name,code").eq("is_active", true).order("name");
@@ -150,9 +154,6 @@ if (session && session.profile.role !== "admin") {
       }
     });
   
-    function updateFileAccept() {
-      fileInput.accept = resourceType.value === "past_question" ? QUESTION_ACCEPT : DOCUMENT_ACCEPT;
-    }
     resourceType.addEventListener("change", () => {
       const isQuestion = resourceType.value === "past_question";
       questionFields.hidden = !isQuestion;
