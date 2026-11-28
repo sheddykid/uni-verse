@@ -244,16 +244,54 @@ if (session && session.profile.role !== "admin") {
     rows.forEach(row => tbody.append(row));
     table.append(thead, tbody);
     target.append(table);
+
+    const pageSize = 7;
+    let currentPage = 0;
+    const pagination = document.createElement("div");
+    pagination.className = "admin-table-pagination";
+    const pageStatus = document.createElement("span");
+    pageStatus.className = "muted";
+    const controls = document.createElement("div");
+    controls.className = "admin-table-pagination-controls";
+    const previous = button("Previous", "secondary", () => {
+      currentPage = Math.max(0, currentPage - 1);
+      renderPage();
+    });
+    const next = button("Next", "secondary", () => {
+      currentPage += 1;
+      renderPage();
+    });
+    controls.append(previous, next);
+    pagination.append(pageStatus, controls);
+    target.append(pagination);
+
+    const renderPage = () => {
+      const term = search ? search.value.trim().toLowerCase() : "";
+      const matchingRows = [...tbody.querySelectorAll("tr")].filter(row =>
+        !term || row.dataset.search.includes(term)
+      );
+      const pageCount = Math.max(1, Math.ceil(matchingRows.length / pageSize));
+      currentPage = Math.min(currentPage, pageCount - 1);
+      const start = currentPage * pageSize;
+      const visibleRows = new Set(matchingRows.slice(start, start + pageSize));
+      tbody.querySelectorAll("tr").forEach(row => {
+        row.hidden = !visibleRows.has(row);
+      });
+      pageStatus.textContent = matchingRows.length
+        ? `Showing ${start + 1}–${Math.min(start + pageSize, matchingRows.length)} of ${matchingRows.length}`
+        : "No matching records";
+      previous.disabled = currentPage === 0;
+      next.disabled = currentPage >= pageCount - 1;
+      pagination.hidden = matchingRows.length <= pageSize;
+    };
+
     if (search) {
-      const filter = () => {
-        const term = search.value.trim().toLowerCase();
-        tbody.querySelectorAll("tr").forEach(row => {
-          row.hidden = !!term && !row.dataset.search.includes(term);
-        });
+      search.oninput = () => {
+        currentPage = 0;
+        renderPage();
       };
-      search.oninput = filter;
-      filter();
     }
+    renderPage();
   }
 
   function makeRow(values, actions, searchText) {
