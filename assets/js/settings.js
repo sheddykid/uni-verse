@@ -1,5 +1,10 @@
 import { supabase, requireProfile, showMessage, enablePasswordToggles } from "./supabase.js";
 
+const hasRequiredPasswordCharacters = password =>
+  /[a-z]/.test(password) && /[A-Z]/.test(password) && /[0-9]/.test(password) &&
+  [..."!@#$%^&*()_+-=[]{};'\"\\:|<>?,./`~"].some(character => password.includes(character));
+
+
 const session = await requireProfile();
 if (session) {
   const { user, profile } = session;
@@ -40,6 +45,7 @@ if (session) {
 
     if (!currentPassword) return showMessage($("#password-status"), "Enter your current password.");
     if (password.length < 8) return showMessage($("#password-status"), "Your new password must be at least 8 characters.");
+    if (!hasRequiredPasswordCharacters(password)) return showMessage($("#password-status"), "Include at least one lowercase letter, one uppercase letter, one number, and one special character.");
     if (password !== confirmation) return showMessage($("#password-status"), "The passwords do not match.");
     if (currentPassword === password) return showMessage($("#password-status"), "Choose a new password different from your current password.");
 
