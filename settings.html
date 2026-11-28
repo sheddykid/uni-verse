@@ -21,9 +21,13 @@
 <button class="btn secondary" id="sign-out" type="button">Sign out</button></main>
 <dialog class="settings-delete-dialog" id="delete-dialog" aria-labelledby="delete-title"><h2 id="delete-title">Permanently delete account?</h2>
 <p class="settings-delete-warning">This permanently deletes your UNI-VERSE account. Your profile, quiz history, summaries, timetable and notification subscriptions will be removed. Shared learning resources are not intentionally deleted.</p>
-<form id="delete-form" class="settings-form"><p class="muted">To continue, verify both your current password and the six-digit code sent to <strong id="delete-email"></strong>.</p>
-<div id="delete-request-step"><label for="delete-password">Current password<input id="delete-password" name="currentPassword" type="password" autocomplete="current-password" required></label><button class="btn primary" id="send-delete-code" type="button">Send deletion code</button></div>
-<div id="delete-verify-step" hidden><label for="delete-otp">Six-digit email code<input id="delete-otp" name="otp" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6"></label><button class="btn danger" type="submit">Verify password and code, then delete</button><button class="btn secondary" id="resend-delete-code" type="button" disabled>Resend code (60s)</button></div>
-<p class="message settings-status" id="delete-status" role="status" aria-live="polite"></p><div class="settings-dialog-actions"><button class="btn secondary" id="cancel-delete" type="button">Cancel</button></div></form></dialog>
+<form id="delete-form" class="settings-form">
+<p class="muted">To continue, enter your current password and type <strong>DELETE</strong> below.</p>
+<label for="delete-password">Current password<input id="delete-password" name="currentPassword" type="password" autocomplete="current-password" required></label>
+<label for="delete-confirmation">Type DELETE to confirm<input id="delete-confirmation" name="confirmation" type="text" autocomplete="off" required></label>
+<button class="btn danger" type="submit">Permanently delete my account</button>
+<p class="message settings-status" id="delete-status" role="status" aria-live="polite"></p>
+<div class="settings-dialog-actions"><button class="btn secondary" id="cancel-delete" type="button">Cancel</button></div>
+</form></dialog>
 <script type="module" src="./assets/js/student-navigation.js"></script><script type="module" src="./assets/js/settings.js"></script><script type="module" src="./assets/js/theme.js"></script>
 </body></html>
