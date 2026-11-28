@@ -2,6 +2,7 @@ import { supabase, showMessage, enablePasswordToggles } from "./supabase.js";
 enablePasswordToggles();
 const departmentSelect = document.querySelector("#department");
 const message = document.querySelector("#message");
+sessionStorage.removeItem("uniVersePendingEmail");
 
 const hasRequiredPasswordCharacters = password =>
   /[a-z]/.test(password) && /[A-Z]/.test(password) && /[0-9]/.test(password) &&
@@ -46,7 +47,7 @@ document.querySelector("#register-form").addEventListener("submit", async event 
   const button = event.currentTarget.querySelector('button[type="submit"]');
   button.disabled = true;
   showMessage(message, "Creating your account…");
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -58,6 +59,7 @@ document.querySelector("#register-form").addEventListener("submit", async event 
     button.disabled = false;
     return;
   }
-  sessionStorage.setItem("uniVersePendingEmail", email);
+  const confirmedEmail = (data.user?.email || email).trim().toLowerCase();
+  sessionStorage.setItem("uniVersePendingEmail", confirmedEmail);
   location.assign("./verify-email.html");
 });
