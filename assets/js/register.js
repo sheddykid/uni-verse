@@ -3,6 +3,11 @@ enablePasswordToggles();
 const departmentSelect = document.querySelector("#department");
 const message = document.querySelector("#message");
 
+const hasRequiredPasswordCharacters = password =>
+  /[a-z]/.test(password) && /[A-Z]/.test(password) && /[0-9]/.test(password) &&
+  [..."!@#$%^&*()_+-=[]{};'\"\\:|<>?,./`~"].some(character => password.includes(character));
+
+
 const { data: departments, error: deptError } = await supabase
   .from("departments").select("id,name,code").eq("is_active", true).order("name");
 
@@ -31,6 +36,8 @@ document.querySelector("#register-form").addEventListener("submit", async event 
   const confirm = document.querySelector("#confirm-password").value;
   const departmentId = departmentSelect.value;
 
+  if (password.length < 8) return showMessage(message, "Password must be at least 8 characters.");
+  if (!hasRequiredPasswordCharacters(password)) return showMessage(message, "Include at least one lowercase letter, one uppercase letter, one number, and one special character.");
   if (password !== confirm) return showMessage(message, "Passwords do not match.");
   if (!departmentId) return showMessage(message, "Select your department.");
 
