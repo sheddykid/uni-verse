@@ -12,8 +12,7 @@
 <header class="topbar settings-topbar"><a class="brand" href="./student.html"><span class="brand-mark small">U</span> UNI-VERSE</a><span id="user-label" class="muted"></span></header>
 <main class="dashboard settings-dashboard">
 <a class="settings-back" id="dashboard-link" href="./student.html">← Back to dashboard</a>
-<p class="eyebrow">ACCOUNT</p><h1>Settings</h1>
-<p class="muted">Manage your account security and account data.</p>
+<p class="eyebrow">ACCOUNT</p><h1>Settings</h1><p class="muted">Manage your account security and account data.</p>
 <section class="settings-section" aria-labelledby="profile-heading">
 <h2 id="profile-heading">Profile</h2><p class="muted">Your account information currently saved in UNI-VERSE.</p>
 <div class="settings-profile-grid">
@@ -25,8 +24,7 @@
 </div>
 <form id="profile-form" class="settings-form">
 <label for="profile-full-name">Update your full name<input id="profile-full-name" name="fullName" type="text" maxlength="120" autocomplete="name" required></label>
-<button class="btn primary" type="submit">Save profile changes</button>
-<p class="message settings-status" id="profile-status" role="status" aria-live="polite"></p>
+<button class="btn primary" type="submit">Save profile changes</button><p class="message settings-status" id="profile-status" role="status" aria-live="polite"></p>
 </form>
 </section>
 <section class="settings-section" aria-labelledby="security-heading">
@@ -34,8 +32,7 @@
 <form id="password-form" class="settings-form">
 <label for="new-password">New password<input id="new-password" name="password" type="password" autocomplete="new-password" minlength="8" required></label>
 <label for="confirm-password">Confirm new password<input id="confirm-password" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required></label>
-<button class="btn primary" type="submit">Update password</button>
-<p class="message settings-status" id="password-status" role="status" aria-live="polite"></p>
+<button class="btn primary" type="submit">Update password</button><p class="message settings-status" id="password-status" role="status" aria-live="polite"></p>
 </form>
 </section>
 <section class="settings-section settings-danger" aria-labelledby="account-heading">
@@ -49,13 +46,17 @@
 <h2 id="delete-title">Permanently delete account?</h2>
 <p class="settings-delete-warning">This permanently deletes your UNI-VERSE account. Your profile, quiz history, summaries, timetable and notification subscriptions will be removed. Shared learning resources are not intentionally deleted.</p>
 <form id="delete-form" class="settings-form">
-<label for="delete-password">Confirm your current password<input id="delete-password" name="password" type="password" autocomplete="current-password" required></label>
-<label for="delete-confirmation">Type DELETE to confirm<input id="delete-confirmation" name="confirmation" type="text" autocomplete="off" required></label>
-<p class="message settings-status" id="delete-status" role="status" aria-live="polite"></p>
-<div class="settings-dialog-actions">
-<button class="btn secondary" id="cancel-delete" type="button">Cancel</button>
-<button class="btn danger" type="submit">Permanently delete</button>
+<p class="muted">We'll send a six-digit confirmation code to <strong id="delete-email"></strong>. Entering that code will permanently delete your account.</p>
+<div id="delete-request-step">
+<button class="btn primary" id="send-delete-code" type="button">Send deletion code</button>
 </div>
+<div id="delete-verify-step" hidden>
+<label for="delete-otp">Six-digit email code<input id="delete-otp" name="otp" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6"></label>
+<button class="btn danger" type="submit">Verify code and permanently delete</button>
+<button class="btn secondary" id="resend-delete-code" type="button">Resend code</button>
+</div>
+<p class="message settings-status" id="delete-status" role="status" aria-live="polite"></p>
+<div class="settings-dialog-actions"><button class="btn secondary" id="cancel-delete" type="button">Cancel</button></div>
 </form>
 </dialog>
 <script type="module" src="./assets/js/student-navigation.js"></script>
