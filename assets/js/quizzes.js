@@ -13,7 +13,11 @@ if (location.hostname.endsWith("github.io")) {
     const courseSelect = $("#course-select"), notesList = $("#notes-list"), generateButton = $("#generate");
     let notes = [], activeResourceIds = [], questions = [], course = null, quizMode = "mcq", quizSessionId = null;
     const courseQuery = supabase.from("courses").select("id,code,title,course_departments!inner(department_id)").eq("is_active", true);
-    if (profile.role !== "admin") courseQuery.eq("course_departments.department_id", profile.department_id);
+    if (!profile.department_id) {
+      setStatus("Your account has no department assigned. Contact an administrator.");
+      return;
+    }
+    courseQuery.eq("course_departments.department_id", profile.department_id);
     const { data: courses, error: courseError } = await courseQuery.order("code");
     courseSelect.replaceChildren(new Option(courseError ? "Could not load courses" : "Select a course", ""));
     if (!courseError) (courses || []).forEach(item => courseSelect.add(new Option(`${item.code} — ${item.title}`, item.id)));
