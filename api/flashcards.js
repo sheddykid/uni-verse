@@ -340,10 +340,8 @@ export default async function handler(req, res) {
 
     stage = "course_authorization";
     const courseParams = new URLSearchParams({ select: "id,code,title,course_departments!inner(department_id)", id: `eq.${courseId}`, is_active: "eq.true", limit: "1" });
-    if (profile.role !== "admin") {
-      if (!profile.department_id) return respond(res, 403, { error: "Your account has no department assigned." });
-      courseParams.set("course_departments.department_id", `eq.${profile.department_id}`);
-    }
+    if (!profile.department_id) return respond(res, 403, { error: "Your account has no department assigned." });
+    courseParams.set("course_departments.department_id", `eq.${profile.department_id}`);
     const courses = await supabaseRequest(`courses?${courseParams.toString()}`, token);
     if (!courses.length) return respond(res, 403, { error: "You do not have access to that active course." });
     const course = courses[0];
