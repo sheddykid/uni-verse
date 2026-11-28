@@ -12,7 +12,11 @@ if (session) {
   const courseSelect = $("#course-select"), notesList = $("#notes-list"), generateButton = $("#generate");
   let currentNotes = [];
   const courseQuery = supabase.from("courses").select("id,code,title,course_departments!inner(department_id)").eq("is_active", true);
-  if (profile.role !== "admin") courseQuery.eq("course_departments.department_id", profile.department_id);
+  if (!profile.department_id) {
+    setStatus("Your account has no department assigned. Contact an administrator.");
+    return;
+  }
+  courseQuery.eq("course_departments.department_id", profile.department_id);
   const { data: courses, error } = await courseQuery.order("code");
   courseSelect.replaceChildren(new Option(error ? "Could not load courses" : "Select a course", ""));
   if (!error) (courses || []).forEach(course => courseSelect.add(new Option(`${course.code} — ${course.title}`, course.id)));
