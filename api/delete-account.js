@@ -23,8 +23,12 @@ export default async function handler(req, res) {
   const authorization = req.headers.authorization || "";
   const accessToken = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
   const password = typeof req.body?.password === "string" ? req.body.password : "";
+  const confirmation = typeof req.body?.confirmation === "string" ? req.body.confirmation : "";
   if (!accessToken || !password || password.length > 1024) {
     return respond(res, 400, { error: "Your current password is required." });
+  }
+  if (confirmation !== "DELETE") {
+    return respond(res, 400, { error: 'Type DELETE to confirm account deletion.' });
   }
 
   try {
