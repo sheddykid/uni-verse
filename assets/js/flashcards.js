@@ -11,11 +11,10 @@ if (session) {
   $("#user-label").textContent = profile.full_name || user.email;
   const courseSelect = $("#course-select"), notesList = $("#notes-list"), generateButton = $("#generate");
   let currentNotes = [];
-  const courseQuery = supabase.from("courses").select("id,code,title,course_departments!inner(department_id)").eq("is_active", true);
   if (!profile.department_id) {
     setStatus("Your account has no department assigned. Contact an administrator.");
-    return;
-  }
+  } else {
+  const courseQuery = supabase.from("courses").select("id,code,title,course_departments!inner(department_id)").eq("is_active", true);
   courseQuery.eq("course_departments.department_id", profile.department_id);
   const { data: courses, error } = await courseQuery.order("code");
   courseSelect.replaceChildren(new Option(error ? "Could not load courses" : "Select a course", ""));
@@ -95,6 +94,7 @@ if (session) {
   function setStatus(message, success = false) { $("#status").textContent = message; $("#status").classList.toggle("success", success); }
   function formatSize(bytes) { if (bytes === null || bytes === undefined || Number.isNaN(Number(bytes))) return "Size unknown";
     if (Number(bytes) === 0) return "0 KB"; return bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`; }
+  }
 }
 
 }
