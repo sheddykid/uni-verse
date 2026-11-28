@@ -888,3 +888,8 @@ html[data-theme="dark"] .settings-profile-item{background:var(--surface-soft)}
 .settings-topbar>.brand{position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap}
 .settings-topbar>#user-label{margin-left:auto;max-width:28%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:600px){.settings-topbar>.brand{font-size:.92rem}.settings-topbar>#user-label{display:none}}
+
+
+/* Keep the registration terms checkbox left-aligned beside its text. */
+.terms-acceptance{display:flex;align-items:flex-start;justify-content:flex-start;gap:10px;text-align:left;font-weight:500;line-height:1.5}
+.terms-acceptance input[type=checkbox]{width:16px;height:16px;flex:0 0 16px;margin:2px 0 0;padding:0}
