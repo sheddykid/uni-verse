@@ -923,3 +923,12 @@ html[data-theme="dark"] #register-form .terms-acceptance a.terms-link{color:#9ba
 .upload-progress-failed .upload-progress-track>span{background:#dc3545}
 @keyframes upload-progress-slide{from{transform:translateX(-8%)}to{transform:translateX(175%)}}
 html[data-theme="dark"] .upload-progress{background:var(--surface-soft);border-color:var(--border)}
+
+
+/* Manage resources: separate search controls from tables and paginate records. */
+.admin-table-section .resource-results-head{margin-bottom:16px}
+.admin-table-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 4px 2px}
+.admin-table-pagination[hidden]{display:none}
+.admin-table-pagination-controls{display:flex;gap:8px}
+.admin-table-pagination-controls .btn{padding:7px 12px;font-size:.78rem}
+@media(max-width:600px){.admin-table-pagination{align-items:flex-start;flex-direction:column}.admin-table-pagination-controls{width:100%}.admin-table-pagination-controls .btn{flex:1}}
