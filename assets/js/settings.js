@@ -33,15 +33,34 @@ if (session) {
   $("#password-form").addEventListener("submit", async event => {
     event.preventDefault();
     const form = event.currentTarget;
+    const currentPassword = form.elements.currentPassword.value;
     const password = form.elements.password.value;
     const confirmation = form.elements.confirmPassword.value;
     const submit = form.querySelector('button[type="submit"]');
+
+    if (!currentPassword) return showMessage($("#password-status"), "Enter your current password.");
+    if (password.length < 8) return showMessage($("#password-status"), "Your new password must be at least 8 characters.");
     if (password !== confirmation) return showMessage($("#password-status"), "The passwords do not match.");
-    submit.disabled = true; submit.textContent = "Updating…"; showMessage($("#password-status"), "");
-    const { error } = await supabase.auth.updateUser({ password });
-    if (error) showMessage($("#password-status"), error.message || "Password could not be updated.");
-    else { showMessage($("#password-status"), "Password updated successfully.", true); form.reset(); }
-    submit.disabled = false; submit.textContent = "Update password";
+    if (currentPassword === password) return showMessage($("#password-status"), "Choose a new password different from your current password.");
+
+    submit.disabled = true;
+    submit.textContent = "Verifying and updating…";
+    showMessage($("#password-status"), "Verifying your current password…");
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password,
+        current_password: currentPassword
+      });
+      if (error) throw error;
+      showMessage($("#password-status"), "Password updated successfully.", true);
+      form.reset();
+    } catch (error) {
+      showMessage($("#password-status"), error.message || "Password could not be updated.");
+    } finally {
+      submit.disabled = false;
+      submit.textContent = "Update password";
+    }
   });
 
   const dialog = $("#delete-dialog");
