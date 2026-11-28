@@ -4,6 +4,11 @@ const updateForm = document.querySelector("#update-form");
 const message = document.querySelector("#update-message");
 const submitButton = updateForm.querySelector('button[type="submit"]');
 let recoverySessionReady = false;
+
+const hasRequiredPasswordCharacters = password =>
+  /[a-z]/.test(password) && /[A-Z]/.test(password) && /[0-9]/.test(password) &&
+  [..."!@#$%^&*()_+-=[]{};'\"\\:|<>?,./`~"].some(character => password.includes(character));
+
 enablePasswordToggles();
 
 async function checkRecoverySession() {
@@ -31,6 +36,14 @@ updateForm.addEventListener("submit", async event => {
   }
   const password = document.querySelector("#new-password").value;
   const confirm = document.querySelector("#confirm-password").value;
+  if (password.length < 8) {
+    showMessage(message, "Password must be at least 8 characters.");
+    return;
+  }
+  if (!hasRequiredPasswordCharacters(password)) {
+    showMessage(message, "Include at least one lowercase letter, one uppercase letter, one number, and one special character.");
+    return;
+  }
   if (password !== confirm) {
     showMessage(message, "Passwords do not match.");
     return;
