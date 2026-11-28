@@ -301,51 +301,72 @@ if (session && session.profile.role !== "admin") {
       uploadButton.textContent = "Uploading…";
       resourceProgress.show("Uploading file to secure storage…");
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const filePath = `${courseId}/${crypto.randomUUID()}-${safeName}`;
+      const makeFilePath = () => `${courseId}/${crypto.randomUUID()}-${Date.now()}-${safeName}`;
+      let filePath = makeFilePath();
       try {
-        const { error: uploadError } = await supabase.storage.from("course-resources")
-          .upload(filePath, file, { contentType: mimeType, cacheControl: "3600", upsert: false });
-  
-        if (uploadError) {
-          resourceProgress.fail("Upload failed");
-          showMessage(message, uploadError.message);
-        } else {
-        resourceProgress.update("File uploaded · publishing resource details…", 85);
-        const payload = {
-          course_id: courseId,
-          resource_type: resourceKind,
-          title: document.querySelector("#resource-title").value.trim(),
-          description: document.querySelector("#resource-description").value.trim() || null,
-          assessment_type: resourceKind === "past_question" ? assessmentType.value : null,
-          academic_year: resourceKind === "past_question" ? document.querySelector("#academic-year").value.trim() || null : null,
-          semester: resourceKind === "past_question" && document.querySelector("#semester").value
-            ? Number(document.querySelector("#semester").value) : null,
-          file_name: file.name,
-          file_path: filePath,
-          mime_type: mimeType,
-          file_size: file.size
-        };
-        const { error: insertError } = await supabase.from("course_resources").insert(payload);
-        if (insertError) {
-          let cleanupError = null;
-          try {
-            const cleanup = await supabase.storage.from("course-resources").remove([filePath]);
-            cleanupError = cleanup.error;
-          } catch (error) {
-            cleanupError = error;
+        let published = false;
+        let lastInsertError = null;
+
+        // A path collision should be extraordinarily rare, but retry safely if one occurs.
+        for (let attempt = 0; attempt < 3 && !published; attempt++) {
+          const { error: uploadError } = await supabase.storage.from("course-resources")
+            .upload(filePath, file, { contentType: mimeType, cacheControl: "3600", upsert: false });
+
+          if (uploadError) {
+            if (uploadError.message?.toLowerCase().includes("already exists") && attempt < 2) {
+              filePath = makeFilePath();
+              continue;
+            }
+            throw uploadError;
           }
+
+          resourceProgress.update("File uploaded · publishing resource details…", 85);
+          const payload = {
+            course_id: courseId,
+            resource_type: resourceKind,
+            title: document.querySelector("#resource-title").value.trim(),
+            description: document.querySelector("#resource-description").value.trim() || null,
+            assessment_type: resourceKind === "past_question" ? assessmentType.value : null,
+            academic_year: resourceKind === "past_question" ? document.querySelector("#academic-year").value.trim() || null : null,
+            semester: resourceKind === "past_question" && document.querySelector("#semester").value
+              ? Number(document.querySelector("#semester").value) : null,
+            file_name: file.name,
+            file_path: filePath,
+            mime_type: mimeType,
+            file_size: file.size
+          };
+          const { error: insertError } = await supabase.from("course_resources").insert(payload);
+          if (!insertError) {
+            published = true;
+            break;
+          }
+
+          lastInsertError = insertError;
+          if (insertError.code === "23505" && insertError.message?.includes("course_resources_file_path_key") && attempt < 2) {
+            const cleanup = await supabase.storage.from("course-resources").remove([filePath]);
+            if (cleanup.error) throw new Error(insertError.message + " The conflicting upload could not be cleaned up: " + cleanup.error.message);
+            filePath = makeFilePath();
+            continue;
+          }
+
+          const cleanup = await supabase.storage.from("course-resources").remove([filePath]);
           resourceProgress.fail("File uploaded, but publishing failed");
-          showMessage(message, cleanupError
-            ? insertError.message + " Storage cleanup also failed; orphaned file path: " + filePath + ". Cleanup error: " + (cleanupError.message || String(cleanupError))
+          showMessage(message, cleanup.error
+            ? insertError.message + " Storage cleanup also failed; orphaned file path: " + filePath + ". Cleanup error: " + cleanup.error.message
             : insertError.message);
-        } else {
+          break;
+        }
+
+        if (published) {
           resourceProgress.update("Upload complete and resource published", 100);
           showMessage(message, "Resource uploaded and published.", true);
           resourceForm.reset();
           updateFileAccept();
           questionFields.hidden = true;
           assessmentType.required = false;
-        }
+        } else if (lastInsertError && lastInsertError.code === "23505") {
+          resourceProgress.fail("Upload failed");
+          showMessage(message, "A storage path collision persisted after 3 attempts. Please try again.");
         }
       } catch (error) {
         resourceProgress.fail("Upload failed");
