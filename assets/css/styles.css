@@ -910,3 +910,16 @@ html[data-theme="dark"] #register-form .terms-acceptance a.terms-link{color:#9ba
 #verify-form>.btn{width:100%;min-height:54px}
 #resend-code{margin-top:6px}
 @media(max-width:380px){.otp-entry{gap:6px}.otp-digit{height:58px;border-radius:14px}}
+
+
+/* Upload progress indicators */
+.upload-progress{margin:4px 0 14px;padding:12px 13px;border:1px solid var(--border);border-radius:11px;background:var(--surface-soft)}
+.upload-progress[hidden]{display:none}
+.upload-progress-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:9px;color:var(--muted);font-size:.82rem}
+.upload-progress-heading strong{color:var(--text);font-variant-numeric:tabular-nums}
+.upload-progress-track{height:8px;overflow:hidden;border-radius:999px;background:var(--border)}
+.upload-progress-track>span{display:block;width:0;height:100%;border-radius:inherit;background:var(--primary,#5265e8);transition:width .2s ease}
+.upload-progress-track>span.indeterminate{width:38%;animation:upload-progress-slide 1.15s ease-in-out infinite alternate}
+.upload-progress-failed .upload-progress-track>span{background:#dc3545}
+@keyframes upload-progress-slide{from{transform:translateX(-8%)}to{transform:translateX(175%)}}
+html[data-theme="dark"] .upload-progress{background:var(--surface-soft);border-color:var(--border)}
