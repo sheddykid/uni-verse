@@ -18,6 +18,35 @@ if (session && session.profile.role !== "admin") {
   const uploadButton = document.querySelector("#upload-button");
   const fileInput = document.querySelector("#resource-file");
 
+  function createUploadProgress(button, id) {
+    const panel = document.createElement("div");
+    panel.id = id;
+    panel.className = "upload-progress";
+    panel.hidden = true;
+    panel.setAttribute("role", "status");
+    panel.setAttribute("aria-live", "polite");
+    const heading = document.createElement("div");
+    heading.className = "upload-progress-heading";
+    const label = document.createElement("span");
+    label.textContent = "Preparing upload…";
+    const percent = document.createElement("strong");
+    percent.textContent = "0%";
+    const track = document.createElement("div");
+    track.className = "upload-progress-track";
+    const bar = document.createElement("span");
+    track.append(bar);
+    heading.append(label, percent);
+    panel.append(heading, track);
+    button.before(panel);
+    return {
+      show(text) { panel.hidden = false; label.textContent = text; percent.textContent = ""; bar.classList.add("indeterminate"); },
+      update(text, value) { panel.hidden = false; label.textContent = text; percent.textContent = value + "%"; bar.classList.remove("indeterminate"); bar.style.width = value + "%"; },
+      fail(text) { panel.hidden = false; label.textContent = text; percent.textContent = ""; bar.classList.remove("indeterminate"); bar.style.width = "100%"; bar.classList.add("failed"); }
+    };
+  }
+
+  const resourceProgress = uploadButton ? createUploadProgress(uploadButton, "resource-upload-progress") : null;
+
   const MIME_TYPES = {
     pdf: "application/pdf",
     docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -270,6 +299,7 @@ if (session && session.profile.role !== "admin") {
   
       uploadButton.disabled = true;
       uploadButton.textContent = "Uploading…";
+      resourceProgress.show("Uploading file to secure storage…");
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
       const filePath = `${courseId}/${crypto.randomUUID()}-${safeName}`;
       try {
@@ -306,6 +336,7 @@ if (session && session.profile.role !== "admin") {
             ? insertError.message + " Storage cleanup also failed; orphaned file path: " + filePath + ". Cleanup error: " + (cleanupError.message || String(cleanupError))
             : insertError.message);
         } else {
+          resourceProgress.update("Upload complete and resource published", 100);
           showMessage(message, "Resource uploaded and published.", true);
           resourceForm.reset();
           updateFileAccept();
@@ -314,6 +345,7 @@ if (session && session.profile.role !== "admin") {
         }
         }
       } catch (error) {
+        resourceProgress.fail("Upload failed");
         showMessage(message, error?.message || "The upload failed. Check your connection and try again.");
       } finally {
         uploadButton.disabled = false;
