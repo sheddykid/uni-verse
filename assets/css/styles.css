@@ -898,3 +898,15 @@ html[data-theme="dark"] .settings-profile-item{background:var(--surface-soft)}
 /* Make the registration Terms and Conditions link clearly visible and clickable. */
 #register-form .terms-acceptance a.terms-link{display:inline!important;color:#5365e8!important;text-decoration:underline!important;text-underline-offset:3px!important;font-weight:700!important;cursor:pointer!important;pointer-events:auto!important}
 html[data-theme="dark"] #register-form .terms-acceptance a.terms-link{color:#9ba8ff!important}
+
+
+/* Six-box email verification code entry */
+.simple-page:has(#verify-form){min-height:100svh;background:#fff;padding:24px 18px}
+#verify-form{gap:20px}
+#verify-description{text-align:center;overflow-wrap:anywhere}
+.otp-entry{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:clamp(8px,2.6vw,16px);width:100%;max-width:540px;margin:20px auto 4px}
+.otp-digit{width:100%;min-width:0;height:clamp(64px,12vw,82px);padding:0;text-align:center;font-size:clamp(1.65rem,5vw,2.25rem);font-weight:600;border:1px solid #d7d7d7;border-radius:19px;background:#fff;color:#171717;caret-color:#159fe8}
+.otp-digit:focus{outline:2px solid #159fe855;border-color:#159fe8}
+#verify-form>.btn{width:100%;min-height:54px}
+#resend-code{margin-top:6px}
+@media(max-width:380px){.otp-entry{gap:6px}.otp-digit{height:58px;border-radius:14px}}
