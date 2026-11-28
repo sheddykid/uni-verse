@@ -6,6 +6,32 @@ const form = document.querySelector("#verify-form");
 const resendButton = document.querySelector("#resend-code");
 const submitButton = form.querySelector('button[type="submit"]');
 const otpInput = form.elements.otp;
+const otpDigits = [...form.querySelectorAll(".otp-digit")];
+
+function syncOtpDigits() {
+  otpInput.value = otpDigits.map(input => input.value).join("");
+}
+
+otpDigits.forEach((input, index) => {
+  input.addEventListener("input", () => {
+    input.value = input.value.replace(/\\D/g, "").slice(-1);
+    syncOtpDigits();
+    if (input.value && index < otpDigits.length - 1) otpDigits[index + 1].focus();
+  });
+  input.addEventListener("keydown", event => {
+    if (event.key === "Backspace" && !input.value && index > 0) otpDigits[index - 1].focus();
+    if (event.key === "ArrowLeft" && index > 0) otpDigits[index - 1].focus();
+    if (event.key === "ArrowRight" && index < otpDigits.length - 1) otpDigits[index + 1].focus();
+  });
+  input.addEventListener("paste", event => {
+    const pasted = (event.clipboardData?.getData("text") || "").replace(/\\D/g, "").slice(0, 6);
+    if (!pasted) return;
+    event.preventDefault();
+    otpDigits.forEach((digit, i) => digit.value = pasted[i] || "");
+    syncOtpDigits();
+    otpDigits[Math.min(pasted.length, 6) - 1]?.focus();
+  });
+});
 const RESEND_SECONDS = 60;
 const OTP_SECONDS = 10 * 60;
 let resendTimer = null;
@@ -62,6 +88,7 @@ if (!email) {
 
 form.addEventListener("submit", async event => {
   event.preventDefault();
+  syncOtpDigits();
   const token = otpInput.value.trim();
   if (!/^\d{6}$/.test(token)) return showMessage(message, "Enter the six-digit code.");
   submitButton.disabled = true;
@@ -91,6 +118,8 @@ resendButton.addEventListener("click", async () => {
     return;
   }
   otpInput.value = "";
+  otpDigits.forEach(input => input.value = "");
+  otpDigits[0].focus();
   showMessage(message, "A new verification code has been sent.", true);
   startExpiryCountdown();
   startResendCooldown();
