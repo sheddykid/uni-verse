@@ -14,7 +14,6 @@ if (deptError) {
   placeholder.value = "";
   placeholder.textContent = "Select your department";
   departmentSelect.append(placeholder);
-
   departments.forEach(department => {
     const option = document.createElement("option");
     option.value = department.id;
@@ -23,7 +22,7 @@ if (deptError) {
   });
 }
 
-document.querySelector("#register-form").addEventListener("submit", async (event) => {
+document.querySelector("#register-form").addEventListener("submit", async event => {
   event.preventDefault();
   const name = document.querySelector("#full-name").value.trim();
   const matric = document.querySelector("#matric").value.trim().toUpperCase();
@@ -38,27 +37,18 @@ document.querySelector("#register-form").addEventListener("submit", async (event
   const button = event.currentTarget.querySelector('button[type="submit"]');
   button.disabled = true;
   showMessage(message, "Creating your account…");
-
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: location.origin,
-      data: {
-        full_name: name,
-        matric_number: matric,
-        department_id: departmentId
-      }
+      data: { full_name: name, matric_number: matric, department_id: departmentId }
     }
   });
-
   if (error) {
     showMessage(message, error.message);
     button.disabled = false;
     return;
   }
-
-  showMessage(message, "Account created. Check your email and click the confirmation link. Once confirmed, sign in to access UNI-VERSE.", true);
-  event.currentTarget.reset();
-  button.disabled = false;
+  sessionStorage.setItem("uniVersePendingEmail", email);
+  location.assign("./verify-email.html");
 });
