@@ -176,10 +176,8 @@ async function authorize(req) {
   const profile = profiles[0];
   if (!profile || profile.id !== user.id) return { error: [403, "Your account profile could not be verified."] };
   const params = new URLSearchParams({ select:"id,code,title,course_departments!inner(department_id)", id:`eq.${courseId}`, is_active:"eq.true", limit:"1" });
-  if (profile.role !== "admin") {
-    if (!profile.department_id) return { error: [403, "Your account has no department assigned."] };
-    params.set("course_departments.department_id", `eq.${profile.department_id}`);
-  }
+  if (!profile.department_id) return { error: [403, "Your account has no department assigned."] };
+  params.set("course_departments.department_id", `eq.${profile.department_id}`);
   const courses = await supabaseRequest(`courses?${params.toString()}`, token);
   if (!courses.length) return { error: [403, "You do not have access to that active course."] };
   const ids = resourceIds.join(",");
