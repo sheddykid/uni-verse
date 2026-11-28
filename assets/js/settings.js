@@ -45,82 +45,49 @@ if (session) {
   });
 
   const dialog = $("#delete-dialog");
-  let deleteOtpEmail = "";
-  let resendRemaining = 0;
-  let resendTimer = null;
-  $("#delete-email").textContent = user.email || "";
   $("#open-delete-dialog").addEventListener("click", () => {
-    deleteOtpEmail = "";
     $("#delete-password").value = "";
-    $("#delete-otp").value = "";
-    $("#delete-request-step").hidden = false;
-    $("#delete-verify-step").hidden = true;
-    $("#send-delete-code").disabled = false;
+    $("#delete-confirmation").value = "";
     showMessage($("#delete-status"), "");
     dialog.showModal();
   });
-  $("#cancel-delete").addEventListener("click", () => { clearInterval(resendTimer); dialog.close(); });
-  dialog.addEventListener("click", event => { if (event.target === dialog) { clearInterval(resendTimer); dialog.close(); } });
-
-  function startResendCooldown() {
-    clearInterval(resendTimer);
-    resendRemaining = 60;
-    const button = $("#resend-delete-code");
-    button.disabled = true;
-    const tick = () => {
-      if (resendRemaining <= 0) { clearInterval(resendTimer); button.disabled = false; button.textContent = "Resend code"; return; }
-      button.textContent = `Resend code (${resendRemaining}s)`;
-      resendRemaining -= 1;
-    };
-    tick();
-    resendTimer = setInterval(tick, 1000);
-  }
-
-  async function sendDeletionCode(isResend = false) {
-    const button = isResend ? $("#resend-delete-code") : $("#send-delete-code");
-    if (isResend && resendRemaining > 0) return;
-    button.disabled = true;
-    showMessage($("#delete-status"), "Sending a confirmation code to your email…");
-    const { error } = await supabase.auth.signInWithOtp({ email: user.email, options: { shouldCreateUser: false } });
-    if (error) {
-      showMessage($("#delete-status"), error.message || "Could not send the confirmation code.");
-      button.disabled = false;
-      return;
-    }
-    deleteOtpEmail = user.email;
-    $("#delete-request-step").hidden = true;
-    $("#delete-verify-step").hidden = false;
-    showMessage($("#delete-status"), "A six-digit code has been sent. It expires after 10 minutes.", true);
-    startResendCooldown();
-  }
-  $("#send-delete-code").addEventListener("click", () => sendDeletionCode(false));
-  $("#resend-delete-code").addEventListener("click", () => sendDeletionCode(true));
+  $("#cancel-delete").addEventListener("click", () => dialog.close());
+  dialog.addEventListener("click", event => {
+    if (event.target === dialog) dialog.close();
+  });
 
   $("#delete-form").addEventListener("submit", async event => {
     event.preventDefault();
-    const token = $("#delete-otp").value.trim();
     const password = $("#delete-password").value;
+    const confirmation = $("#delete-confirmation").value.trim();
     if (!password) return showMessage($("#delete-status"), "Enter your current password.");
-    if (!deleteOtpEmail || !/^\d{6}$/.test(token)) return showMessage($("#delete-status"), "Enter the six-digit code sent to your email.");
+    if (confirmation !== "DELETE") return showMessage($("#delete-status"), 'Type DELETE exactly to confirm account deletion.');
+
     const submit = event.currentTarget.querySelector('button[type="submit"]');
-    submit.disabled = true; submit.textContent = "Verifying and deleting…";
-    showMessage($("#delete-status"), "Verifying your email code and current password…");
+    submit.disabled = true;
+    submit.textContent = "Verifying and deleting…";
+    showMessage($("#delete-status"), "Verifying your password…");
     try {
-      const { data, error } = await supabase.auth.verifyOtp({ email: deleteOtpEmail, token, type: "email" });
-      if (error || !data.session || data.user?.id !== user.id) throw new Error(error?.message || "The code could not be verified for this account. Request a new code.");
+      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !currentSession?.access_token) {
+        throw new Error("Your session has expired. Sign in again.");
+      }
       const response = await fetch("/api/delete-account", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` },
-        body: JSON.stringify({ password })
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${currentSession.access_token}`
+        },
+        body: JSON.stringify({ password, confirmation })
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || "Account deletion failed. Please try again.");
-      clearInterval(resendTimer);
       await supabase.auth.signOut({ scope: "local" });
       location.replace("./index.html?account=deleted");
     } catch (error) {
       showMessage($("#delete-status"), error.message || "Account deletion failed.");
-      submit.disabled = false; submit.textContent = "Verify password and code, then delete";
+      submit.disabled = false;
+      submit.textContent = "Permanently delete my account";
     }
   });
 
