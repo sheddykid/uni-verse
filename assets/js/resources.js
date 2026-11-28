@@ -24,9 +24,12 @@ async function loadPage() {
   let coursesQuery = supabase.from("courses")
     .select("id,code,title,course_departments!inner(department_id)")
     .eq("is_active", true);
-  if (profile.role !== "admin") {
-    coursesQuery = coursesQuery.eq("course_departments.department_id", profile.department_id);
+  if (!profile.department_id) {
+    results.textContent = "Your account has no department assigned. Contact an administrator.";
+    $("#result-count").textContent = "Unavailable";
+    return;
   }
+  coursesQuery = coursesQuery.eq("course_departments.department_id", profile.department_id);
   const { data: courseData, error: courseError } = await coursesQuery.order("code");
   if (courseError) {
     results.textContent = "Could not load your courses. Please refresh the page.";
