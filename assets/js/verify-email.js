@@ -14,7 +14,7 @@ function syncOtpDigits() {
 
 otpDigits.forEach((input, index) => {
   input.addEventListener("input", () => {
-    input.value = input.value.replace(/\\D/g, "").slice(-1);
+    input.value = input.value.replace(/\D/g, "").slice(-1);
     syncOtpDigits();
     if (input.value && index < otpDigits.length - 1) otpDigits[index + 1].focus();
   });
@@ -24,7 +24,7 @@ otpDigits.forEach((input, index) => {
     if (event.key === "ArrowRight" && index < otpDigits.length - 1) otpDigits[index + 1].focus();
   });
   input.addEventListener("paste", event => {
-    const pasted = (event.clipboardData?.getData("text") || "").replace(/\\D/g, "").slice(0, 6);
+    const pasted = (event.clipboardData?.getData("text") || "").replace(/\D/g, "").slice(0, 6);
     if (!pasted) return;
     event.preventDefault();
     otpDigits.forEach((digit, i) => digit.value = pasted[i] || "");
