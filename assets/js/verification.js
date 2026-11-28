@@ -15,6 +15,15 @@ if (session) {
     const submit = document.querySelector("#verification-submit");
     let previewUrl = null;
 
+    const uploadProgress = document.createElement("div");
+    uploadProgress.className = "upload-progress";
+    uploadProgress.hidden = true;
+    uploadProgress.setAttribute("role", "status");
+    uploadProgress.setAttribute("aria-live", "polite");
+    uploadProgress.innerHTML = '<div class="upload-progress-heading"><span>Preparing upload…</span><strong></strong></div><div class="upload-progress-track"><span class="indeterminate"></span></div>';
+    submit.before(uploadProgress);
+    const uploadProgressLabel = uploadProgress.querySelector(".upload-progress-heading span");
+
     function setMessage(value, success = false) {
       message.textContent = value;
       message.classList.toggle("success", success);
@@ -100,7 +109,9 @@ if (session) {
         return setMessage("Choose a JPG, PNG or WEBP image no larger than 5 MB.");
       }
       submit.disabled = true;
-      submit.textContent = "Submitting…";
+      submit.textContent = "Uploading…";
+      uploadProgress.hidden = false;
+      uploadProgressLabel.textContent = "Uploading your ID card securely…";
       setMessage("Uploading your ID card securely…");
       try {
         const previous = await loadRequests();
@@ -119,6 +130,7 @@ if (session) {
         });
         if (upload.error) throw upload.error;
 
+        uploadProgressLabel.textContent = "Publishing your verification request…";
         const inserted = await supabase.from("verification_requests")
           .insert({ user_id: user.id, file_path: filePath })
           .select("id")
@@ -128,6 +140,10 @@ if (session) {
           throw inserted.error;
         }
 
+        uploadProgress.querySelector(".upload-progress-heading strong").textContent = "100%";
+        uploadProgress.querySelector(".upload-progress-track span").classList.remove("indeterminate");
+        uploadProgress.querySelector(".upload-progress-track span").style.width = "100%";
+        uploadProgressLabel.textContent = "Upload complete";
         form.hidden = true;
         setMessage("");
         try {
@@ -142,6 +158,8 @@ if (session) {
         }
       } catch (error) {
         console.error("[UNI-VERSE verification submission]", error);
+        uploadProgressLabel.textContent = "Upload failed";
+        uploadProgress.classList.add("upload-progress-failed");
         setMessage(error.message || "Your ID card could not be submitted. Please try again.");
       } finally {
         submit.disabled = false;
