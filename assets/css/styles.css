@@ -893,3 +893,8 @@ html[data-theme="dark"] .settings-profile-item{background:var(--surface-soft)}
 /* Keep the registration terms checkbox left-aligned beside its text. */
 .terms-acceptance{display:flex;align-items:flex-start;justify-content:flex-start;gap:10px;text-align:left;font-weight:500;line-height:1.5}
 .terms-acceptance input[type=checkbox]{width:16px;height:16px;flex:0 0 16px;margin:2px 0 0;padding:0}
+
+
+/* Make the registration Terms and Conditions link clearly visible and clickable. */
+#register-form .terms-acceptance a.terms-link{display:inline!important;color:#5365e8!important;text-decoration:underline!important;text-underline-offset:3px!important;font-weight:700!important;cursor:pointer!important;pointer-events:auto!important}
+html[data-theme="dark"] #register-form .terms-acceptance a.terms-link{color:#9ba8ff!important}
