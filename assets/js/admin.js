@@ -307,8 +307,10 @@ if (session && session.profile.role !== "admin") {
           .upload(filePath, file, { contentType: mimeType, cacheControl: "3600", upsert: false });
   
         if (uploadError) {
+          resourceProgress.fail("Upload failed");
           showMessage(message, uploadError.message);
         } else {
+        resourceProgress.update("File uploaded · publishing resource details…", 85);
         const payload = {
           course_id: courseId,
           resource_type: resourceKind,
@@ -332,6 +334,7 @@ if (session && session.profile.role !== "admin") {
           } catch (error) {
             cleanupError = error;
           }
+          resourceProgress.fail("File uploaded, but publishing failed");
           showMessage(message, cleanupError
             ? insertError.message + " Storage cleanup also failed; orphaned file path: " + filePath + ". Cleanup error: " + (cleanupError.message || String(cleanupError))
             : insertError.message);
