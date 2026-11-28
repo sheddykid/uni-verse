@@ -35,11 +35,13 @@ document.querySelector("#register-form").addEventListener("submit", async event 
   const password = document.querySelector("#password").value;
   const confirm = document.querySelector("#confirm-password").value;
   const departmentId = departmentSelect.value;
+  const termsAccepted = document.querySelector("#terms-accepted").checked;
 
   if (password.length < 8) return showMessage(message, "Password must be at least 8 characters.");
   if (!hasRequiredPasswordCharacters(password)) return showMessage(message, "Include at least one lowercase letter, one uppercase letter, one number, and one special character.");
   if (password !== confirm) return showMessage(message, "Passwords do not match.");
   if (!departmentId) return showMessage(message, "Select your department.");
+  if (!termsAccepted) return showMessage(message, "You must accept the Terms and Conditions to register.");
 
   const button = event.currentTarget.querySelector('button[type="submit"]');
   button.disabled = true;
@@ -48,7 +50,7 @@ document.querySelector("#register-form").addEventListener("submit", async event 
     email,
     password,
     options: {
-      data: { full_name: name, matric_number: matric, department_id: departmentId }
+      data: { full_name: name, matric_number: matric, department_id: departmentId, verification_terms_accepted: true }
     }
   });
   if (error) {
