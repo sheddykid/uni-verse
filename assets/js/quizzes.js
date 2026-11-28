@@ -12,11 +12,10 @@ if (location.hostname.endsWith("github.io")) {
     $("#user-label").textContent = profile.full_name || user.email;
     const courseSelect = $("#course-select"), notesList = $("#notes-list"), generateButton = $("#generate");
     let notes = [], activeResourceIds = [], questions = [], course = null, quizMode = "mcq", quizSessionId = null;
-    const courseQuery = supabase.from("courses").select("id,code,title,course_departments!inner(department_id)").eq("is_active", true);
     if (!profile.department_id) {
       setStatus("Your account has no department assigned. Contact an administrator.");
-      return;
-    }
+    } else {
+    const courseQuery = supabase.from("courses").select("id,code,title,course_departments!inner(department_id)").eq("is_active", true);
     courseQuery.eq("course_departments.department_id", profile.department_id);
     const { data: courses, error: courseError } = await courseQuery.order("code");
     courseSelect.replaceChildren(new Option(courseError ? "Could not load courses" : "Select a course", ""));
@@ -201,5 +200,6 @@ results.scrollIntoView({behavior:"smooth",block:"start"});
     }
     function setStatus(message,success=false) { $("#status").textContent=message; $("#status").classList.toggle("success",success); }
     function formatSize(bytes) { if(!bytes)return "Size unknown"; return bytes<1048576?`${Math.round(bytes/1024)} KB`:`${(bytes/1048576).toFixed(1)} MB`; }
+    }
   }
 }
